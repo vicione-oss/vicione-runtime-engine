@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.DataModel.Extensions;
 using ViciOne.Core.Contracts.DataModel.Filters;
@@ -11,7 +12,7 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-public sealed class RuntimeEngine : IRuntimeEngine
+public sealed partial class RuntimeEngine : IRuntimeEngine
 {
     private RuntimeFunctionBlockProcessor? _blockProcessor;
     private CommunicationProcessor? _communicationProcessor;
@@ -189,7 +190,7 @@ public sealed class RuntimeEngine : IRuntimeEngine
     }
 
     private RuntimeFunctionBlockProcessor InitializeBlockProcessor(IRuntimeFunctionBlock[] runtimeFunctionBlocks, LinkCache linkCache)
-        => new(runtimeFunctionBlocks, linkCache, UniqueNameProvider, _logger);
+        => new(runtimeFunctionBlocks, linkCache, UniqueNameProvider, _logger, Dataflow.Id);
 
     private CommunicationProcessor? InitializeCommunicationProcessor(LinkCache linkCache)
         => CommunicationManager is not null
@@ -198,6 +199,8 @@ public sealed class RuntimeEngine : IRuntimeEngine
 
     private bool InitializeInstances(IEnumerable<IRuntimeDriver> runtimeDrivers, IEnumerable<IRuntimeFunctionBlock> runtimeFunctionBlocks)
     {
+        using Activity? initializeInstancesActivity = Telemetry.StartForInitializeInstances(Dataflow.Id, runtimeDrivers.Count(), runtimeFunctionBlocks.Count());
+
         if (RuntimeDriverInitializer.Default.InitializeInstancesI(runtimeDrivers, UniqueNameProvider, _logger).FailedDrivers.Any())
             return false;
 
@@ -237,6 +240,8 @@ public sealed class RuntimeEngine : IRuntimeEngine
 
     public ICycleInfo ProcessCycle()
     {
+        using Activity? cycleActivity = Telemetry.StartForProcessCycle(Dataflow.Id);
+
         if (State == EngineState.Starting)
             ChangeState(EngineState.Running);
         else if (State != EngineState.Running)
@@ -259,7 +264,10 @@ public sealed class RuntimeEngine : IRuntimeEngine
 
         _isProcessing = false;
         CycleInfo finishedInfo = CreateCycleInfo(cycleNo, DateTime.UtcNow);
+
+        Telemetry.AppendCycleNumber(cycleActivity, cycleNo);
         RaiseCycleFinished(finishedInfo);
+
         return finishedInfo;
     }
 

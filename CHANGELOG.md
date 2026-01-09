@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.52.0
+
+### Added
+
+- Support for tracing and metrics
+
 ## 0.51.0
 
 ### Changed
