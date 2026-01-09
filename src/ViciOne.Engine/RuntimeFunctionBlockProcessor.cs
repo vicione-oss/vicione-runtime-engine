@@ -112,7 +112,7 @@ internal sealed partial class RuntimeFunctionBlockProcessor : IDisposable
             {
                 using Activity? processInputsTelemetryActivity = Telemetry.StartForProcessInputs();
 
-                ProcessInputs(runtimeBlock, cycleInfo, poolingValidator, cloneHandler, interceptor);
+                ProcessInputs(runtimeBlock, poolingValidator, cloneHandler, interceptor);
             }
 
             // TODO: falls ein Block selbst eine Einstellung ändert, wird ProcessSettings nicht aufgerufen und damit auch das SettingsChanged-Event nicht geworfen
@@ -147,7 +147,7 @@ internal sealed partial class RuntimeFunctionBlockProcessor : IDisposable
         CycleNo++;
     }
 
-    private void ProcessInputs(IRuntimeFunctionBlock runtimeBlock, FunctionBlockCycleInfo cycleInfo, IPoolingValidator poolingValidator, IReferenceTypeCloneHandler? cloneHandler, IConnectorValueTransferInterceptor interceptor)
+    private void ProcessInputs(IRuntimeFunctionBlock runtimeBlock, IPoolingValidator poolingValidator, IReferenceTypeCloneHandler? cloneHandler, IConnectorValueTransferInterceptor interceptor)
     {
         bool anyInputChanged = false;
         bool initialChanged;
@@ -167,11 +167,6 @@ internal sealed partial class RuntimeFunctionBlockProcessor : IDisposable
                     group.Connector.Connector.Id, _uniqueNameProvider.GetUniqueName(group.Connector.Connector), runtimeBlock.FunctionBlock.Id,
                     _uniqueNameProvider.GetUniqueName(runtimeBlock.FunctionBlock), runtimeBlock.FunctionBlock.Design.Namespace, runtimeBlock.FunctionBlock.Design.Name);
             }
-
-            if (cycleInfo.IsFirstCycle)
-                // im ersten Lauf sollen alle Inputs Changed==true sein
-                // TODO: evtl. vom Standardwert abhängig machen?
-                group.Connector.MarkAsChanged();
 
             anyInputChanged |= group.Connector.Changed;
 
@@ -221,12 +216,6 @@ internal sealed partial class RuntimeFunctionBlockProcessor : IDisposable
     {
         try
         {
-            if (cycleInfo.IsFirstCycle)
-                // im ersten Lauf sollen alle Einstellungen Changed==true sein
-                // TODO: evtl. vom Standardwert abhängig machen?
-                foreach (IRuntimeSetting setting in runtimeBlock.Settings)
-                    setting.MarkAsChanged();
-
             runtimeBlock.Settings.Process(cycleInfo);
         }
         catch (Exception ex)
