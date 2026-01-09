@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ZeroMQDemo": {
+      "commandName": "Project",
+      "commandLineArgs": "12345"
+    }
+  }
+}

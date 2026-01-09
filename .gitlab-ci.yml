@@ -1,0 +1,184 @@
+include:
+  - project: 'acx/tooling/templates'
+    file: '/CI-Templates/v2/dotnet.yml'
+  - project: 'acx/tooling/ci-templates'
+    file: '/project/v1/dotnet.yml'
+
+default:
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+
+Build:
+  extends: .dotnet-build
+
+xUnit:
+  extends: .dotnet-test-xunit
+
+### Deploy ###
+
+Prerelease DefaultPoolings Raw:
+  extends: .dotnet-deploy-raw-rids
+  variables:
+    SERVER: 'https://ifm.jfrog.io/artifactory/vicione-suite-dev'
+    USER: ${Raw_User_RW_JFrog}
+    PASSWORD: ${Raw_PW_RW_JFrog}
+    PROJECT: 'src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj'
+    DST_DIRECTORY: 'fbs/ViciOne.Engine.DefaultPoolings'
+    METADATA_FILE: 'src/ViciOne.Engine.DefaultPoolings/metadata.json'
+    METADATA_VERSION_FILE: 'VERSION'
+    METADATA_MIN_VERSION_FILE: 'VERSION'
+    METADATA_MIN_VERSION_KEY: 'MinCoreVersion'
+  after_script:
+    - !reference [.push-metadata]
+
+Deploy NuGet FunctionBlockDesignGenerator:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/FunctionBlockDesignGenerator/FunctionBlockDesignGenerator.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet FunctionBlockExecutor:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/FunctionBlockExecutor/FunctionBlockExecutor.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet Core.Contracts:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Contracts/ViciOne.Core.Contracts.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet Core.Dataflow:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Dataflow/ViciOne.Core.Dataflow.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet Core.Dataflow.DataModel.Generation:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Dataflow.DataModel.Generation/ViciOne.Core.Dataflow.DataModel.Generation.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet Core.Runtime:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Runtime/ViciOne.Core.Runtime.csproj'
+    REPO: 'JFrogViciOne'
+    
+Deploy NuGet Core.Runtime.Execution:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Runtime.Execution/ViciOne.Core.Runtime.Execution.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet Engine:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Engine/ViciOne.Engine.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet Engine.DefaultPoolings:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet Engine.DefaultValidators:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Engine.DefaultValidators/ViciOne.Engine.DefaultValidators.csproj'
+    REPO: 'JFrogViciOne'
+
+Deploy NuGet Serialization.Json:
+  extends: .dotnet-deploy-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Serialization.Json/ViciOne.Serialization.Json.csproj'
+    REPO: 'JFrogViciOne'
+
+### Release ###
+
+Release DefaultPoolings Raw:
+  extends: .dotnet-release-raw-rids
+  variables:
+    SERVER: 'https://ifm.jfrog.io/artifactory/vicione-suite-staging'
+    USER: ${Raw_User_RW_JFrog}
+    PASSWORD: ${Raw_PW_RW_JFrog}
+    PROJECT: 'src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj'
+    DST_DIRECTORY: 'fbs/ViciOne.Engine.DefaultPoolings'
+    METADATA_FILE: 'src/ViciOne.Engine.DefaultPoolings/metadata.json'
+    METADATA_VERSION_FILE: 'VERSION'
+    METADATA_MIN_VERSION_FILE: 'VERSION'
+    METADATA_MIN_VERSION_KEY: 'MinCoreVersion'
+  after_script:
+    - !reference [.push-metadata]
+
+Release NuGet FunctionBlockDesignGenerator:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/FunctionBlockDesignGenerator/FunctionBlockDesignGenerator.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet FunctionBlockExecutor:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/FunctionBlockExecutor/FunctionBlockExecutor.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet Core.Contracts:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Contracts/ViciOne.Core.Contracts.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet Core.Dataflow:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Dataflow/ViciOne.Core.Dataflow.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet Core.Dataflow.DataModel.Generation:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Dataflow.DataModel.Generation/ViciOne.Core.Dataflow.DataModel.Generation.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet Core.Runtime:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Runtime/ViciOne.Core.Runtime.csproj'
+    REPO: 'JFrogViciOne'
+    
+Release NuGet Core.Runtime.Execution:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Core.Runtime.Execution/ViciOne.Core.Runtime.Execution.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet Engine:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Engine/ViciOne.Engine.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet Engine.DefaultPoolings:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet Engine.DefaultValidators:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Engine.DefaultValidators/ViciOne.Engine.DefaultValidators.csproj'
+    REPO: 'JFrogViciOne'
+
+Release NuGet Serialization.Json:
+  extends: .dotnet-release-nuget
+  variables:
+    PROJECT: 'src/ViciOne.Serialization.Json/ViciOne.Serialization.Json.csproj'
+    REPO: 'JFrogViciOne'
+
+### Public Release ###
+Public Release DefaultPoolings Raw:
+  extends: .dotnet-release-public

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RuntimeDemo": {
+      "commandName": "Project",
+      "commandLineArgs": "\"$(SolutionDir)artifacts\\dataflow1.json\" \"$(SolutionDir)artifacts\\fb-dlls\" \"$(SolutionDir)artifacts\\persistedsettings.json\" \"$(SolutionDir)artifacts\\persistedvariables.json\" \"$(SolutionDir)artifacts\\communication\" 1"
+    }
+  }
+}

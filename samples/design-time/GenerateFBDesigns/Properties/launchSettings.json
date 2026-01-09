@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "GenerateFBDesigns": {
+      "commandName": "Project",
+      "commandLineArgs": "\"$(SolutionDir)artifacts\\fb-dlls\""
+    }
+  }
+}

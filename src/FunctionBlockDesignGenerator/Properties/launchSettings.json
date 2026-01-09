@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FunctionBlockDesignGenerator": {
+      "commandName": "Project",
+      "commandLineArgs": "-i \"..\\..\\..\\..\\..\\artifacts\\fb-dlls\\Demo.ComplexTypeDemo.dll\" -o \"..\\..\\..\\..\\..\\artifacts\\fb-designs\" -p \"..\\..\\..\\..\\..\\artifacts\\poolings\" \"..\\..\\..\\..\\..\\artifacts\\validators\""
+    }
+  }
+}

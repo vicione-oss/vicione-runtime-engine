@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ViciOne.Core.Dataflow.DataModel.Generation\ViciOne.Core.Dataflow.DataModel.Generation.csproj" />
+    <ProjectReference Include="..\ViciOne.Engine.DefaultPoolings\ViciOne.Engine.DefaultPoolings.csproj" />
+    <ProjectReference Include="..\ViciOne.Engine\ViciOne.Engine.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\ViciOne.Core.Dataflow.DataModel.Generation\ViciOne.Core.Dataflow.DataModel.Generation.csproj" />
+    <ProjectReference Include="..\..\..\src\ViciOne.Engine.DefaultPoolings\ViciOne.Engine.DefaultPoolings.csproj" />
+    <ProjectReference Include="..\..\..\src\ViciOne.Engine.DefaultValidators\ViciOne.Engine.DefaultValidators.csproj" />
+  </ItemGroup>
+
+</Project>

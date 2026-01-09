@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FunctionBlockExecutor": {
+      "commandName": "Project",
+      "commandLineArgs": "\"$(SolutionDir)artifacts\\fb-dlls\\Numeric.Incrementor.dll\""
+    }
+  }
+}

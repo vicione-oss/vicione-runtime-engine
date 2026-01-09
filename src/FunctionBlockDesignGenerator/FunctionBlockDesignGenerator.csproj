@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ViciOne.Core.Dataflow.DataModel.Generation\ViciOne.Core.Dataflow.DataModel.Generation.csproj" />
+    <ProjectReference Include="..\ViciOne.Serialization.Json\ViciOne.Serialization.Json.csproj" />
+  </ItemGroup>
+
+</Project>

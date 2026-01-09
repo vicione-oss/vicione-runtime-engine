@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\ViciOne.Core.Runtime\ViciOne.Core.Runtime.csproj">
+      <Private>False</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FilesToCopy Include="$(TargetPath)"/>
+  </ItemGroup>
+
+  <Target Name="CopyFiles" AfterTargets="PostBuildEvent" Condition="'$(CI)' == ''">
+    <Copy
+        SourceFiles="@(FilesToCopy)"
+        DestinationFolder="$(ProjectDir)..\..\..\..\artifacts\fb-dlls\"
+        />
+  </Target>
+
+</Project>

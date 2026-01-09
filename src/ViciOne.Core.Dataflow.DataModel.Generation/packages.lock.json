@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net9.0": {
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "9.0.7",
+        "contentHash": "iPK1FxbGFr2Xb+4Y+dTYI8Gupu9pOi8I3JPuPsrogUmEhe2hzZ9LpCmolMEBhVDo2ikcSr7G5zYiwaapHSQTew=="
+      },
+      "vicione.core.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "[9.0.7, )"
+        }
+      },
+      "vicione.core.dataflow": {
+        "type": "Project",
+        "dependencies": {
+          "FastCloner": "[3.3.10, )",
+          "ViciOne.Core.Contracts": "[0.51.0, )"
+        }
+      },
+      "vicione.core.runtime": {
+        "type": "Project",
+        "dependencies": {
+          "ViciOne.Core.Contracts": "[0.51.0, )"
+        }
+      },
+      "vicione.engine.defaultvalidators": {
+        "type": "Project",
+        "dependencies": {
+          "ViciOne.Core.Runtime": "[0.51.0, )"
+        }
+      },
+      "FastCloner": {
+        "type": "CentralTransitive",
+        "requested": "[3.3.10, )",
+        "resolved": "3.3.10",
+        "contentHash": "3Qw0IlWqsfNHep1ryRSW3J3mSz9fPOktHiinESThg9RVQTIH0FfVNoiDnSp7/byINOpSVUVAUuFAFqUxokm7BA=="
+      },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "CentralTransitive",
+        "requested": "[9.0.7, )",
+        "resolved": "9.0.7",
+        "contentHash": "sMM6NEAdUTE/elJ2wqjOi0iBWqZmSyaTByLF9e8XHv6DRJFFnOe0N+s8Uc6C91E4SboQCfLswaBIZ+9ZXA98AA==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.7"
+        }
+      }
+    },
+    "net9.0/linux-arm64": {},
+    "net9.0/linux-x64": {},
+    "net9.0/win-x64": {}
+  }
+}

@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ViciOne.Core.Dataflow\ViciOne.Core.Dataflow.csproj" />
+    <ProjectReference Include="..\ViciOne.Engine.DefaultValidators\ViciOne.Engine.DefaultValidators.csproj" />
+  </ItemGroup>
+
+</Project>

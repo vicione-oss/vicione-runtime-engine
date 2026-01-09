@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ViciOne.Core.Runtime\ViciOne.Core.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FilesToCopy Include="$(TargetPath)" />
+  </ItemGroup>
+
+  <Target Name="CopyFiles" AfterTargets="PostBuildEvent" Condition="'$(CI)' == ''">
+    <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(ProjectDir)..\..\artifacts\validators\" />
+  </Target>
+
+</Project>

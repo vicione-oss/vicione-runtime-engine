@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ScaleUpSample": {
+      "commandName": "Project",
+      "commandLineArgs": "\"$(SolutionDir)artifacts\\dataflow1.json\" \"$(SolutionDir)artifacts\\fb-dlls\" 500 128"
+    }
+  }
+}
