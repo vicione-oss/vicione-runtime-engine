@@ -61,7 +61,7 @@ internal sealed partial class RuntimeFunctionBlockProcessor : IDisposable
     {
         switch (block.RunMode)
         {
-            case RunMode.Change: return block.GetAndResetChanged();
+            case RunMode.Change: return block.GetAndResetChanged() || cycleInfo.IsFirstCycle;
             case RunMode.Cyclic: return cycleInfo.IsFirstCycle || CycleNo - cycleInfo.LastProcessedCycleNo >= block.CycleFrequency;
             default:
                 _logger.FunctionBlockRunModeNotImplemented(block.FunctionBlock.Id, _uniqueNameProvider.GetUniqueName(block.FunctionBlock),
