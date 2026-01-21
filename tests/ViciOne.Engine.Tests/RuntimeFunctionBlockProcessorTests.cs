@@ -123,94 +123,6 @@ public class RuntimeFunctionBlockProcessorTests
         }
 
         [Fact]
-        public void SetsConnectorChangedOnFirstCycle()
-        {
-            var input = Substitute.For<IConnector, IConnector<int>, IPoolable>();
-            var runtimeInput = Substitute.For<IRuntimeConnector, IRuntimeConnector<int>>();
-            runtimeInput.Connector.Returns(input);
-            ((IRuntimeConnector<int>)runtimeInput).Connector.Returns(input);
-            var block = Substitute.For<IFunctionBlock>();
-            block.ProcessDataInputs.Returns([input]);
-            var runtimeBlock = Substitute.For<IRuntimeFunctionBlock>();
-            runtimeBlock.FunctionBlock.Returns(block);
-            runtimeBlock.ProcessDataInputs.Returns([runtimeInput]);
-            IRuntimeFunctionBlock[] blocks = [runtimeBlock];
-            var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
-            var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
-            var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
-            using var interceptor = new DefaultConnectorValueTransferInterceptor();
-
-            processor.ProcessBlocks(validator, null, interceptor);
-
-            runtimeInput.Received().MarkAsChanged();
-        }
-
-        [Fact]
-        public void SetsSettingChangedOnFirstCycle()
-        {
-            var setting = Substitute.For<ISetting, ISetting<int>>();
-            var runtimeSetting = Substitute.For<IRuntimeSetting, IRuntimeSetting<int>>();
-            runtimeSetting.Setting.Returns(setting);
-            var runtimeSettings = Substitute.For<IRuntimeSettings>();
-            var list = new List<IRuntimeSetting>() { runtimeSetting };
-            runtimeSettings.GetEnumerator().Returns(list.GetEnumerator());
-            ((IEnumerable)runtimeSettings).GetEnumerator().Returns(list.GetEnumerator());
-            var block = Substitute.For<IFunctionBlock>();
-            block.Settings.Returns([setting]);
-            var runtimeBlock = Substitute.For<IRuntimeFunctionBlock>();
-            runtimeBlock.FunctionBlock.Returns(block);
-            runtimeBlock.Settings.Returns(runtimeSettings);
-            IRuntimeFunctionBlock[] blocks = [runtimeBlock];
-            var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
-            var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
-            var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
-            using var interceptor = new DefaultConnectorValueTransferInterceptor();
-
-            processor.ProcessBlocks(validator, null, interceptor);
-
-            runtimeSetting.Received().MarkAsChanged();
-        }
-
-        [Fact]
-        public void SetsSettingChangedOnFirstCycleBeforeProcessingSettings()
-        {
-            // Damit RuntimeFunctionBlock<...>.OnSettingsChanged() gerufen wird,
-            // muss die Einstellung als geändert markiert werden BEVOR Settings.Process(...) aufgerufen wird.
-
-            var setting = Substitute.For<ISetting, ISetting<int>>();
-            var runtimeSetting = Substitute.For<IRuntimeSetting, IRuntimeSetting<int>>();
-            runtimeSetting.Setting.Returns(setting);
-            var runtimeSettings = Substitute.For<IRuntimeSettings>();
-            var list = new List<IRuntimeSetting>() { runtimeSetting };
-            runtimeSettings.GetEnumerator().Returns(list.GetEnumerator());
-            ((IEnumerable)runtimeSettings).GetEnumerator().Returns(list.GetEnumerator());
-            var block = Substitute.For<IFunctionBlock>();
-            block.Settings.Returns([setting]);
-            var runtimeBlock = Substitute.For<IRuntimeFunctionBlock>();
-            runtimeBlock.FunctionBlock.Returns(block);
-            runtimeBlock.Settings.Returns(runtimeSettings);
-            IRuntimeFunctionBlock[] blocks = [runtimeBlock];
-            var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
-            var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
-            var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
-            using var interceptor = new DefaultConnectorValueTransferInterceptor();
-
-            processor.ProcessBlocks(validator, null, interceptor);
-
-            Received.InOrder(() =>
-            {
-                runtimeSetting.MarkAsChanged();
-                runtimeSettings.Process(Arg.Any<IFunctionBlockCycleInfo>());
-            });
-        }
-
-        [Fact]
         public void PoolsInputLinkGroupWhenLinkIsChanged()
         {
             var input = Substitute.For<IConnector<int>, IConnector, IPoolable>();
@@ -559,6 +471,10 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
+            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            processor.ProcessBlocks(validator, null, interceptor);
+            runtimeBlock1.ClearReceivedCalls();
+            runtimeBlock2.ClearReceivedCalls();
 
             processor.ProcessBlocks(validator, null, interceptor);
 
@@ -581,11 +497,41 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
+            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            processor.ProcessBlocks(validator, null, interceptor);
+            runtimeBlock.ClearReceivedCalls();
 
             for (var i = 0; i < 10; i++)
                 processor.ProcessBlocks(validator, null, interceptor);
 
             runtimeBlock.ReceivedWithAnyArgs(5).ProcessCycle(Arg.Any<IFunctionBlockCycleInfo>());
+        }
+
+        [Fact]
+        public void ProcessesAllBlocksInFirstCycle()
+        {
+            var block1 = Substitute.For<IFunctionBlock>();
+            var block2 = Substitute.For<IFunctionBlock>();
+            var runtimeBlock1 = Substitute.For<IRuntimeFunctionBlock>();
+            var runtimeBlock2 = Substitute.For<IRuntimeFunctionBlock>();
+            runtimeBlock1.FunctionBlock.Returns(block1);
+            runtimeBlock2.FunctionBlock.Returns(block2);
+            runtimeBlock1.RunMode.Returns(RunMode.Change);
+            runtimeBlock2.RunMode.Returns(RunMode.Cyclic);
+            runtimeBlock1.GetAndResetChanged().Returns(false);
+            runtimeBlock2.CycleFrequency.Returns((uint)1234);
+            IRuntimeFunctionBlock[] blocks = [runtimeBlock1, runtimeBlock2];
+            var validator = Substitute.For<IPoolingValidator>();
+            using var linkCache = new LinkCache(blocks, [], () => validator);
+            var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
+            var logger = Substitute.For<ILogger>();
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
+            using var interceptor = new DefaultConnectorValueTransferInterceptor();
+
+            processor.ProcessBlocks(validator, null, interceptor);
+
+            runtimeBlock1.ReceivedWithAnyArgs().ProcessCycle(Arg.Any<IFunctionBlockCycleInfo>());
+            runtimeBlock2.ReceivedWithAnyArgs().ProcessCycle(Arg.Any<IFunctionBlockCycleInfo>());
         }
 
         [Fact]
@@ -820,6 +766,10 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
+            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            processor.ProcessBlocks(validator, null, interceptor);
+            runtimeBlock.ClearReceivedCalls();
+            runtimeLink.ClearReceivedCalls();
 
             processor.ProcessBlocks(validator, null, interceptor);
 

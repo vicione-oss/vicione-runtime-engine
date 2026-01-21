@@ -276,7 +276,7 @@ public class RuntimeEngineTests : IDisposable
 
             void Engine_CycleStarted(object? sender, ICycleInfo e)
                 => waitForForCycleStartedWaitHandle.Set();
-            void RealBlock_ProcessCalled(object? sender, EventArgs e)
+            void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
                 => cycleWaitHandle.WaitOne(1000);
         }
 
@@ -332,19 +332,24 @@ public class RuntimeEngineTests : IDisposable
             engine.ReferenceTypeCloneHandler = new IntReturningCloneHandler(expectedValue);
             engine.UseReferenceTypeCloneHandlerForLinks = true;
             engine.Start();
-            engine.ProcessCycle();
             RealBlock.ProcessCalled += RealBlock_ProcessCalled;
+            engine.ProcessCycle();
 
             engine.ProcessCycle();
             RealBlock.ProcessCalled -= RealBlock_ProcessCalled;
 
             receivedValue.Should().Be(expectedValue);
 
-            void RealBlock_ProcessCalled(object? sender, EventArgs e)
+            void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
             {
                 var runtimeBlock = (RealBlock)sender!;
                 if (runtimeBlock.FunctionBlock == block)
-                    receivedValue = (int)runtimeBlock.SettingsInputs.First().Value!;
+                {
+                    if (e.IsFirstCycle)
+                        ((RuntimeSetting<int>)runtimeBlock.Settings.First()).SetValueIfNotEqual(666);
+                    else
+                        receivedValue = (int)runtimeBlock.SettingsInputs.First().Value!;
+                }
             }
         }
 
@@ -367,19 +372,24 @@ public class RuntimeEngineTests : IDisposable
             engine.ReferenceTypeCloneHandler = new IntReturningCloneHandler(notExpectedValue);
             engine.UseReferenceTypeCloneHandlerForLinks = false;
             engine.Start();
-            engine.ProcessCycle();
             RealBlock.ProcessCalled += RealBlock_ProcessCalled;
+            engine.ProcessCycle();
 
             engine.ProcessCycle();
             RealBlock.ProcessCalled -= RealBlock_ProcessCalled;
 
             receivedValue.Should().NotBeNull().And.NotBe(notExpectedValue);
 
-            void RealBlock_ProcessCalled(object? sender, EventArgs e)
+            void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
             {
                 var runtimeBlock = (RealBlock)sender!;
                 if (runtimeBlock.FunctionBlock == block)
-                    receivedValue = (int)runtimeBlock.SettingsInputs.First().Value!;
+                {
+                    if (e.IsFirstCycle)
+                        ((RuntimeSetting<int>)runtimeBlock.Settings.First()).SetValueIfNotEqual(666);
+                    else
+                        receivedValue = (int)runtimeBlock.SettingsInputs.First().Value!;
+                }
             }
         }
 
@@ -428,7 +438,7 @@ public class RuntimeEngineTests : IDisposable
                 .Persist(Arg.Is<IEnumerable<IPersistenceEntry>>(entries => entries
                     .Any(entry => entry.Id == setting.Id)));
 
-            void RealBlock_ProcessCalled(object? sender, EventArgs e)
+            void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
             {
                 var runtimeBlock = (RealBlock)sender!;
                 if (runtimeBlock.FunctionBlock == block)
@@ -455,7 +465,7 @@ public class RuntimeEngineTests : IDisposable
                 .Persist(Arg.Is<IEnumerable<IPersistenceEntry>>(entries => entries
                     .Any(entry => entry.Id == persistentVariable.Id)));
 
-            void RealBlock_ProcessCalled(object? sender, EventArgs e)
+            void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
             {
                 var runtimeBlock = (RealBlock)sender!;
                 if (runtimeBlock.FunctionBlock == block)
@@ -976,7 +986,7 @@ public class RuntimeEngineTests : IDisposable
 
             void Engine_CycleStarted(object? sender, ICycleInfo e)
                 => waitForForCycleStartedWaitHandle.Set();
-            void RealBlock_ProcessCalled(object? sender, EventArgs e)
+            void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
                 => cycleWaitHandle.WaitOne(100);
             void RealBlock_DisposeCalled(object? sender, EventArgs e)
                 => blockDisposedTime = DateTime.UtcNow;
@@ -1115,7 +1125,7 @@ namespace RealBlocks_EngineTests
     {
         public static event EventHandler? DisposeCalled;
         public static event EventHandler? InitializeIICalled;
-        public static event EventHandler? ProcessCalled;
+        public static event EventHandler<IFunctionBlockCycleInfo>? ProcessCalled;
 
         protected override void Dispose(bool disposing)
         {
@@ -1138,7 +1148,7 @@ namespace RealBlocks_EngineTests
         protected override void ProcessCycle(IFunctionBlockCycleInfo cycleInfo)
         {
             base.ProcessCycle(cycleInfo);
-            ProcessCalled?.Invoke(this, EventArgs.Empty);
+            ProcessCalled?.Invoke(this, cycleInfo);
         }
     }
 
