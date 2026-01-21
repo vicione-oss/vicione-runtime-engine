@@ -75,7 +75,7 @@ public class FunctionBlockDesignEditorTests
             editor.Design.SystemOutputs.Should()
                 .Contain(x => x.Name == SystemConnectorNames.FunctionBlockEnabledName)
                 .Which.DefaultValue.Should().BeOfType<bool>()
-                .Which.Should().BeFalse();
+                .Which.Should().BeTrue();
         }
 
         [Fact]

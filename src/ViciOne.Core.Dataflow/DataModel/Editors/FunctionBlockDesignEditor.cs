@@ -81,7 +81,7 @@ public class FunctionBlockDesignEditor
         fbEnabledInputDesign.Name = SystemConnectorNames.FunctionBlockEnabledName;
 
         ConnectorDesignOutput<bool> fbEnabledOutputDesign = new ConnectorDesignOutputEditor<bool>("dummy").Design;
-        fbEnabledOutputDesign.DefaultValue = false;
+        fbEnabledOutputDesign.DefaultValue = true;
         fbEnabledOutputDesign.Name = SystemConnectorNames.FunctionBlockEnabledName;
 
         var fbDesign = new FunctionBlockDesign
