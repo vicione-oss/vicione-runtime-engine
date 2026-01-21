@@ -48,61 +48,6 @@ public class RuntimeFunctionBlockProcessorTests
         }
     }
 
-    public class GetAndResetChangedConnectors
-    {
-        [Fact]
-        public void GetsChangedConnectors()
-        {
-            var (linkCache, processor, changedConnectors) = CreateProcessorWithChangedConnector();
-
-            var changed = processor.GetAndResetChangedConnectors();
-
-            changed.Should().ContainAllButNotMore(changedConnectors);
-            linkCache.Dispose();
-        }
-
-        [Fact]
-        public void ResetsChangedConnectors()
-        {
-            var (linkCache, processor, _) = CreateProcessorWithChangedConnector();
-
-            _ = processor.GetAndResetChangedConnectors();
-            var changed2 = processor.GetAndResetChangedConnectors();
-
-            changed2.Should().BeEmpty();
-            linkCache.Dispose();
-        }
-
-        private static (LinkCache LinkCache, RuntimeFunctionBlockProcessor Processor, IEnumerable<IRuntimeConnector> ChangedConnectors) CreateProcessorWithChangedConnector()
-        {
-            var input = Substitute.For<IConnector, IConnector<int>, IPoolable>();
-            var runtimeInput = Substitute.For<IRuntimeConnector, IRuntimeConnector<int>>();
-            runtimeInput.Connector.Returns(input);
-            ((IRuntimeConnector<int>)runtimeInput).Connector.Returns(input);
-            runtimeInput
-                .WhenForAnyArgs(x => x.MarkAsChanged())
-                .Do(_ =>
-                {
-                    runtimeInput.Changed.Returns(true);
-                    runtimeInput.GetAndResetChanged().ReturnsForAnyArgs(true);
-                });
-            var block = Substitute.For<IFunctionBlock>();
-            block.ProcessDataInputs.Returns([input]);
-            var runtimeBlock = Substitute.For<IRuntimeFunctionBlock>();
-            runtimeBlock.FunctionBlock.Returns(block);
-            runtimeBlock.ProcessDataInputs.Returns([runtimeInput]);
-            IRuntimeFunctionBlock[] blocks = [runtimeBlock];
-            var validator = Substitute.For<IPoolingValidator>();
-            var linkCache = new LinkCache(blocks, [], () => validator);
-            var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
-            var logger = Substitute.For<ILogger>();
-            var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
-            using var interceptor = new DefaultConnectorValueTransferInterceptor();
-            processor.ProcessBlocks(validator, null, interceptor);
-            return (linkCache, processor, [runtimeInput]);
-        }
-    }
-
     public class ProcessBlocks
     {
         [Fact]

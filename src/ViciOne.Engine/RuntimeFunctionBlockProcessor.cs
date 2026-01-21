@@ -50,13 +50,6 @@ internal sealed partial class RuntimeFunctionBlockProcessor : IDisposable
         _disposed = true;
     }
 
-    public IEnumerable<IRuntimeConnector> GetAndResetChangedConnectors()
-    {
-        var changedConnectorsCopy = _changedConnectors.ToList();
-        _changedConnectors.Clear();
-        return changedConnectorsCopy;
-    }
-
     private bool GetBlockMustBeProcessed(IRuntimeFunctionBlock block, FunctionBlockCycleInfo cycleInfo)
     {
         switch (block.RunMode)
