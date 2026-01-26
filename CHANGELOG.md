@@ -6,6 +6,11 @@
 
 - Support for tracing and metrics
 
+### Changed
+
+- Mark inputs and settings no longer as changed on start
+- Execute all blocks in first cycle
+
 ## 0.51.0
 
 ### Changed

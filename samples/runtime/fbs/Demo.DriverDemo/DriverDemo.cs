@@ -1,4 +1,5 @@
 ﻿using System;
+using ViciOne.Core.Contracts.Runtime;
 
 namespace Demo;
 
@@ -29,6 +30,12 @@ public partial class DriverDemo
     {
         base.OnFunctionBlockEnabledChanged();
         PublishTime();
+    }
+
+    protected override void ProcessCycle(IFunctionBlockCycleInfo cycleInfo)
+    {
+        if (cycleInfo.IsFirstCycle)
+            PublishTime();
     }
 
     private void PublishTime()
