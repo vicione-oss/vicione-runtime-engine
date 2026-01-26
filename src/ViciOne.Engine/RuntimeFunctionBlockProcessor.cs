@@ -1,31 +1,35 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.Runtime;
 using ViciOne.Core.Contracts.Runtime.Extensions;
 
 namespace ViciOne.Engine;
 
-internal sealed class RuntimeFunctionBlockProcessor : IDisposable
+internal sealed partial class RuntimeFunctionBlockProcessor : IDisposable
 {
     private readonly HashSet<IRuntimeConnector> _changedConnectors = [];
     private readonly Dictionary<IRuntimeFunctionBlock, FunctionBlockCycleInfo> _cycleInfos;
     private bool _disposed;
     private readonly LinkCache _linkCache;
     private readonly ILogger _logger;
+    private readonly Guid _dataflowId;
     private readonly IEnumerable<IRuntimeFunctionBlock> _runtimeFunctionBlocks;
     private readonly IUniqueNameProvider _uniqueNameProvider;
 
     public ulong CycleNo { get; private set; }
 
-    public RuntimeFunctionBlockProcessor(IEnumerable<IRuntimeFunctionBlock> runtimeFunctionBlocks, LinkCache linkCache, IUniqueNameProvider uniqueNameProvider, ILogger logger)
+    public RuntimeFunctionBlockProcessor(IEnumerable<IRuntimeFunctionBlock> runtimeFunctionBlocks, LinkCache linkCache,
+        IUniqueNameProvider uniqueNameProvider, ILogger logger, Guid dataflowId)
     {
         _runtimeFunctionBlocks = runtimeFunctionBlocks;
         _linkCache = linkCache;
         _uniqueNameProvider = uniqueNameProvider;
         _logger = logger;
+        _dataflowId = dataflowId;
         _cycleInfos = InitializeCycleInfos();
     }
 
@@ -101,25 +105,43 @@ internal sealed class RuntimeFunctionBlockProcessor : IDisposable
         FunctionBlockCycleInfo cycleInfo;
         foreach (IRuntimeFunctionBlock runtimeBlock in _runtimeFunctionBlocks)
         {
+            using Activity? processRuntimeBlockTelemetryActivity = Telemetry.StartForProcessRuntimeBlock(runtimeBlock.FunctionBlock, _uniqueNameProvider);
+
             cycleInfo = _cycleInfos[runtimeBlock];
             if (GetInputsMustBeProcessed(runtimeBlock, cycleInfo, interceptor))
+            {
+                using Activity? processInputsTelemetryActivity = Telemetry.StartForProcessInputs();
+
                 ProcessInputs(runtimeBlock, cycleInfo, poolingValidator, cloneHandler, interceptor);
+            }
 
             // TODO: falls ein Block selbst eine Einstellung ändert, wird ProcessSettings nicht aufgerufen und damit auch das SettingsChanged-Event nicht geworfen
             if (GetSettingsMustBeProcessed(runtimeBlock, cycleInfo))
+            {
+                using Activity? processSettingsTelemetryActivity = Telemetry.StartForProcessSettings();
+
                 ProcessSettings(runtimeBlock, cycleInfo);
+            }
 
             if (GetBlockMustBeProcessed(runtimeBlock, cycleInfo))
             {
+                using Activity? processBlockTelemetryActivity = Telemetry.StartForProcessBlock();
+
                 ProcessBlock(runtimeBlock, cycleInfo);
                 ResetInputChangedFlags(runtimeBlock);
                 ResetSettingsChangedFlags(runtimeBlock);
                 cycleInfo.IsFirstCycle = false;
                 cycleInfo.LastProcessedCycleNo = CycleNo;
+
+                Telemetry.AddProcessedCount(_dataflowId, runtimeBlock.FunctionBlock, _uniqueNameProvider);
             }
 
             if (GetOutputsMustBeProcessed(runtimeBlock, interceptor))
+            {
+                using Activity? processOutputsTelemetryActivity = Telemetry.StartForProcessOutputs();
+
                 ProcessOutputs(runtimeBlock, cloneHandler, interceptor);
+            }
         }
 
         CycleNo++;

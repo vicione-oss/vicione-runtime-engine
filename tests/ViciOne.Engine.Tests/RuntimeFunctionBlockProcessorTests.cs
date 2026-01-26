@@ -1,12 +1,12 @@
-﻿using AwesomeAssertions;
-using Microsoft.Extensions.Logging;
-using NSubstitute;
-using NSubstitute.ReceivedExtensions;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using AwesomeAssertions;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
+using NSubstitute.ReceivedExtensions;
 using ViciOne.Core.Contracts;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.Runtime;
@@ -25,7 +25,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => Substitute.For<IPoolingValidator>());
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger);
+            var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger, Guid.Empty);
 
             Action action = processor.Dispose;
 
@@ -39,7 +39,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => Substitute.For<IPoolingValidator>());
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger);
+            var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger, Guid.Empty);
             processor.Dispose();
 
             Action action = processor.Dispose;
@@ -96,7 +96,7 @@ public class RuntimeFunctionBlockProcessorTests
             var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
             processor.ProcessBlocks(validator, null, interceptor);
             return (linkCache, processor, [runtimeInput]);
@@ -113,7 +113,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger, Guid.Empty);
             var cycleNoBefore = processor.CycleNo;
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
@@ -139,7 +139,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -167,7 +167,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -198,7 +198,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -237,7 +237,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [externalIncomingLink1], () => validator, createIncomingInputLinkGroup: (_, _, _) => inputLinkGroup);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
             processor.ProcessBlocks(validator, null, interceptor);
             inputLinkGroup.ClearReceivedCalls();
@@ -274,7 +274,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [externalIncomingLink1], () => validator, createIncomingInputLinkGroup: (_, _, _) => inputLinkGroup);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -326,7 +326,7 @@ public class RuntimeFunctionBlockProcessorTests
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
             var nameCache = new DefaultUniqueNameProvider(uniqueNames);
             var logger = new TestLogger();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -383,7 +383,7 @@ public class RuntimeFunctionBlockProcessorTests
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
             var nameCache = new DefaultUniqueNameProvider(uniqueNames);
             var logger = new TestLogger();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -420,7 +420,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -451,7 +451,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
             processor.ProcessBlocks(validator, null, interceptor);
             settings.ClearReceivedCalls();
@@ -484,7 +484,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
             processor.ProcessBlocks(validator, null, interceptor);
             settings.ClearReceivedCalls();
@@ -526,7 +526,7 @@ public class RuntimeFunctionBlockProcessorTests
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
             var nameCache = new DefaultUniqueNameProvider(uniqueNames);
             var logger = new TestLogger();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -557,7 +557,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -579,7 +579,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             for (var i = 0; i < 10; i++)
@@ -608,7 +608,7 @@ public class RuntimeFunctionBlockProcessorTests
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
             var nameCache = new DefaultUniqueNameProvider(uniqueNames);
             var logger = new TestLogger();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -646,7 +646,7 @@ public class RuntimeFunctionBlockProcessorTests
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
             var nameCache = new DefaultUniqueNameProvider(uniqueNames);
             var logger = new TestLogger();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -672,7 +672,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -706,7 +706,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -730,7 +730,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -783,7 +783,7 @@ public class RuntimeFunctionBlockProcessorTests
             });
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -818,7 +818,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [externalOutgoingLink], () => validator, createRuntimeLink: (_, _) => runtimeLink);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -843,7 +843,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -894,7 +894,7 @@ public class RuntimeFunctionBlockProcessorTests
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
             var nameCache = new DefaultUniqueNameProvider(uniqueNames);
             var logger = new TestLogger();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -930,7 +930,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
 
             processor.ProcessBlocks(validator, null, interceptor);
@@ -954,7 +954,7 @@ public class RuntimeFunctionBlockProcessorTests
             using var linkCache = new LinkCache(blocks, [], () => validator);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger);
+            using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             IFunctionBlockCycleInfo? cycleInfo = null;
             var cycleNoWhileProcessing = ulong.MaxValue;
             runtimeBlock.ProcessCycle(Arg.Do<IFunctionBlockCycleInfo>(x =>

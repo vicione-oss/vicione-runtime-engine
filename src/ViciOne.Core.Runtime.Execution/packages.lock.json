@@ -17,38 +17,38 @@
         "type": "Project",
         "dependencies": {
           "FastCloner": "[3.3.10, )",
-          "ViciOne.Core.Contracts": "[0.51.0, )"
+          "ViciOne.Core.Contracts": "[0.52.0, )"
         }
       },
       "vicione.core.dataflow.datamodel.generation": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Dataflow": "[0.51.0, )",
-          "ViciOne.Engine.DefaultValidators": "[0.51.0, )"
+          "ViciOne.Core.Dataflow": "[0.52.0, )",
+          "ViciOne.Engine.DefaultValidators": "[0.52.0, )"
         }
       },
       "vicione.core.runtime": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[0.51.0, )"
+          "ViciOne.Core.Contracts": "[0.52.0, )"
         }
       },
       "vicione.engine": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[0.51.0, )"
+          "ViciOne.Core.Runtime": "[0.52.0, )"
         }
       },
       "vicione.engine.defaultpoolings": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[0.51.0, )"
+          "ViciOne.Core.Runtime": "[0.52.0, )"
         }
       },
       "vicione.engine.defaultvalidators": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[0.51.0, )"
+          "ViciOne.Core.Runtime": "[0.52.0, )"
         }
       },
       "FastCloner": {
