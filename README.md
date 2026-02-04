@@ -18,43 +18,17 @@
 
 ## Beispiele
 
-### samples/communication/mqtt
+### samples/design-time/GenerateFBDesigns
 
-Hier ist eine beispielhafte Kommunikation über MQTT nach folgendem Konzept implementiert:
+Eine Beispiel-Anwendung mit der kompilierte Funktionsblöcke analysiert und daraus Funktionsblock-Designs erzeugt werden können.
 
-![Konzept MQTT-Inter-Node-Kommunikation](docs/samples/mqtt/scan_fb_fb.jpg)
-
-![Konzept MQTT-Kommunikation zwischen Node und Visu](docs/samples/mqtt/scan_ctrl_fb.jpg)
-
-**Hinweis:** Zumindest im .NET braucht der Node zum Publishen keinen Client, er kann direkt über den Broker/Server publishen. Damit fällt in diesem Fall der eingezeichnete Client `CVA` weg.
-
-### samples/communication/zeromq
-
-Eine Beispiel-Implementierung für eine Kommunikation über ZeroMQ, die nach dem selben Konzept arbeitet, wie das MQTT-Beispiel.
-
-### samples/communication/amqp/clientonly
-
-Eine Beispiel-Implementierung für eine Kommunikation über AMQP, die nur die Client-Funktionalität enthält. Damit kann sich zu verschiedenen Brokern verbunden werden.
-
-### samples/communication/amqp/both
-
-Eine Beispiel-Implementierung für eine Kommunikation über AMQP, die nach dem selben Konzept arbeitet, wie das MQTT-Beispiel.
-
-### samples/data-separation
-
-Hier sind verschiedene Möglichkeiten implementiert, um Darstellungs-Informationen getrennt vom eigentlichen Datenmodell abzulegen.
-
-### samples/pooling
-
-Eine Beispiel-Anwendung, welche die Verwendung der Poolings zur Design-Zeit zeigt.
-
-### samples/presentation
-
-Eine Beispiel-Anwendung, mit der ein Dataflow visualisiert werden kann.
-
-### samples/runtime
+### samples/runtime/RuntimeDemo
 
 Eine Beispiel-Anwendung, welche die Verwendung der Engine und ihrer Abhängigkeiten zeigt.
+
+### samples/runtime/ScaleUpSample
+
+Eine Beispiel-Anwendung mit der eine beliebige Anzahl an Engines ausgeführt werden kann und die damit die Skalierbarkeit der Engine zeigt.
 
 ### samples/runtime/fbs
 
