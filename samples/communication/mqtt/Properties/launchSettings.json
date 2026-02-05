@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "BrokerTest": {
-      "commandName": "Project",
-      "commandLineArgs": "1883"
-    }
-  }
-}
