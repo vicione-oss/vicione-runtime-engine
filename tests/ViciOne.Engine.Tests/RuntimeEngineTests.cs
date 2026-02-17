@@ -728,7 +728,7 @@ public class RuntimeEngineTests : IDisposable
             var stateChangedCalled = false;
             engine.StateChanged += Engine_StateChanged;
             engine.Start();
-            Task.Run(engine.Stop);
+            Task.Run(engine.Stop, TestContext.Current.CancellationToken);
             waitForForStoppingWaitHandle.WaitOne(s_waitTimeout).Should().BeTrue();
             stateChangedCalled = false;
 
@@ -939,7 +939,7 @@ public class RuntimeEngineTests : IDisposable
             var stateChangedToStoppingTime = DateTime.MinValue;
             engine.StateChanged += Engine_StateChanged;
             RealBlock.InitializeIICalled += RealBlock_InitializeIICalled;
-            Task.Run(engine.Start);
+            Task.Run(engine.Start, TestContext.Current.CancellationToken);
             waitForForInitializedStartedWaitHandle.WaitOne(s_waitTimeout).Should().BeTrue();
 
             engine.Stop();

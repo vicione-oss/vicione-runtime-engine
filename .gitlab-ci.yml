@@ -115,18 +115,14 @@ include:
   - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-build@v2.7.1
     inputs:
       rules: *rules_always
-  # 1.1.0 runs VSTest; the 2.x test step requires Microsoft Testing Platform.
-  # It restores again because the build job does not pass on the restored NuGet packages.
-  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@1.1.0
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@v2.7.1
     inputs:
       image: mcr.microsoft.com/dotnet/sdk:10.0
       rules: *rules_not_tags
-      build_job_name: "dotnet Build"
       before_script:
         - *update_nuget_source_ro
         - dotnet restore
-      coverage_report_pattern: "artifacts/tests/*/coverage.cobertura.xml"
-      test_report_pattern: "artifacts/tests/*-test-report.xml"
+      coverage: true
   # NuGet packages
   - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-pack@v2.7.1
     inputs:
