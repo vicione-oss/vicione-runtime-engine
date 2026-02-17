@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
+    <PackageVersion Include="AwesomeAssertions.Analyzers" Version="9.0.8" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="CommandLineParser" Version="2.9.1" />
     <!-- Baseline of DeepClonerBenchmarks, the version DeepCloner replaced; keep it when updating dependencies -->
