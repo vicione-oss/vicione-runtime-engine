@@ -66,7 +66,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Dataflow.FunctionBlockDesigns.Should().ContainAllButNotMore(Designs);
+            info.Dataflow.FunctionBlockDesigns.Should().BeEquivalentTo(Designs);
         }
 
         [Fact]
@@ -74,7 +74,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Dataflow.RootContainer.FunctionBlocks.Select(x => x.Design).Should().ContainAllButNotMore(Designs);
+            info.Dataflow.RootContainer.FunctionBlocks.Select(x => x.Design).Should().BeEquivalentTo(Designs);
         }
 
         [Fact]
@@ -82,7 +82,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Dataflow.Links.OfType<IExternalIncomingLink>().Select(x => x.Destination).Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetInputs()));
+            info.Dataflow.Links.OfType<IExternalIncomingLink>().Select(x => x.Destination).Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetInputs()));
         }
 
         [Fact]
@@ -90,7 +90,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Dataflow.Links.OfType<IExternalOutgoingLink>().Select(x => x.Source).Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetConnectors()));
+            info.Dataflow.Links.OfType<IExternalOutgoingLink>().Select(x => x.Source).Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetConnectors()));
         }
 
         [Fact]
@@ -98,7 +98,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Inputs.Select(x => x.Connector).Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetInputs()));
+            info.Inputs.Select(x => x.Connector).Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetInputs()));
         }
 
         [Fact]
@@ -106,7 +106,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Inputs.Select(x => x.IncomingLink.Destination).Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetInputs()));
+            info.Inputs.Select(x => x.IncomingLink.Destination).Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetInputs()));
         }
 
         [Fact]
@@ -114,7 +114,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Inputs.Select(x => x.OutgoingLink.Source).Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetInputs()));
+            info.Inputs.Select(x => x.OutgoingLink.Source).Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetInputs()));
         }
 
         [Fact]
@@ -122,7 +122,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Outputs.Select(x => x.Connector).Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetOutputs()));
+            info.Outputs.Select(x => x.Connector).Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetOutputs()));
         }
 
         [Fact]
@@ -130,7 +130,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Outputs.Select(x => x.OutgoingLink.Source).Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetOutputs()));
+            info.Outputs.Select(x => x.OutgoingLink.Source).Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.GetOutputs()));
         }
 
         [Fact]
@@ -138,7 +138,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.Settings.Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.Settings));
+            info.Settings.Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.Settings));
         }
 
         [Fact]
@@ -146,7 +146,7 @@ public class DataflowGeneratorTests
         {
             var info = DataflowGenerator.GenerateDataflow(Designs);
 
-            info.PersistentVariables.Should().ContainAllButNotMore(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.PersistentVariables));
+            info.PersistentVariables.Should().BeEquivalentTo(info.Dataflow.RootContainer.FunctionBlocks.SelectMany(x => x.PersistentVariables));
         }
 
         private static FunctionBlockDesign CreateFunctionBlockDesign(string name)

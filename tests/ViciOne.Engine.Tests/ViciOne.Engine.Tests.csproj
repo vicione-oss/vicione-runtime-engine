@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <Compile Include="..\..\shared\EnumerableExtensions.cs" Link="EnumerableExtensions.cs" />
-    <Compile Include="..\shared\AssertionExtensions.cs" Link="AssertionExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

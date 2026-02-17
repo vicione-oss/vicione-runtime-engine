@@ -65,8 +65,8 @@ public class RuntimeDriverFactoryTests
 
             var (instances, _) = factory.CreateInstances(driverInfosExpectedToSucceed, uniqueNameProvider, loggerFactory, Substitute.For<ILogger>());
 
-            instances.Select(x => x.RuntimeDriver).Cast<IHasLogger>().Select(x => x.Logger).Should()
-                .NotContainNulls().And
+            instances.Select(x => x.RuntimeDriver).Cast<IHasLogger>().Should()
+                .NotContainNulls(x => x.Logger).And
                 .OnlyHaveUniqueItems();
         }
 

@@ -67,8 +67,10 @@ public class DataflowEditorTests
 
             editor.AddExternalIncomingLink(linkToAdd.Link);
 
-            editor.Dataflow.Links.Should().HaveCount(1)
-                .And.Contain(linkToAdd.Link);
+            editor.Dataflow.Links.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .BeSameAs(linkToAdd.Link);
         }
 
         [Fact]
@@ -80,7 +82,7 @@ public class DataflowEditorTests
 
             editor.AddExternalIncomingLink(linkToAdd.Link);
 
-            editor.Dataflow.Links.Should().HaveCount(1);
+            editor.Dataflow.Links.Should().ContainSingle();
         }
 
         [Fact]
@@ -115,8 +117,10 @@ public class DataflowEditorTests
 
             editor.AddExternalOutgoingLink(linkToAdd.Link);
 
-            editor.Dataflow.Links.Should().HaveCount(1)
-                .And.Contain(linkToAdd.Link);
+            editor.Dataflow.Links.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .BeSameAs(linkToAdd.Link);
         }
 
         [Fact]
@@ -127,8 +131,10 @@ public class DataflowEditorTests
 
             editor.AddExternalOutgoingLink(linkToAdd.Link);
 
-            editor.Dataflow.Links.Should().HaveCount(1)
-                .And.Contain(linkToAdd.Link);
+            editor.Dataflow.Links.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .BeSameAs(linkToAdd.Link);
         }
 
         [Fact]
@@ -140,7 +146,7 @@ public class DataflowEditorTests
 
             editor.AddExternalOutgoingLink(linkToAdd.Link);
 
-            editor.Dataflow.Links.Should().HaveCount(1);
+            editor.Dataflow.Links.Should().ContainSingle();
         }
 
         [Fact]
@@ -184,8 +190,10 @@ public class DataflowEditorTests
 
             editor.AddFunctionBlockDesign(designToAdd);
 
-            editor.Dataflow.FunctionBlockDesigns.Should().HaveCount(1)
-                .And.Contain(designToAdd);
+            editor.Dataflow.FunctionBlockDesigns.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .BeSameAs(designToAdd);
         }
 
         [Fact]
@@ -197,7 +205,7 @@ public class DataflowEditorTests
 
             editor.AddFunctionBlockDesign(designToAdd);
 
-            editor.Dataflow.FunctionBlockDesigns.Should().HaveCount(1);
+            editor.Dataflow.FunctionBlockDesigns.Should().ContainSingle();
         }
 
         [Fact]
@@ -232,8 +240,10 @@ public class DataflowEditorTests
 
             editor.AddInternalLink(linkToAdd);
 
-            editor.Dataflow.Links.Should().HaveCount(1)
-                .And.Contain(linkToAdd);
+            editor.Dataflow.Links.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .BeSameAs(linkToAdd);
         }
 
         [Fact]
@@ -245,7 +255,7 @@ public class DataflowEditorTests
 
             editor.AddInternalLink(linkToAdd);
 
-            editor.Dataflow.Links.Should().HaveCount(1);
+            editor.Dataflow.Links.Should().ContainSingle();
         }
 
         [Fact]

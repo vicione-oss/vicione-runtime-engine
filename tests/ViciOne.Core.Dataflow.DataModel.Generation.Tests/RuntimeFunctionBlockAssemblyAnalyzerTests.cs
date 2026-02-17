@@ -171,8 +171,9 @@ public class RuntimeFunctionBlockAssemblyAnalyzerTests
             var design = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesign(typeof(DummyRuntimeBlock1));
 
             design.ValidRunModes.Should()
-                .HaveCount(1).And
-                .Contain(DummyRuntimeBlock1.ValidRunMode);
+                .ContainSingle()
+                    .Which.Should()
+                        .Be(DummyRuntimeBlock1.ValidRunMode);
         }
 
         [Fact]
@@ -489,8 +490,9 @@ public class RuntimeFunctionBlockAssemblyAnalyzerTests
             var design = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesign(typeof(DummyRuntimeBlock1));
 
             design.Inputs.First().Validators.Should()
-                .HaveCount(1).And
-                .AllBeOfType<DummyValidator<int>>();
+                .ContainSingle()
+                    .Which.Should()
+                        .BeOfType<DummyValidator<int>>();
         }
 
         [Fact]
@@ -517,8 +519,9 @@ public class RuntimeFunctionBlockAssemblyAnalyzerTests
             var design = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesign(typeof(DummyRuntimeBlock1));
 
             design.Outputs.First().Validators.Should()
-                .HaveCount(1).And
-                .AllBeOfType<DummyValidator<double>>();
+                .ContainSingle()
+                    .Which.Should()
+                        .BeOfType<DummyValidator<double>>();
         }
 
         [Fact]
@@ -545,8 +548,9 @@ public class RuntimeFunctionBlockAssemblyAnalyzerTests
             var design = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesign(typeof(DummyRuntimeBlock1));
 
             design.Settings.First().Validators.Should()
-                .HaveCount(1).And
-                .AllBeOfType<DummyValidator<bool>>();
+                .ContainSingle()
+                    .Which.Should()
+                        .BeOfType<DummyValidator<bool>>();
         }
 
         [Fact]

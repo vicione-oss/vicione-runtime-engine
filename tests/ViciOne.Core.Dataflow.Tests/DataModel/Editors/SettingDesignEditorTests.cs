@@ -21,8 +21,9 @@ public class SettingDesignEditorTests
             editor.AddValidator(validatorToAdd);
 
             editor.Setting.Validators.Should()
-                .HaveCount(1).And
-                .Contain(validatorToAdd);
+                .ContainSingle()
+                    .Which.Should()
+                        .BeSameAs(validatorToAdd);
         }
 
         [Fact]

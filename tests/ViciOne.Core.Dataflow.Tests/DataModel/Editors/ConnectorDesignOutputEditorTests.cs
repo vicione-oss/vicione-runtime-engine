@@ -20,8 +20,9 @@ public class ConnectorDesignOutputEditorTests
             editor.AddValidator(validatorToAdd);
 
             editor.Design.Validators.Should()
-                .HaveCount(1).And
-                .Contain(validatorToAdd);
+                .ContainSingle()
+                    .Which.Should()
+                        .BeSameAs(validatorToAdd);
         }
 
         [Fact]

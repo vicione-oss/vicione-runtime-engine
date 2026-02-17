@@ -331,7 +331,7 @@ public class ContainerEditorTests
 
             parentEditor.RemoveContainer(childEditor);
 
-            parentEditor.Container.Inputs.Should().HaveCount(0);
+            parentEditor.Container.Inputs.Should().BeEmpty();
         }
 
         [Fact]
@@ -341,7 +341,7 @@ public class ContainerEditorTests
 
             parentEditor.RemoveContainer(childEditor);
 
-            parentEditor.Container.Outputs.Should().HaveCount(0);
+            parentEditor.Container.Outputs.Should().BeEmpty();
         }
 
         [Fact]
@@ -419,7 +419,7 @@ public class ContainerEditorTests
 
             editor.RemoveFunctionBlock(block);
 
-            editor.Container.Inputs.Should().HaveCount(0);
+            editor.Container.Inputs.Should().BeEmpty();
         }
 
         [Fact]
@@ -429,7 +429,7 @@ public class ContainerEditorTests
 
             editor.RemoveFunctionBlock(block);
 
-            editor.Container.Outputs.Should().HaveCount(0);
+            editor.Container.Outputs.Should().BeEmpty();
         }
 
         [Fact]
@@ -497,7 +497,7 @@ public class ContainerEditorTests
 
             editor.RemoveInput(container.Inputs.First());
 
-            container.Inputs.Should().HaveCount(0);
+            container.Inputs.Should().BeEmpty();
         }
     }
 
@@ -518,7 +518,7 @@ public class ContainerEditorTests
 
             editor.RemoveInputs(connectors);
 
-            container.Inputs.Should().HaveCount(0);
+            container.Inputs.Should().BeEmpty();
         }
     }
 
@@ -533,7 +533,7 @@ public class ContainerEditorTests
 
             editor.RemoveOutput(container.Outputs.First());
 
-            container.Outputs.Should().HaveCount(0);
+            container.Outputs.Should().BeEmpty();
         }
     }
 
@@ -554,7 +554,7 @@ public class ContainerEditorTests
 
             editor.RemoveOutputs(connectors);
 
-            container.Outputs.Should().HaveCount(0);
+            container.Outputs.Should().BeEmpty();
         }
     }
 

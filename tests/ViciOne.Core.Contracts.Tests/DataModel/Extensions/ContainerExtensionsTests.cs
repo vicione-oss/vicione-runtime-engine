@@ -16,8 +16,7 @@ public class ContainerExtensionsTests
 
             var connectors = ContainerExtensions.GetConnectors(info.Container);
 
-            // the enumeration has no particular order
-            connectors.Should().ContainAllButNotMore(info.AllConnectors);
+            connectors.Should().BeEquivalentTo(info.AllConnectors);
         }
     }
 
@@ -30,8 +29,7 @@ public class ContainerExtensionsTests
 
             var containers = ContainerExtensions.GetContainers(info.Container, true);
 
-            // the enumeration has no particular order
-            containers.Should().ContainAllButNotMore(info.AllChildContainers);
+            containers.Should().BeEquivalentTo(info.AllChildContainers);
         }
 
         [Fact]
@@ -41,8 +39,7 @@ public class ContainerExtensionsTests
 
             var containers = ContainerExtensions.GetContainers(info.Container, false);
 
-            // the enumeration has no particular order
-            containers.Should().ContainAllButNotMore(info.DirectChildContainers);
+            containers.Should().BeEquivalentTo(info.DirectChildContainers);
         }
     }
 
@@ -55,8 +52,7 @@ public class ContainerExtensionsTests
 
             var functionBlocks = ContainerExtensions.GetFunctionBlocks(info.Container, true);
 
-            // the enumeration has no particular order
-            functionBlocks.Should().ContainAllButNotMore(info.AllChildFunctionBlocks);
+            functionBlocks.Should().BeEquivalentTo(info.AllChildFunctionBlocks);
         }
 
         [Fact]
@@ -66,8 +62,7 @@ public class ContainerExtensionsTests
 
             var functionBlocks = ContainerExtensions.GetFunctionBlocks(info.Container, false);
 
-            // the enumeration has no particular order
-            functionBlocks.Should().ContainAllButNotMore(info.DirectChildFunctionBlocks);
+            functionBlocks.Should().BeEquivalentTo(info.DirectChildFunctionBlocks);
         }
     }
 

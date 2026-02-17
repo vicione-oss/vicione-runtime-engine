@@ -63,7 +63,6 @@
     <Project Path="tests/ViciOne.Engine.Tests/ViciOne.Engine.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/shared/">
-    <File Path="tests/shared/AssertionExtensions.cs" />
     <File Path="tests/shared/MockValidator.cs" />
   </Folder>
 </Solution>

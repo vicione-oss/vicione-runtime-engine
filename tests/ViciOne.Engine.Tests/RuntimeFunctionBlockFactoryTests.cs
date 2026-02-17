@@ -41,14 +41,14 @@ public class RuntimeFunctionBlockFactoryTests
 
             var (instances, failedDesigns) = factory.CreateInstances(blocksExpectedToSucceed.Concat(blocksExpectedToFail), uniqueNameProvider, loggerFactory, logger);
 
-            blocksExpectedToSucceed.Should().ContainAllButNotMore(instances.Select(x => x.BlockAndDriver));
+            blocksExpectedToSucceed.Should().BeEquivalentTo(instances.Select(x => x.BlockAndDriver));
             foreach (var blockAndDriver in blocksExpectedToSucceed)
             {
                 var runtimeBlock = instances.First(x => x.BlockAndDriver == blockAndDriver).RuntimeBlock;
                 runtimeBlock.GetType().FullName.Should().Be(blockAndDriver.Block.Design.GetRuntimeTypeName());
             }
 
-            blocksExpectedToFail.Select(x => x.Block.Design).Distinct().Should().ContainAllButNotMore(failedDesigns.Select(x => x.Design));
+            blocksExpectedToFail.Select(x => x.Block.Design).Distinct().Should().BeEquivalentTo(failedDesigns.Select(x => x.Design));
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
             foreach ((var block, var driver, _) in blocksExpectedToFail)
             {
@@ -72,8 +72,8 @@ public class RuntimeFunctionBlockFactoryTests
 
             var (instances, _) = factory.CreateInstances(blocksExpectedToSucceed, uniqueNameProvider, loggerFactory, Substitute.For<ILogger>());
 
-            instances.Select(x => x.RuntimeBlock).Cast<IHasLogger>().Select(x => x.Logger).Should()
-                .NotContainNulls().And
+            instances.Select(x => x.RuntimeBlock).Cast<IHasLogger>().Should()
+                .NotContainNulls(x => x.Logger).And
                 .OnlyHaveUniqueItems();
         }
 

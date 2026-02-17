@@ -14,7 +14,7 @@ public class LinkExtensionsTests
         {
             var result = LinkExtensions.GetConnectedConnectors(link);
 
-            result.Should().ContainAllButNotMore(expectedConnectedConnectors);
+            result.Should().BeEquivalentTo(expectedConnectedConnectors);
         }
 
         public static TheoryData<ILink, IConnector[]> ArgumentsFor_GetsConnectedConnectors

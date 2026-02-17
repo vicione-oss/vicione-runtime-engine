@@ -232,8 +232,10 @@ public class CommunicationProcessorTests
             runtimeLink1.Received().SetData(expectedValue1, expectedChangedTime, expectedValidity);
             runtimeLink2.Received().SetData(expectedValue2, expectedChangedTime, expectedValidity);
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should().Contain(guid1.ToString());
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain(guid1.ToString());
         }
 
         [Fact]
@@ -396,12 +398,11 @@ public class CommunicationProcessorTests
                 .DidNotReceiveWithAnyArgs()
                 .HandleChangedOutgoingLinks([]);
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages
-                .Where(x =>
-                    x.Contains("external output link", StringComparison.OrdinalIgnoreCase) &&
-                    x.Contains(designName, StringComparison.OrdinalIgnoreCase))
-                .Should().HaveCount(1);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .ContainEquivalentOf("external output link").And
+                        .ContainEquivalentOf(designName);
         }
     }
 }

@@ -16,8 +16,7 @@ public class RuntimeFunctionBlockExtensionsTests
 
             var connectors = RuntimeFunctionBlockExtensions.GetConnectors(info.Block);
 
-            // the enumeration has no particular order
-            connectors.Should().ContainAllButNotMore(info.Connectors);
+            connectors.Should().BeEquivalentTo(info.Connectors);
         }
     }
 
@@ -30,8 +29,7 @@ public class RuntimeFunctionBlockExtensionsTests
 
             var inputs = RuntimeFunctionBlockExtensions.GetInputs(info.Block);
 
-            // the enumeration has no particular order
-            inputs.Should().ContainAllButNotMore(info.Inputs);
+            inputs.Should().BeEquivalentTo(info.Inputs);
         }
     }
 
@@ -44,8 +42,7 @@ public class RuntimeFunctionBlockExtensionsTests
 
             var outputs = RuntimeFunctionBlockExtensions.GetOutputs(info.Block);
 
-            // the enumeration has no particular order
-            outputs.Should().ContainAllButNotMore(info.Outputs);
+            outputs.Should().BeEquivalentTo(info.Outputs);
         }
     }
 

@@ -1,11 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <Compile Include="..\..\shared\EnumerableExtensions.cs" Link="EnumerableExtensions.cs" />
-    <Compile Include="..\shared\AssertionExtensions.cs" Link="AssertionExtensions.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="AwesomeAssertions.Analyzers">
       <PrivateAssets>all</PrivateAssets>

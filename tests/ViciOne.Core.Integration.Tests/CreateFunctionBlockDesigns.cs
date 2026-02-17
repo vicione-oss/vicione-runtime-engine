@@ -65,7 +65,7 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
 
         var fileInfo = new FileInfo(path);
         fileInfo.Exists.Should().BeTrue();
-        fileInfo.Length.Should().BeGreaterThan(0);
+        fileInfo.Length.Should().BePositive();
     }
 
     internal static FunctionBlockDesigns CreateDesigns(PoolingFactory poolingFactory)

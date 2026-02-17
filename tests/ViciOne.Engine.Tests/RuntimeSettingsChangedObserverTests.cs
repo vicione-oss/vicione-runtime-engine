@@ -67,14 +67,7 @@ public class RuntimeSettingsChangedObserverTests : RuntimeSettingsTests
 
             var changedSettings = observer.GetAndResetChanged();
 
-            changedSettings.Should().HaveCount(settingsToChange.Count);
-            foreach (var pair in settingsToChange)
-            {
-                var changed = changedSettings[pair.Key];
-                changed.Should().HaveCount(pair.Value.Count());
-                foreach (var setting in pair.Value)
-                    changed.Should().Contain(setting);
-            }
+            changedSettings.Should().BeEquivalentTo(settingsToChange);
         }
     }
 

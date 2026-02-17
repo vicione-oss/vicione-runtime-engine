@@ -21,8 +21,8 @@ public class RuntimeDriverInitializerTests
             (var initialized, var failed) =
                 RuntimeDriverInitializer.Default.InitializeInstancesI(instances, nameCache, logger);
 
-            initialized.Should().ContainAllButNotMore(expectedInitialized);
-            failed.Keys.Should().ContainAllButNotMore(expectedFailed);
+            initialized.Should().BeEquivalentTo(expectedInitialized);
+            failed.Keys.Should().BeEquivalentTo(expectedFailed);
             foreach (var driver in instances)
                 driver.Received().InitializeI();
             logger.GetLoggedMessages(LogLevel.Error).Should().AllSatisfy(x => x.Contains("phase 1", StringComparison.OrdinalIgnoreCase));
@@ -41,8 +41,8 @@ public class RuntimeDriverInitializerTests
             (var initialized, var failed) =
                 RuntimeDriverInitializer.Default.InitializeInstancesII(instances, nameCache, logger);
 
-            initialized.Should().ContainAllButNotMore(expectedInitialized);
-            failed.Keys.Should().ContainAllButNotMore(expectedFailed);
+            initialized.Should().BeEquivalentTo(expectedInitialized);
+            failed.Keys.Should().BeEquivalentTo(expectedFailed);
             foreach (var driver in instances)
                 driver.Received().InitializeII();
             logger.GetLoggedMessages(LogLevel.Error).Should().AllSatisfy(x => x.Contains("phase 2", StringComparison.OrdinalIgnoreCase));

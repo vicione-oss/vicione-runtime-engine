@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using AwesomeAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -199,12 +198,13 @@ public class RuntimeFunctionBlockProcessorTests
             processor.ProcessBlocks(validator, null, interceptor);
 
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should()
-                .Contain(designName).And
-                .Contain(inputId).And
-                .Contain(blockName).And
-                .Contain(blockId);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain(designName).And
+                        .Contain(inputId).And
+                        .Contain(blockName).And
+                        .Contain(blockId);
         }
 
         [Fact]
@@ -258,14 +258,15 @@ public class RuntimeFunctionBlockProcessorTests
             processor.ProcessBlocks(validator, null, interceptor);
 
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should()
-                .Contain("transferring").And
-                .Contain("input").And
-                .Contain(designName).And
-                .Contain(inputId).And
-                .Contain(blockName).And
-                .Contain(blockId);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain("transferring").And
+                        .Contain("input").And
+                        .Contain(designName).And
+                        .Contain(inputId).And
+                        .Contain(blockName).And
+                        .Contain(blockId);
         }
 
         [Fact]
@@ -405,11 +406,12 @@ public class RuntimeFunctionBlockProcessorTests
             processor.ProcessBlocks(validator, null, interceptor);
 
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should()
-                .Contain("settings").And
-                .Contain(blockName).And
-                .Contain(blockId);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain("settings").And
+                        .Contain(blockName).And
+                        .Contain(blockId);
         }
 
         [Fact]
@@ -525,12 +527,13 @@ public class RuntimeFunctionBlockProcessorTests
             processor.ProcessBlocks(validator, null, interceptor);
 
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should()
-                .Contain(blockName).And
-                .Contain(blockId).And
-                .Contain(nameof(RunMode)).And
-                .Contain(invalidRunModeValue.ToString(CultureInfo.InvariantCulture));
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain(blockName).And
+                        .Contain(blockId).And
+                        .Contain(nameof(RunMode)).And
+                        .Contain(invalidRunModeValue.ToString(CultureInfo.InvariantCulture));
         }
 
         [Fact]
@@ -564,11 +567,12 @@ public class RuntimeFunctionBlockProcessorTests
             processor.ProcessBlocks(validator, null, interceptor);
 
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should()
-                .Contain("processing").And
-                .Contain(blockName).And
-                .Contain(blockId);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain("processing").And
+                        .Contain(blockName).And
+                        .Contain(blockId);
         }
 
         [Fact]
@@ -826,14 +830,15 @@ public class RuntimeFunctionBlockProcessorTests
             processor.ProcessBlocks(validator, null, interceptor);
 
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should()
-                .Contain("transferring").And
-                .Contain("output").And
-                .Contain(designName).And
-                .Contain(outputId).And
-                .Contain(blockName).And
-                .Contain(blockId);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain("transferring").And
+                        .Contain("output").And
+                        .Contain(designName).And
+                        .Contain(outputId).And
+                        .Contain(blockName).And
+                        .Contain(blockId);
         }
 
         [Fact]
