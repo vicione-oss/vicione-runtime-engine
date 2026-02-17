@@ -3,31 +3,36 @@ using System.Linq;
 
 namespace ViciOne.Core.Dataflow.DataModel.Extensions;
 
+// TODO: Suppression should be removed when https://github.com/dotnet/sdk/issues/51681 is fixed and delivered.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "Extension members syntax generates nested types")]
 public static class ContainerExtensions
 {
-    public static IEnumerable<Connector> GetConnectors(this Container container)
-        => container.Inputs.Concat(container.Outputs);
-
-    public static IEnumerable<Container> GetContainers(this Container container, bool includeNested = false)
+    extension(Container container)
     {
-        foreach (Container child in container.Containers)
+        public IEnumerable<Connector> GetConnectors()
+            => container.Inputs.Concat(container.Outputs);
+
+        public IEnumerable<Container> GetContainers(bool includeNested = false)
         {
-            yield return child;
+            foreach (Container child in container.Containers)
+            {
+                yield return child;
+
+                if (includeNested)
+                    foreach (Container recursiveChild in child.GetContainers(includeNested))
+                        yield return recursiveChild;
+            }
+        }
+
+        public IEnumerable<FunctionBlock> GetFunctionBlocks(bool includeNested = false)
+        {
+            foreach (FunctionBlock functionBlock in container.FunctionBlocks)
+                yield return functionBlock;
 
             if (includeNested)
-                foreach (Container recursiveChild in GetContainers(child, includeNested))
-                    yield return recursiveChild;
+                foreach (Container childContainer in container.Containers)
+                    foreach (FunctionBlock childFunctionBlock in childContainer.GetFunctionBlocks(includeNested))
+                        yield return childFunctionBlock;
         }
-    }
-
-    public static IEnumerable<FunctionBlock> GetFunctionBlocks(this Container container, bool includeNested = false)
-    {
-        foreach (FunctionBlock functionBlock in container.FunctionBlocks)
-            yield return functionBlock;
-
-        if (includeNested)
-            foreach (Container childContainer in container.Containers)
-                foreach (FunctionBlock childFunctionBlock in GetFunctionBlocks(childContainer, includeNested))
-                    yield return childFunctionBlock;
     }
 }

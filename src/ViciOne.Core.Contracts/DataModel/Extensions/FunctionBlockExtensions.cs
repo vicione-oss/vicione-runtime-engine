@@ -3,14 +3,19 @@ using System.Linq;
 
 namespace ViciOne.Core.Contracts.DataModel.Extensions;
 
+// TODO: Suppression should be removed when https://github.com/dotnet/sdk/issues/51681 is fixed and delivered.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "Extension members syntax generates nested types")]
 public static class FunctionBlockExtensions
 {
-    public static IEnumerable<IConnector> GetConnectors(this IFunctionBlock block)
-        => GetInputs(block).Concat(GetOutputs(block));
+    extension(IFunctionBlock block)
+    {
+        public IEnumerable<IConnector> GetConnectors()
+            => block.GetInputs().Concat(block.GetOutputs());
 
-    public static IEnumerable<IConnector> GetInputs(this IFunctionBlock block)
-        => block.SettingsInputs.Concat(block.SystemInputs).Concat(block.ProcessDataInputs);
+        public IEnumerable<IConnector> GetInputs()
+            => block.SettingsInputs.Concat(block.SystemInputs).Concat(block.ProcessDataInputs);
 
-    public static IEnumerable<IConnector> GetOutputs(this IFunctionBlock block)
-        => block.SettingsOutputs.Concat(block.SystemOutputs).Concat(block.ProcessDataOutputs);
+        public IEnumerable<IConnector> GetOutputs()
+            => block.SettingsOutputs.Concat(block.SystemOutputs).Concat(block.ProcessDataOutputs);
+    }
 }
