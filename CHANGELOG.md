@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.52.0
+## 0.52.0 - Unreleased
 
 ### Added
 
@@ -10,6 +10,7 @@
 
 - Mark inputs and settings no longer as changed on start
 - Execute all blocks in first cycle
+- Update `.NET` to `10.0`
 
 ## 0.51.0
 
