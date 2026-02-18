@@ -2,14 +2,19 @@
 
 namespace ViciOne.Core.Contracts.DataModel.Extensions;
 
+// TODO: Suppression should be removed when https://github.com/dotnet/sdk/issues/51681 is fixed and delivered.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "Extension members syntax generates nested types")]
 public static class LinkExtensions
 {
-    public static IEnumerable<IConnector> GetConnectedConnectors(this ILink link)
+    extension(ILink link)
     {
-        if (link is ILinkWithSource linkWithSource)
-            yield return linkWithSource.Source;
+        public IEnumerable<IConnector> GetConnectedConnectors()
+        {
+            if (link is ILinkWithSource linkWithSource)
+                yield return linkWithSource.Source;
 
-        if (link is ILinkWithDestination linkWithDestination)
-            yield return linkWithDestination.Destination;
+            if (link is ILinkWithDestination linkWithDestination)
+                yield return linkWithDestination.Destination;
+        }
     }
 }

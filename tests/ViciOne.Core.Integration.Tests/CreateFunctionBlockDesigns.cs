@@ -37,15 +37,15 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
     {
         var designs = CreateDesigns(PoolingFactory);
         var design = GetDesignByFileName(designs, fileName);
-        var workingDir = Path.GetTempPath();
-        var path = GetDesignPath(workingDir, fileName);
+        var workingDir = Directory.CreateTempSubdirectory($"{GetType().Assembly.GetName().Name}_");
+        var path = GetDesignPath(workingDir.FullName, fileName);
         Save(design, path);
 
         var loadedDesign = Load<FunctionBlockDesign>(path);
 
         loadedDesign.Should().BeEquivalentTo(design);
 
-        File.Delete(path);
+        workingDir.Delete(true);
     }
 
     [Theory]

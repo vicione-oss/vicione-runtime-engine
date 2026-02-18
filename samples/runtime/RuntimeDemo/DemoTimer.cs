@@ -14,8 +14,7 @@ internal sealed class DemoTimer : IDisposable
         set
         {
             _interval = value;
-            if (_timer is not null)
-                _timer.Interval = _interval;
+            _timer?.Interval = _interval;
         }
     }
     public bool IsRunning => _timer is not null && _timer.Enabled;

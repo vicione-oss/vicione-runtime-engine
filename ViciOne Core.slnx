@@ -1,0 +1,61 @@
+<Solution>
+  <Folder Name="/Projektmappenelemente/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path=".gitlab-ci.yml" />
+    <File Path="CHANGELOG.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="NuGet.Config" />
+    <File Path="README.md" />
+    <File Path="THIRD-PARTY-NOTICES.md" />
+    <File Path="VERSION" />
+  </Folder>
+  <Folder Name="/samples/" />
+  <Folder Name="/samples/design-time/">
+    <Project Path="samples/design-time/GenerateFBDesigns/GenerateFBDesigns.csproj" />
+  </Folder>
+  <Folder Name="/samples/runtime/">
+    <Project Path="samples/runtime/RuntimeDemo/RuntimeDemo.csproj" />
+    <Project Path="samples/runtime/ScaleUpSample/ScaleUpSample.csproj" />
+  </Folder>
+  <Folder Name="/samples/runtime/fbs/">
+    <Project Path="samples/runtime/fbs/Demo.ComplexTypeDemo/Demo.ComplexTypeDemo.csproj" />
+    <Project Path="samples/runtime/fbs/Demo.DriverDemo/Demo.DriverDemo.csproj" />
+    <Project Path="samples/runtime/fbs/Demo.SettingsDemo/Demo.SettingsDemo.csproj" />
+    <Project Path="samples/runtime/fbs/Logic.AND/Logic.AND.csproj" />
+    <Project Path="samples/runtime/fbs/Numeric.Add/Numeric.Add.csproj" />
+    <Project Path="samples/runtime/fbs/Numeric.Incrementor/Numeric.Incrementor.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <File Path="shared/EnumerableExtensions.cs" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FunctionBlockDesignGenerator/FunctionBlockDesignGenerator.csproj" />
+    <Project Path="src/FunctionBlockExecutor/FunctionBlockExecutor.csproj" />
+    <Project Path="src/ViciOne.Core.Contracts/ViciOne.Core.Contracts.csproj" />
+    <Project Path="src/ViciOne.Core.Dataflow.DataModel.Generation/ViciOne.Core.Dataflow.DataModel.Generation.csproj" />
+    <Project Path="src/ViciOne.Core.Dataflow/ViciOne.Core.Dataflow.csproj" />
+    <Project Path="src/ViciOne.Core.Runtime.Execution/ViciOne.Core.Runtime.Execution.csproj" />
+    <Project Path="src/ViciOne.Core.Runtime/ViciOne.Core.Runtime.csproj" />
+    <Project Path="src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj" />
+    <Project Path="src/ViciOne.Engine.DefaultValidators/ViciOne.Engine.DefaultValidators.csproj" />
+    <Project Path="src/ViciOne.Engine/ViciOne.Engine.csproj" />
+    <Project Path="src/ViciOne.Serialization.Json/ViciOne.Serialization.Json.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <File Path="tests/.editorconfig" />
+    <Project Path="tests/ViciOne.Core.Contracts.Tests/ViciOne.Core.Contracts.Tests.csproj" />
+    <Project Path="tests/ViciOne.Core.Dataflow.DataModel.Generation.Tests/ViciOne.Core.Dataflow.DataModel.Generation.Tests.csproj" />
+    <Project Path="tests/ViciOne.Core.Dataflow.Tests/ViciOne.Core.Dataflow.Tests.csproj" />
+    <Project Path="tests/ViciOne.Core.Integration.Tests/ViciOne.Core.Integration.Tests.csproj" />
+    <Project Path="tests/ViciOne.Core.Runtime.Tests/ViciOne.Core.Runtime.Tests.csproj" />
+    <Project Path="tests/ViciOne.Engine.DefaultPoolings.Tests/ViciOne.Engine.DefaultPoolings.Tests.csproj" />
+    <Project Path="tests/ViciOne.Engine.DefaultValidators.Tests/ViciOne.Engine.DefaultValidators.Tests.csproj" />
+    <Project Path="tests/ViciOne.Engine.Tests/ViciOne.Engine.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/shared/">
+    <File Path="tests/shared/AssertionExtensions.cs" />
+    <File Path="tests/shared/MockValidator.cs" />
+  </Folder>
+</Solution>

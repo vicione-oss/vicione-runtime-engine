@@ -3,14 +3,19 @@ using System.Linq;
 
 namespace ViciOne.Core.Dataflow.DataModel.Extensions;
 
+// TODO: Suppression should be removed when https://github.com/dotnet/sdk/issues/51681 is fixed and delivered.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "Extension members syntax generates nested types")]
 public static class FunctionBlockDesignExtensions
 {
-    public static IEnumerable<ConnectorDesign> GetConnectors(this FunctionBlockDesign design)
-        => GetInputs(design).Concat(GetOutputs(design));
+    extension(FunctionBlockDesign design)
+    {
+        public IEnumerable<ConnectorDesign> GetConnectors()
+            => design.GetInputs().Concat(design.GetOutputs());
 
-    public static IEnumerable<ConnectorDesign> GetInputs(this FunctionBlockDesign design)
-        => design.Settings.Select(x => x.Input).Concat(design.SystemInputs).Concat(design.ProcessDataInputs);
+        public IEnumerable<ConnectorDesign> GetInputs()
+            => design.Settings.Select(x => x.Input).Concat(design.SystemInputs).Concat(design.ProcessDataInputs);
 
-    public static IEnumerable<ConnectorDesign> GetOutputs(this FunctionBlockDesign design)
-        => design.Settings.Select(x => x.Output).Concat(design.SystemOutputs).Concat(design.ProcessDataOutputs);
+        public IEnumerable<ConnectorDesign> GetOutputs()
+            => design.Settings.Select(x => x.Output).Concat(design.SystemOutputs).Concat(design.ProcessDataOutputs);
+    }
 }

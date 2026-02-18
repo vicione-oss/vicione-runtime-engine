@@ -1,7 +1,7 @@
 {
   "version": 2,
   "dependencies": {
-    "net9.0": {
+    "net10.0": {
       "CommandLineParser": {
         "type": "Direct",
         "requested": "[2.9.1, )",
@@ -10,71 +10,71 @@
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
-        "resolved": "9.0.7",
-        "contentHash": "iPK1FxbGFr2Xb+4Y+dTYI8Gupu9pOi8I3JPuPsrogUmEhe2hzZ9LpCmolMEBhVDo2ikcSr7G5zYiwaapHSQTew=="
+        "resolved": "10.0.3",
+        "contentHash": "bwGMrRcAMWx2s/RDgja97p27rxSz2pEQW0+rX5cWAUWVETVJ/eyxGfjAl8vuG5a+lckWmPIE+vcuaZNVB5YDdw=="
       },
       "vicione.core.contracts": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "[9.0.7, )"
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.3, )"
         }
       },
       "vicione.core.dataflow": {
         "type": "Project",
         "dependencies": {
-          "FastCloner": "[3.3.10, )",
-          "ViciOne.Core.Contracts": "[0.51.0, )"
+          "FastCloner": "[3.4.4, )",
+          "ViciOne.Core.Contracts": "[0.52.0, )"
         }
       },
       "vicione.core.dataflow.datamodel.generation": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Dataflow": "[0.51.0, )",
-          "ViciOne.Engine.DefaultValidators": "[0.51.0, )"
+          "ViciOne.Core.Dataflow": "[0.52.0, )",
+          "ViciOne.Engine.DefaultValidators": "[0.52.0, )"
         }
       },
       "vicione.core.runtime": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[0.51.0, )"
+          "ViciOne.Core.Contracts": "[0.52.0, )"
         }
       },
       "vicione.engine.defaultvalidators": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[0.51.0, )"
+          "ViciOne.Core.Runtime": "[0.52.0, )"
         }
       },
       "vicione.serialization.json": {
         "type": "Project",
         "dependencies": {
-          "Newtonsoft.Json": "[13.0.3, )"
+          "Newtonsoft.Json": "[13.0.4, )"
         }
       },
       "FastCloner": {
         "type": "CentralTransitive",
-        "requested": "[3.3.10, )",
-        "resolved": "3.3.10",
-        "contentHash": "3Qw0IlWqsfNHep1ryRSW3J3mSz9fPOktHiinESThg9RVQTIH0FfVNoiDnSp7/byINOpSVUVAUuFAFqUxokm7BA=="
+        "requested": "[3.4.4, )",
+        "resolved": "3.4.4",
+        "contentHash": "GWf9d1Vh0KQMHOviTa/sqexKS3C8qGwK5X52YqVe65LWD71fJybZ+bMDN+l1E2Vs6RQn1YNcMhR5mph9hAEMyA=="
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "CentralTransitive",
-        "requested": "[9.0.7, )",
-        "resolved": "9.0.7",
-        "contentHash": "sMM6NEAdUTE/elJ2wqjOi0iBWqZmSyaTByLF9e8XHv6DRJFFnOe0N+s8Uc6C91E4SboQCfLswaBIZ+9ZXA98AA==",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "lxl0WLk7ROgBFAsjcOYjQ8/DVK+VMszxGBzUhgtQmAsTNldLL5pk9NG/cWTsXHq0lUhUEAtZkEE7jOGOA8bGKQ==",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.7"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.3"
         }
       },
       "Newtonsoft.Json": {
         "type": "CentralTransitive",
-        "requested": "[13.0.3, )",
-        "resolved": "13.0.3",
-        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       }
     },
-    "net9.0/linux-arm64": {},
-    "net9.0/linux-x64": {},
-    "net9.0/win-x64": {}
+    "net10.0/linux-arm64": {},
+    "net10.0/linux-x64": {},
+    "net10.0/win-x64": {}
   }
 }

@@ -3,22 +3,27 @@ using System.Linq;
 
 namespace ViciOne.Core.Contracts.DataModel.Extensions;
 
+// TODO: Suppression should be removed when https://github.com/dotnet/sdk/issues/51681 is fixed and delivered.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "Extension members syntax generates nested types")]
 public static class DataflowExtensions
 {
-    public static IContainer? GetContainer(this IDataflow dataflow, IFunctionBlock block)
+    extension(IDataflow dataflow)
     {
-        foreach (IContainer container in GetContainers(dataflow))
-            if (container.FunctionBlocks.Contains(block))
-                return container;
+        public IContainer? GetContainer(IFunctionBlock block)
+        {
+            foreach (IContainer container in dataflow.GetContainers())
+                if (container.FunctionBlocks.Contains(block))
+                    return container;
 
-        return null;
-    }
+            return null;
+        }
 
-    public static IEnumerable<IContainer> GetContainers(this IDataflow dataflow)
-    {
-        yield return dataflow.RootContainer;
+        public IEnumerable<IContainer> GetContainers()
+        {
+            yield return dataflow.RootContainer;
 
-        foreach (IContainer container in dataflow.RootContainer.GetContainers(true))
-            yield return container;
+            foreach (IContainer container in dataflow.RootContainer.GetContainers(true))
+                yield return container;
+        }
     }
 }

@@ -3,17 +3,22 @@ using System.Linq;
 
 namespace ViciOne.Core.Contracts.DataModel.Extensions;
 
+// TODO: Suppression should be removed when https://github.com/dotnet/sdk/issues/51681 is fixed and delivered.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "Extension members syntax generates nested types")]
 public static class FunctionBlockDesignExtensions
 {
-    public static IEnumerable<IConnectorDesign> GetConnectors(this IFunctionBlockDesign design)
-        => GetInputs(design).Concat(GetOutputs(design));
+    extension(IFunctionBlockDesign design)
+    {
+        public IEnumerable<IConnectorDesign> GetConnectors()
+            => design.GetInputs().Concat(design.GetOutputs());
 
-    public static IEnumerable<IConnectorDesign> GetInputs(this IFunctionBlockDesign design)
-        => design.Settings.Select(x => x.Input).Concat(design.SystemInputs).Concat(design.ProcessDataInputs);
+        public IEnumerable<IConnectorDesign> GetInputs()
+            => design.Settings.Select(x => x.Input).Concat(design.SystemInputs).Concat(design.ProcessDataInputs);
 
-    public static IEnumerable<IConnectorDesign> GetOutputs(this IFunctionBlockDesign design)
-        => design.Settings.Select(x => x.Output).Concat(design.SystemOutputs).Concat(design.ProcessDataOutputs);
+        public IEnumerable<IConnectorDesign> GetOutputs()
+            => design.Settings.Select(x => x.Output).Concat(design.SystemOutputs).Concat(design.ProcessDataOutputs);
 
-    public static string GetRuntimeTypeName(this IFunctionBlockDesign design)
-        => design.RuntimeTypeName ?? $"{design.Namespace}.{design.Name}";
+        public string GetRuntimeTypeName()
+            => design.RuntimeTypeName ?? $"{design.Namespace}.{design.Name}";
+    }
 }
