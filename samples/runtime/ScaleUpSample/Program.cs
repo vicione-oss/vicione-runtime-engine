@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Threading;
 using ViciOne.Core.Contracts;
 using ViciOne.Core.Contracts.DataModel;
@@ -29,7 +30,7 @@ internal sealed class Program
         int runtimeEngineCount = int.Parse(args[2], CultureInfo.InvariantCulture);
         int timerCount = int.Parse(args[3], CultureInfo.InvariantCulture);
 
-        Assembly[] assemblies = [.. Directory.GetFiles(dllDir, "*.dll", SearchOption.AllDirectories).Select(Assembly.LoadFrom)];
+        Assembly[] assemblies = [.. Directory.GetFiles(dllDir, "*.dll", SearchOption.AllDirectories).Select(AssemblyLoadContext.Default.LoadFromAssemblyPath)];
         IDataflow dataflow = Load<Dataflow>(dataflowPath);
         using ILoggerFactory dummyLoggerFactory = new LoggerFactory();
         IUniqueNameProvider uniqueNameProvider = new DefaultUniqueNameProvider(NameGenerator.CreateUniqueNames(dataflow));

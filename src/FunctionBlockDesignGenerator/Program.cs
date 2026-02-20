@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.Loader;
 using ViciOne.Core.Dataflow.DataModel;
 using ViciOne.Core.Dataflow.DataModel.Generation;
 using ViciOne.Core.Dataflow.Pooling;
@@ -42,7 +43,7 @@ internal static class Program
     {
         foreach (string directory in paths)
             foreach (string file in Directory.GetFiles(directory, "*.dll", SearchOption.AllDirectories))
-                yield return Assembly.LoadFrom(file);
+                yield return AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(file));
     }
 
     private static int RunAndReturnExitCode(Options options)
@@ -50,7 +51,7 @@ internal static class Program
         FunctionBlockDesign[] designs;
         try
         {
-            var assembly = Assembly.LoadFrom(options.InputFile);
+            Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(options.InputFile));
             Assembly[] additionalAssemblies = [.. LoadAdditionalAssemblies(options.AdditionalAssemblyPaths)];
             PoolingFactory poolingFactory = new(additionalAssemblies);
             IEnumerable<Generation.IntermediateModel.FunctionBlockDesignInfo> infos = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesigns([assembly]);
