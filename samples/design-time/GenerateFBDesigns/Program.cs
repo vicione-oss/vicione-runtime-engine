@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using ViciOne.Core.Contracts;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Dataflow.DataModel;
@@ -19,7 +20,7 @@ internal static class Program
     private static void Main(string[] args)
     {
         string dllDir = args[0];
-        IEnumerable<Assembly> assemblies = Directory.GetFiles(dllDir, "*.dll", SearchOption.AllDirectories).Select(Assembly.LoadFrom);
+        IEnumerable<Assembly> assemblies = Directory.GetFiles(dllDir, "*.dll", SearchOption.AllDirectories).Select(AssemblyLoadContext.Default.LoadFromAssemblyPath);
 
         PoolingFactory poolingFactory = new([typeof(SumPooling).Assembly]);
         IEnumerable<FunctionBlockDesignInfo> infos = RuntimeFunctionBlockAssemblyAnalyzer.GetFunctionBlockDesigns(assemblies);

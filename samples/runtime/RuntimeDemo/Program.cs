@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Threading;
 using ViciOne.Core.Contracts;
 using ViciOne.Core.Contracts.DataModel;
@@ -31,7 +32,7 @@ internal sealed class Program
         bool showOutgoingExternalLinkValuesInConsole = args[5] == "1";
 
         // Engine Aufgaben
-        Assembly[] assemblies = [.. Directory.GetFiles(dllDir, "*.dll", SearchOption.AllDirectories).Select(Assembly.LoadFrom)];
+        Assembly[] assemblies = [.. Directory.GetFiles(dllDir, "*.dll", SearchOption.AllDirectories).Select(AssemblyLoadContext.Default.LoadFromAssemblyPath)];
         IDataflow dataflow = Load<Dataflow>(dataflowPath);
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options => options.SingleLine = true));
         ILogger persistenceLogger = loggerFactory.CreateLogger<IPersistence>();

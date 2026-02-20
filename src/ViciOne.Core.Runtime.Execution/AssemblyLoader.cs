@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.Loader;
 using ViciOne.Engine.DefaultPoolings;
 using ViciOne.Engine.DefaultValidators;
 
@@ -19,9 +20,10 @@ public static class AssemblyLoader
         return list;
     }
 
-    public static RelevantAssemblies CreateRelevantAssemblies(string fbAssemblyPath)
+    public static RelevantAssemblies CreateRelevantAssemblies(string fbAssemblyPath, AssemblyLoadContext? loadContext = null)
     {
-        var fbAssembly = Assembly.LoadFrom(fbAssemblyPath);
+        loadContext ??= AssemblyLoadContext.Default;
+        Assembly fbAssembly = loadContext.LoadFromAssemblyPath(fbAssemblyPath);
         return CreateRelevantAssemblies(fbAssembly);
     }
 
