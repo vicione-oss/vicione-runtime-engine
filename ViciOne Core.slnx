@@ -49,6 +49,7 @@
     <Project Path="tests/ViciOne.Core.Dataflow.DataModel.Generation.Tests/ViciOne.Core.Dataflow.DataModel.Generation.Tests.csproj" />
     <Project Path="tests/ViciOne.Core.Dataflow.Tests/ViciOne.Core.Dataflow.Tests.csproj" />
     <Project Path="tests/ViciOne.Core.Integration.Tests/ViciOne.Core.Integration.Tests.csproj" />
+    <Project Path="tests/ViciOne.Core.Runtime.Execution.Tests/ViciOne.Core.Runtime.Execution.Tests.csproj" />
     <Project Path="tests/ViciOne.Core.Runtime.Tests/ViciOne.Core.Runtime.Tests.csproj" />
     <Project Path="tests/ViciOne.Engine.DefaultPoolings.Tests/ViciOne.Engine.DefaultPoolings.Tests.csproj" />
     <Project Path="tests/ViciOne.Engine.DefaultValidators.Tests/ViciOne.Engine.DefaultValidators.Tests.csproj" />
