@@ -159,6 +159,9 @@ public sealed class FunctionBlockExecutor : IDisposable
            .Select(x => (_outgoingLinkIdsInputs[x.Key], ChangedEntryFactory.Create(x.Value)))
            .ToDictionary(x => x.Item1, x => x.Item2);
 
+    public IEnumerable<IConnector> GetOutputs()
+        => _outgoingLinkIdsOutputs.Values;
+
     public IDictionary<IConnector, ChangedEntry> GetOutputValues()
        => _outputOutgoingLinkValues
            .Select(x => (_outgoingLinkIdsOutputs[x.Key], ChangedEntryFactory.Create(x.Value)))
