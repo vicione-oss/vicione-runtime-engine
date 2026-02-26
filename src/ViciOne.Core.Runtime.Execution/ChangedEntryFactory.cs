@@ -6,13 +6,13 @@ namespace ViciOne.Core.Runtime.Execution;
 internal static class ChangedEntryFactory
 {
     public static ChangedEntry Create(ILinkChangedEntry linkChangedEntry)
-        => new()
-        {
-            Time = linkChangedEntry.Time,
-            Id = linkChangedEntry.Id,
-            Validity = linkChangedEntry.Validity,
-            Value = linkChangedEntry.Value,
-        };
+       => new()
+       {
+           Time = linkChangedEntry.Time,
+           Id = linkChangedEntry.Id,
+           Validity = linkChangedEntry.Validity,
+           Value = linkChangedEntry.Value,
+       };
 
     public static ChangedEntry Create(IPersistenceEntry persistenceEntry)
        => new()

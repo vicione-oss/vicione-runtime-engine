@@ -12,10 +12,8 @@ public static class AssemblyLoader
     {
         Assembly poolingAssembly = typeof(AndPooling).Assembly;
         Assembly validatorAssembly = typeof(RangeValidator<>).Assembly;
-        var list = new List<Assembly>();
-        if (list.Contains(poolingAssembly) == false)
-            list.Add(poolingAssembly);
-        if (list.Contains(validatorAssembly) == false)
+        List<Assembly> list = new() { poolingAssembly };
+        if (poolingAssembly != validatorAssembly)
             list.Add(validatorAssembly);
         return list;
     }

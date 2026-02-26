@@ -1,10 +1,10 @@
 ﻿using System;
+using ViciOne.Core.Contracts.DataModel;
 
 namespace ViciOne.Core.Contracts.Runtime;
 
-public interface IPersistenceEntry
+public interface IPersistenceEntry : IIdProvider
 {
-    Guid Id { get; }
     DateTime Time { get; }
     object? Value { get; }
 }

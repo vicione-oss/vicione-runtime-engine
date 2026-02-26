@@ -159,6 +159,9 @@ public sealed class FunctionBlockExecutor : IDisposable
            .Select(x => (_outgoingLinkIdsInputs[x.Key], ChangedEntryFactory.Create(x.Value)))
            .ToDictionary(x => x.Item1, x => x.Item2);
 
+    public IEnumerable<IConnector> GetOutputs()
+        => _outgoingLinkIdsOutputs.Values;
+
     public IDictionary<IConnector, ChangedEntry> GetOutputValues()
        => _outputOutgoingLinkValues
            .Select(x => (_outgoingLinkIdsOutputs[x.Key], ChangedEntryFactory.Create(x.Value)))
@@ -167,13 +170,13 @@ public sealed class FunctionBlockExecutor : IDisposable
     public IEnumerable<IPersistentVariable> GetPersistentVariables()
         => _persistentVariableIdsPersistentVariables.Values;
 
-    public IEnumerable<ISetting> GetSettings()
-        => _settingIdsSettings.Values;
-
     public IDictionary<IPersistentVariable, ChangedEntry> GetPersistentVariableValues()
         => _persistentVariableValues
            .Select(x => (_persistentVariableIdsPersistentVariables[x.Key], ChangedEntryFactory.Create(x.Value)))
            .ToDictionary(x => x.Item1, x => x.Item2);
+
+    public IEnumerable<ISetting> GetSettings()
+        => _settingIdsSettings.Values;
 
     public IDictionary<ISetting, ChangedEntry> GetSettingValues()
         => _settingValues

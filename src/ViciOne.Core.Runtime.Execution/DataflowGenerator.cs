@@ -16,14 +16,12 @@ public static class DataflowGenerator
         => GenerateDataflow(assemblies, x => x);
 
     public static DataflowInfo GenerateDataflow(RelevantAssemblies assemblies, Func<IEnumerable<FunctionBlockDesign>, FunctionBlockDesign> selectDesign)
-        => selectDesign == null
-            ? GenerateDataflow(assemblies, x => x)
-            : GenerateDataflow(assemblies, x => Enumerable.Repeat(selectDesign(x), 1));
+        => GenerateDataflow(assemblies, x => [selectDesign(x)]);
 
     public static DataflowInfo GenerateDataflow(RelevantAssemblies assemblies, Func<IEnumerable<FunctionBlockDesign>, IEnumerable<FunctionBlockDesign>> filterDesigns)
     {
         List<FunctionBlockDesign> generatedDesigns = GenerateFunctionBlockDesigns(assemblies);
-        IEnumerable<FunctionBlockDesign> filteredDesigns = filterDesigns == null ? generatedDesigns : filterDesigns(generatedDesigns);
+        IEnumerable<FunctionBlockDesign> filteredDesigns = filterDesigns(generatedDesigns);
         DataflowInfo dataflowInfo = GenerateDataflow(filteredDesigns);
         return dataflowInfo;
     }
