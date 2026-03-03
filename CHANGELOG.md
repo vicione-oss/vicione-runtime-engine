@@ -5,6 +5,7 @@
 ### Added
 
 - Support for tracing and metrics
+- `GetOutputs` method to FunctionBlockExecutor to query all outputs of block
 
 ### Changed
 
