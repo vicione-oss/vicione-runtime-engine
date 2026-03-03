@@ -115,31 +115,31 @@
         "type": "Project",
         "dependencies": {
           "FastCloner": "[3.4.7, )",
-          "ViciOne.Core.Contracts": "[0.52.0, )"
+          "ViciOne.Core.Contracts": "[1.0.0, )"
         }
       },
       "vicione.core.runtime": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[0.52.0, )"
+          "ViciOne.Core.Contracts": "[1.0.0, )"
         }
       },
       "vicione.engine": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[0.52.0, )"
+          "ViciOne.Core.Runtime": "[1.0.0, )"
         }
       },
       "vicione.engine.defaultpoolings": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[0.52.0, )"
+          "ViciOne.Core.Runtime": "[1.0.0, )"
         }
       },
       "vicione.engine.defaultvalidators": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[0.52.0, )"
+          "ViciOne.Core.Runtime": "[1.0.0, )"
         }
       },
       "vicione.serialization.json": {

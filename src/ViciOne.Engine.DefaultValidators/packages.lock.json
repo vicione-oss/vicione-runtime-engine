@@ -16,7 +16,7 @@
       "vicione.core.runtime": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[0.52.0, )"
+          "ViciOne.Core.Contracts": "[1.0.0, )"
         }
       },
       "Microsoft.Extensions.Logging.Abstractions": {
