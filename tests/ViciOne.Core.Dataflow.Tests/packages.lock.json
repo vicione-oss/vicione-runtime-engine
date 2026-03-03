@@ -136,15 +136,15 @@
       "vicione.core.dataflow": {
         "type": "Project",
         "dependencies": {
-          "FastCloner": "[3.4.4, )",
+          "FastCloner": "[3.4.7, )",
           "ViciOne.Core.Contracts": "[0.52.0, )"
         }
       },
       "FastCloner": {
         "type": "CentralTransitive",
-        "requested": "[3.4.4, )",
-        "resolved": "3.4.4",
-        "contentHash": "GWf9d1Vh0KQMHOviTa/sqexKS3C8qGwK5X52YqVe65LWD71fJybZ+bMDN+l1E2Vs6RQn1YNcMhR5mph9hAEMyA=="
+        "requested": "[3.4.7, )",
+        "resolved": "3.4.7",
+        "contentHash": "30wSSPo5ut//D6VZH1HfugVZBAmXxaoF7/oDPiAOKAOp+50C63KJ2dhtja4CeQd68ZqiYJoxNcigJPARieWiJg=="
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "CentralTransitive",

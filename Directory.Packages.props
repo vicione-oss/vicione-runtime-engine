@@ -7,7 +7,7 @@
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
     <PackageVersion Include="CommandLineParser" Version="2.9.1" />
     <PackageVersion Include="coverlet.collector" Version="8.0.0" />
-    <PackageVersion Include="FastCloner" Version="3.4.4" />
+    <PackageVersion Include="FastCloner" Version="3.4.7" />
     <PackageVersion Include="Lokad.ILPack" Version="0.3.0" />
     <PackageVersion Include="MQTTnet" Version="[4.3.7.1207,5)" />
     <PackageVersion Include="MQTTnet.Extensions.ManagedClient" Version="4.3.7.1207" />

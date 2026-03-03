@@ -11,6 +11,7 @@
 - Mark inputs and settings no longer as changed on start
 - Execute all blocks in first cycle
 - Update `.NET` to `10.0`
+- Update `FastCloner` to `3.4.7`
 
 ## 0.51.0
 
