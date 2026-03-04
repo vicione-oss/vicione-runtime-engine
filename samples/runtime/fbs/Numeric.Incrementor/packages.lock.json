@@ -16,13 +16,13 @@
       "vicione.core.runtime": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[0.52.0, )"
+          "ViciOne.Core.Contracts": "[1.0.0, )"
         }
       },
       "vicione.engine.defaultvalidators": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[0.52.0, )"
+          "ViciOne.Core.Runtime": "[1.0.0, )"
         }
       },
       "Microsoft.Extensions.Logging.Abstractions": {

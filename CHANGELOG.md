@@ -1,10 +1,11 @@
 # Changelog
 
-## 0.52.0 - Unreleased
+## 1.0.0 - 2026-03-04
 
 ### Added
 
 - Support for tracing and metrics
+- `GetOutputs` method to FunctionBlockExecutor to query all outputs of block
 
 ### Changed
 
