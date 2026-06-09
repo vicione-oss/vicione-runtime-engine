@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 - Unreleased
+
+### Changed
+
+- Update `FastCloner` to `3.5.5`
+- Update `Microsoft.Extensions.Logging.Console` to `10.0.8`
+- Update `Microsoft.Extensions.Logging.Abstractions` to `10.0.8`
+
 ## 1.0.0 - 2026-03-04
 
 ### Added
