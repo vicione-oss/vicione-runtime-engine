@@ -115,46 +115,46 @@
         "type": "Project",
         "dependencies": {
           "FastCloner": "[3.5.5, )",
-          "ViciOne.Core.Contracts": "[1.0.0, )"
+          "ViciOne.Core.Contracts": "[1.0.1, )"
         }
       },
       "vicione.core.dataflow.datamodel.generation": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Dataflow": "[1.0.0, )",
-          "ViciOne.Engine.DefaultValidators": "[1.0.0, )"
+          "ViciOne.Core.Dataflow": "[1.0.1, )",
+          "ViciOne.Engine.DefaultValidators": "[1.0.1, )"
         }
       },
       "vicione.core.runtime": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[1.0.0, )"
+          "ViciOne.Core.Contracts": "[1.0.1, )"
         }
       },
       "vicione.core.runtime.execution": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.0, )",
-          "ViciOne.Engine": "[1.0.0, )",
-          "ViciOne.Engine.DefaultPoolings": "[1.0.0, )"
+          "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.1, )",
+          "ViciOne.Engine": "[1.0.1, )",
+          "ViciOne.Engine.DefaultPoolings": "[1.0.1, )"
         }
       },
       "vicione.engine": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[1.0.0, )"
+          "ViciOne.Core.Runtime": "[1.0.1, )"
         }
       },
       "vicione.engine.defaultpoolings": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[1.0.0, )"
+          "ViciOne.Core.Runtime": "[1.0.1, )"
         }
       },
       "vicione.engine.defaultvalidators": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[1.0.0, )"
+          "ViciOne.Core.Runtime": "[1.0.1, )"
         }
       },
       "FastCloner": {

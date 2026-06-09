@@ -17,19 +17,19 @@
         "type": "Project",
         "dependencies": {
           "FastCloner": "[3.5.5, )",
-          "ViciOne.Core.Contracts": "[1.0.0, )"
+          "ViciOne.Core.Contracts": "[1.0.1, )"
         }
       },
       "vicione.core.runtime": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[1.0.0, )"
+          "ViciOne.Core.Contracts": "[1.0.1, )"
         }
       },
       "vicione.engine.defaultvalidators": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[1.0.0, )"
+          "ViciOne.Core.Runtime": "[1.0.1, )"
         }
       },
       "FastCloner": {
