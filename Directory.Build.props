@@ -18,10 +18,10 @@
 
   <!-- Properties for all projects in the repo -->
   <PropertyGroup>
-    <Nullable>enable</Nullable>
     <!-- General information -->
     <TargetFramework>net10.0</TargetFramework>
     <RuntimeIdentifiers Condition="$(MSBuildProjectDirectory.Contains('src'))">linux-x64;linux-arm64;win-x64</RuntimeIdentifiers>
+    <Nullable>enable</Nullable>
     <Description>-</Description>
     <Product>ViciOne</Product>
     <Company>ifm software gmbh</Company>
@@ -32,7 +32,8 @@
     <!-- Code quality -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <NoWarn>$(NoWarn);EnableGenerateDocumentationFile</NoWarn> <!-- Workaround for https://github.com/dotnet/roslyn/issues/41640 -->
+    <!-- Required for EnforceCodeStyleInBuild and NuGet packages -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- NuGet lock file -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
@@ -42,7 +43,7 @@
 
   <!-- NuGet packages publish information -->
   <PropertyGroup>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://gitlab.com/vicione-oss/vicione/runtime/engine</PackageProjectUrl>
     <Authors>$(Company)</Authors>
   </PropertyGroup>
@@ -54,20 +55,23 @@
   <ItemGroup Condition="$(MSBuildProjectDirectory.Contains('src'))">
     <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
   </ItemGroup>
-
-  <!-- Properties for CI pipelines
-    <PropertyGroup Condition="'$(CI)' != ''">
-        <RunAnalyzers>false</RunAnalyzers>
-    </PropertyGroup> -->
+  <PropertyGroup Condition="$(MSBuildProjectDirectory.Contains('src'))">
+    <!-- Suppress documentation of public API -->
+    <NoWarn>CS1591</NoWarn>
+  </PropertyGroup>
 
   <!-- Properties for test projects -->
   <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests')) And $(MSBuildProjectDirectory.Contains('tests'))">
+    <!-- Suppress documentation of public API -->
+    <NoWarn>CS1591</NoWarn>
     <IsPackable>false</IsPackable>
     <IsPublishable>true</IsPublishable>
   </PropertyGroup>
 
   <!-- Properties for sample projects -->
   <PropertyGroup Condition="$(MSBuildProjectDirectory.Contains('samples'))">
+    <!-- Suppress documentation of public API -->
+    <NoWarn>CS1591</NoWarn>
     <IsPackable>false</IsPackable>
     <IsPublishable>true</IsPublishable>
   </PropertyGroup>
