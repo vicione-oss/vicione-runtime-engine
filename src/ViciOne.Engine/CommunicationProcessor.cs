@@ -27,7 +27,6 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
         {
             _receivedEntriesObserver.Dispose();
             _linkChangedEntryFactory.Dispose();
-            linkCache.Dispose();
         }
 
         _disposed = true;
