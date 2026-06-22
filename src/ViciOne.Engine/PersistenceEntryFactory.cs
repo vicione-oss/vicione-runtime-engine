@@ -5,10 +5,8 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-internal sealed class PersistenceEntryFactory : GenericFactory
+internal sealed class PersistenceEntryFactory() : GenericFactory(GetGenericCreateMethod())
 {
-    public PersistenceEntryFactory() : base(GetGenericCreateMethod()) { }
-
     public IPersistenceEntry Create(IPersistable persistableElement, IReferenceTypeCloneHandler cloneHandler)
         => Create<IPersistenceEntry>(DataTypeCompatibilityValidator.DetermineValueType(persistableElement), [persistableElement, cloneHandler]);
 

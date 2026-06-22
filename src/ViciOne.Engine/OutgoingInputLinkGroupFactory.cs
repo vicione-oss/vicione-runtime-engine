@@ -5,10 +5,8 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-internal sealed class OutgoingInputLinkGroupFactory : GenericFactory
+internal sealed class OutgoingInputLinkGroupFactory() : GenericFactory(GetGenericCreateMethod())
 {
-    public OutgoingInputLinkGroupFactory() : base(GetGenericCreateMethod()) { }
-
     public IOutgoingInputLinkGroup Create(IRuntimeConnector connector, IEnumerable<IRuntimeLink> links)
         => Create<IOutgoingInputLinkGroup>(DataTypeCompatibilityValidator.DetermineValueType(connector), [connector, links]);
 

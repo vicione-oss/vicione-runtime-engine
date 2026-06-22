@@ -4,10 +4,8 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-internal sealed class LinkChangedEntryFactory : GenericFactory
+internal sealed class LinkChangedEntryFactory() : GenericFactory(GetGenericCreateMethod())
 {
-    public LinkChangedEntryFactory() : base(GetGenericCreateMethod()) { }
-
     public ILinkChangedEntry Create(IRuntimeLink link, IReferenceTypeCloneHandler cloneHandler)
         => Create<ILinkChangedEntry>(DataTypeCompatibilityValidator.DetermineValueType(link), [link, cloneHandler]);
 
