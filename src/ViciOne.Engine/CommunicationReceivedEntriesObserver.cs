@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
@@ -9,6 +10,7 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
     private readonly ICommunicationManager _communicationManager;
     private bool _disposed;
     private readonly List<ILinkChangedEntry> _receivedEntries = [];
+    private readonly Lock _receivedEntriesLock = new();
 
     public CommunicationReceivedEntriesObserver(ICommunicationManager communicationManager)
     {
@@ -18,7 +20,7 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
 
     private void ChangedEntriesReceived(object? sender, IEnumerable<ILinkChangedEntry> entries)
     {
-        lock (_receivedEntries)
+        lock (_receivedEntriesLock)
             _receivedEntries.AddRange(entries);
     }
 
@@ -42,7 +44,7 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
     public IEnumerable<ILinkChangedEntry> GetAndResetReceivedEntries()
     {
         List<ILinkChangedEntry> receivedEntriesCopy;
-        lock (_receivedEntries)
+        lock (_receivedEntriesLock)
         {
             receivedEntriesCopy = [.. _receivedEntries];
             _receivedEntries.Clear();
