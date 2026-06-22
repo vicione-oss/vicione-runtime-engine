@@ -8,10 +8,8 @@ using ViciOne.Engine.Extensions;
 
 namespace ViciOne.Engine;
 
-internal sealed class InternalRuntimeLinkFactory : GenericFactory
+internal sealed class InternalRuntimeLinkFactory() : GenericFactory(GetGenericCreateMethod())
 {
-    public InternalRuntimeLinkFactory() : base(GetGenericCreateMethod()) { }
-
     public IRuntimeLink Create(IInternalLink link, IDictionary<Guid, IRuntimeConnector> connectedConnectors)
         => Create<IRuntimeLink>([link, connectedConnectors],
             DataTypeCompatibilityValidator.DetermineValueType(link.Source),

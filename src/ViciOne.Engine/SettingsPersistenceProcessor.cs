@@ -9,15 +9,12 @@ internal sealed class SettingsPersistenceProcessor(IRuntimeFunctionBlock[] runti
     IPersistence persistence, Func<IReferenceTypeCloneHandler> getCloneHandler, ILogger logger) :
     PersistenceProcessor<IRuntimeSettings, IRuntimeSetting>(persistence, getCloneHandler)
 {
-    private readonly ILogger _logger = logger;
-    private readonly IUniqueNameProvider _uniqueNameProvider = uniqueNameProvider;
-
     protected override RuntimeElementsChangedObserver<IRuntimeSettings, IRuntimeSetting> ChangedObserver { get; } = new RuntimeSettingsChangedObserver(runtimeFunctionBlocks);
     protected override RuntimeElementsProvider<IRuntimeSettings, IRuntimeSetting> ElementProvider { get; } = new RuntimeSettingsProvider(runtimeFunctionBlocks);
 
     protected override void LogErrorWhileApplying(Exception ex, Guid loadedId, IIdProvider element)
-        => _logger.ApplyLoadedSettingValueErrorOccured(ex, loadedId, _uniqueNameProvider.GetUniqueName(element));
+        => logger.ApplyLoadedSettingValueErrorOccured(ex, loadedId, uniqueNameProvider.GetUniqueName(element));
 
     protected override void LogWarningVariableNotFound(Guid loadedId)
-        => _logger.NoSettingWithIdFound(loadedId);
+        => logger.NoSettingWithIdFound(loadedId);
 }

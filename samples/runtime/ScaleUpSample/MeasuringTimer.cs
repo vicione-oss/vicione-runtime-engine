@@ -10,7 +10,6 @@ internal sealed class MeasuringTimer(uint interval) : IDisposable
 {
     private long _cycleCount;
     private long _elapsedSum;
-    private readonly uint _interval = interval;
     private bool _isProcessing;
     private Timer? _timer;
 
@@ -30,7 +29,7 @@ internal sealed class MeasuringTimer(uint interval) : IDisposable
 
         _timer = new Timer
         {
-            Interval = _interval,
+            Interval = interval,
             AutoReset = true
         };
         _timer.Elapsed += TimerElapsed;
@@ -59,8 +58,8 @@ internal sealed class MeasuringTimer(uint interval) : IDisposable
         watch.Stop();
         _elapsedSum += watch.ElapsedMilliseconds;
         _cycleCount++;
-        if (EnableOutput && watch.ElapsedMilliseconds > _interval)
-            Console.WriteLine("{0:HH:mm:ss.fff}: {1} > {2}", DateTime.Now, watch.ElapsedMilliseconds, _interval);
+        if (EnableOutput && watch.ElapsedMilliseconds > interval)
+            Console.WriteLine("{0:HH:mm:ss.fff}: {1} > {2}", DateTime.Now, watch.ElapsedMilliseconds, interval);
         _isProcessing = false;
     }
 

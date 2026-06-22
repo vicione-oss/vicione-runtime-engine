@@ -4,12 +4,10 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-internal sealed class ConcatenatingIncomingInputLinkGroup<TValue> : IncomingInputLinkGroup<TValue?[], TValue>
+internal sealed class ConcatenatingIncomingInputLinkGroup<TValue>(IRuntimeConnector<TValue?[]> connector, IRuntimeLink<TValue>[] links) :
+    IncomingInputLinkGroup<TValue?[], TValue>(connector, links, true)
 {
     private bool _lastResultWasEmpty;
-
-    public ConcatenatingIncomingInputLinkGroup(IRuntimeConnector<TValue?[]> connector, IRuntimeLink<TValue>[] links) : base(connector, links)
-        => NeedsFurtherProcessing = true;
 
     protected override TValue?[] PoolValidLinks(IEnumerable<IRuntimeLink<TValue>> validLinks, out bool createdValue)
     {

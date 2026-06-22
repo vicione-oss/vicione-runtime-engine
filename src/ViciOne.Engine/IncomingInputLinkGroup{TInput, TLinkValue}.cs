@@ -5,13 +5,13 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-internal abstract class IncomingInputLinkGroup<TInput, TLinkValue>(IRuntimeConnector<TInput> connector, IRuntimeLink<TLinkValue>[] links) : IIncomingInputLinkGroup
+internal abstract class IncomingInputLinkGroup<TInput, TLinkValue>(IRuntimeConnector<TInput> connector, IRuntimeLink<TLinkValue>[] links, bool needsFurtherProcessing = false) : IIncomingInputLinkGroup
 {
     public IRuntimeConnector<TInput> Connector { get; } = connector;
     IRuntimeConnector ILinkGroup.Connector => Connector;
     public IRuntimeLink<TLinkValue>[] Links { get; } = links;
     IEnumerable<IRuntimeLink> ILinkGroup.Links => Links;
-    public virtual bool NeedsFurtherProcessing { get; protected set; }
+    public virtual bool NeedsFurtherProcessing { get; protected set; } = needsFurtherProcessing;
     protected IAggregatingPooling<TLinkValue>? PerSourceAggregatingPooling { get; } = GetPerSourceAggregatingPooling(connector.Connector as IPoolable);
 
     private void DetermineAndSetConnectorValidity(IPoolingValidator validator)

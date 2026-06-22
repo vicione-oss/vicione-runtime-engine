@@ -11,7 +11,6 @@ public abstract class TypeFactoryBase(IEnumerable<Assembly> assemblies)
     public delegate Type? GetDefaultTypeSelector<TInput>(IEnumerable<Type> availableTypes);
     public delegate Type? GetDefaultTypeSelector(IEnumerable<Type> availableTypes, Type inputType);
 
-    private readonly IEnumerable<Assembly> _assemblies = assemblies;
     private readonly Dictionary<Type, IEnumerable<Type>> _availableTypesCache = [];
     private readonly Dictionary<Type, Type?> _defaultTypesCache = [];
 
@@ -24,7 +23,7 @@ public abstract class TypeFactoryBase(IEnumerable<Assembly> assemblies)
         if (_availableTypesCache.TryGetValue(inputType, out IEnumerable<Type>? types))
             returnValue = types;
         else
-            _availableTypesCache[inputType] = returnValue = getAvailableTypesSelector(_assemblies, inputType);
+            _availableTypesCache[inputType] = returnValue = getAvailableTypesSelector(assemblies, inputType);
 
         return returnValue;
     }

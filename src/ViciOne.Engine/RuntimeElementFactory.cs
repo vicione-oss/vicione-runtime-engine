@@ -9,7 +9,6 @@ namespace ViciOne.Engine;
 
 internal abstract class RuntimeElementFactory<TInput, TDefinition, TOutput>(IEnumerable<Assembly> assemblies) where TDefinition : notnull
 {
-    private readonly IEnumerable<Assembly> _assemblies = assemblies;
     private IEnumerable<Type>? _availableRuntimeElementTypes;
     private readonly Dictionary<TDefinition, Type?> _availableRuntimeElementTypesCache = [];
 
@@ -78,7 +77,7 @@ internal abstract class RuntimeElementFactory<TInput, TDefinition, TOutput>(IEnu
 
     private Type? GetTypeUncached(TDefinition definition)
     {
-        _availableRuntimeElementTypes ??= GetAvailableTypes(_assemblies);
+        _availableRuntimeElementTypes ??= GetAvailableTypes(assemblies);
 
         // Typ suchen, der dem Prädikat entspricht
         return _availableRuntimeElementTypes.FirstOrDefault(x => IsRuntimeElementType(x, definition));

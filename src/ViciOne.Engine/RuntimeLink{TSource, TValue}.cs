@@ -20,10 +20,11 @@ internal abstract class RuntimeLink<TSource, TValue> : IRuntimeLink<TValue>
 
     public event EventHandler<EventArgs>? LinkChanged;
 
-    public RuntimeLink(ILink<TValue> link, object? value)
+    public RuntimeLink(ILink<TValue> link, object? value, bool changed = false)
     {
         Link = link;
         Value = ConvertValue(value);
+        _changed = changed ? 1 : 0;
     }
 
     protected TValue? ConvertValue(object? value)

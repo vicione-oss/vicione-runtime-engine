@@ -6,10 +6,8 @@ using ViciOne.Engine;
 
 namespace ViciOne.Core.Runtime.Execution;
 
-internal sealed class ExternalIncomingLinkFactory : GenericFactory
+internal sealed class ExternalIncomingLinkFactory() : GenericFactory(GetGenericCreateMethod())
 {
-    public ExternalIncomingLinkFactory() : base(GetGenericCreateMethod()) { }
-
     public ExternalIncomingLink CreateAndAddToDataflow(Connector destination, DataflowEditor dataflowEditor)
         => Create<ExternalIncomingLink>([destination, dataflowEditor],
             DataTypeCompatibilityValidator.DetermineLinkValueType(destination),

@@ -8,13 +8,9 @@ namespace ViciOne.Engine;
 
 internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNameProvider uniqueNameProvider, ICommunicationManager communicationManager, ILogger logger) : IDisposable
 {
-    private readonly ICommunicationManager _communicationManager = communicationManager;
     private bool _disposed;
-    private readonly LinkCache _linkCache = linkCache;
     private readonly LinkChangedEntryFactory _linkChangedEntryFactory = new();
-    private readonly ILogger _logger = logger;
     private readonly CommunicationReceivedEntriesObserver _receivedEntriesObserver = new(communicationManager);
-    private readonly IUniqueNameProvider _uniqueNameProvider = uniqueNameProvider;
 
     private ILinkChangedEntry CreateLinkChangedEntry(IRuntimeLink link, IReferenceTypeCloneHandler cloneHandler)
         => _linkChangedEntryFactory.Create(link, cloneHandler);
@@ -31,7 +27,7 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
         {
             _receivedEntriesObserver.Dispose();
             _linkChangedEntryFactory.Dispose();
-            _linkCache.Dispose();
+            linkCache.Dispose();
         }
 
         _disposed = true;
@@ -56,12 +52,12 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
 
     private List<ILinkChangedEntry> GetExternalOutgoingLinksChangedEntries(IReferenceTypeCloneHandler cloneHandler)
         => GetChangedEntries(
-            _linkCache.GetExternalOutgoingLinks(),
+            linkCache.GetExternalOutgoingLinks(),
             cloneHandler,
             (link, ex) =>
             {
                 var externalOutgoingLink = (IExternalOutgoingLink)link.Link;
-                _logger.ExternalOutputLinkProcessingErrorOccured(ex, externalOutgoingLink.Id, externalOutgoingLink.Source.Id, _uniqueNameProvider.GetUniqueName(externalOutgoingLink.Source));
+                logger.ExternalOutputLinkProcessingErrorOccured(ex, externalOutgoingLink.Id, externalOutgoingLink.Source.Id, uniqueNameProvider.GetUniqueName(externalOutgoingLink.Source));
             });
 
     public void ProcessInputCommunication()
@@ -72,7 +68,7 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
         // TODO: das hier beschriebene und im Folgenden implementierte Verhalten ändert sich, sobald die Links jeweils eigene Queues erhalten
 
         IEnumerable<ILinkChangedEntry> receivedChangedEntries = _receivedEntriesObserver.GetAndResetReceivedEntries();
-        IDictionary<Guid, IRuntimeLink> externalIncomingLinks = _linkCache.GetExternalIncomingLinks();
+        IDictionary<Guid, IRuntimeLink> externalIncomingLinks = linkCache.GetExternalIncomingLinks();
 
         var entryLinkPairs = new List<(ILinkChangedEntry Entry, IRuntimeLink Link)>();
         bool sortEntries = false;
@@ -81,7 +77,7 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
         {
             if (externalIncomingLinks.TryGetValue(receivedEntry.Id, out IRuntimeLink? link) == false)
             {
-                _logger.NoLinkFoundForReceivedId(receivedEntry.Id);
+                logger.NoLinkFoundForReceivedId(receivedEntry.Id);
                 continue;
             }
 
@@ -107,7 +103,7 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
         foreach ((ILinkChangedEntry entry, IRuntimeLink link) in entryLinkPairs)
             if (entry.Time > link.ChangedTime)
                 try { link.SetData(entry.Value, entry.Time, entry.Validity); }
-                catch (Exception ex) { _logger.TransferReceivedValueToLinkErrorOccured(ex, entry.Id); }
+                catch (Exception ex) { logger.TransferReceivedValueToLinkErrorOccured(ex, entry.Id); }
     }
 
     public void ProcessOutputCommunication(IReferenceTypeCloneHandler cloneHandler)
@@ -116,6 +112,6 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
         if (externalLinkEntries.Count > 0)
             // TODO: try...catch
             // TODO: evtl. in eigenen Thread auslagern
-            _communicationManager.HandleChangedOutgoingLinks(externalLinkEntries);
+            communicationManager.HandleChangedOutgoingLinks(externalLinkEntries);
     }
 }

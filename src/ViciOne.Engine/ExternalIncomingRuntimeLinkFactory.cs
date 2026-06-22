@@ -6,10 +6,8 @@ using ViciOne.Engine.Extensions;
 
 namespace ViciOne.Engine;
 
-internal sealed class ExternalIncomingRuntimeLinkFactory : GenericFactory
+internal sealed class ExternalIncomingRuntimeLinkFactory() : GenericFactory(GetGenericCreateMethod())
 {
-    public ExternalIncomingRuntimeLinkFactory() : base(GetGenericCreateMethod()) { }
-
     public IRuntimeLink Create(IExternalIncomingLink link)
         => Create<IRuntimeLink>([link],
             DataTypeCompatibilityValidator.DetermineExternalIncomingLinkSourceType(link),
