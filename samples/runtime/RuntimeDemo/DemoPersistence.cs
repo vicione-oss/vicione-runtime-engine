@@ -11,8 +11,6 @@ namespace RuntimeDemo;
 internal sealed class DemoPersistence(string path, ILogger logger) : IPersistence
 {
     private Dictionary<Guid, IPersistenceEntry> _loadedSettings = [];
-    private readonly ILogger _logger = logger;
-    private readonly string _path = path;
     private readonly JsonSerializer _serializer = InitializeSerializer();
 
     public event Func<IEnumerable<IPersistenceEntry>>? AllValuesToPersistRequested;
@@ -29,13 +27,13 @@ internal sealed class DemoPersistence(string path, ILogger logger) : IPersistenc
 
     public IEnumerable<IPersistenceEntry> GetPersisted()
     {
-        if (File.Exists(_path) == false)
+        if (File.Exists(path) == false)
             return [];
 
         try
         {
             IEnumerable<IPersistenceEntry> loadedSettings;
-            using (var sr = new StreamReader(_path))
+            using (var sr = new StreamReader(path))
             using (var reader = new JsonTextReader(sr))
                 loadedSettings = _serializer.Deserialize<DemoPersistenceEntry[]>(reader)!;
             _loadedSettings = loadedSettings
@@ -46,7 +44,7 @@ internal sealed class DemoPersistence(string path, ILogger logger) : IPersistenc
         }
         catch (Exception ex)
         {
-            _logger.ReadSettingsFileErrorOccured(ex);
+            logger.ReadSettingsFileErrorOccured(ex);
             return [];
         }
     }
@@ -81,13 +79,13 @@ internal sealed class DemoPersistence(string path, ILogger logger) : IPersistenc
         // TODO: in eigenen Thread auslagern
         try
         {
-            using var sw = new StreamWriter(_path);
+            using var sw = new StreamWriter(path);
             using var writer = new JsonTextWriter(sw);
             _serializer.Serialize(writer, CreateEntriesToPersist(_loadedSettings.Values).ToArray());
         }
         catch (Exception ex)
         {
-            _logger.WriteSettingsFileErrorOccured(ex);
+            logger.WriteSettingsFileErrorOccured(ex);
         }
     }
 
