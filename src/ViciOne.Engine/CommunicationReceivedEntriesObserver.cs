@@ -69,7 +69,7 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
         if (droppedEntriesSinceReset > 0)
         {
             _logger.CommunicationReceiveBufferOverflow(droppedEntriesSinceReset, _bufferCapacity, nameof(EngineQueueOptions.CommunicationReceiveBufferCapacity));
-            // TODO: Telemetry: Increment a counter for dropped entries.
+            EngineTelemetry.CommunicationReceiveBufferOverflowCount.Add(droppedEntriesSinceReset);
         }
 
         return receivedEntriesSinceReset ?? [];

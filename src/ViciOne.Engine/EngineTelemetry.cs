@@ -22,4 +22,8 @@ public static class EngineTelemetry
     internal static Counter<long> FunctionBlockProcessedCount { get; } = Meter.CreateCounter<long>(
         name: "engine.functionblock.processed.count",
         description: "Counts the number of processed FunctionBlocks in the engine.");
+
+    internal static Counter<long> CommunicationReceiveBufferOverflowCount { get; } = Meter.CreateCounter<long>(
+        name: "engine.communication.receive.buffer.overflow.count",
+        description: "Counts the number of entries dropped from the communication receive buffer due to overflow.");
 }
