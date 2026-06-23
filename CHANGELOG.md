@@ -1,6 +1,10 @@
 # Changelog
 
-## 1.0.1 - Unreleased
+## 1.1.0 - Unreleased
+
+### Added
+
+- Communication receive buffer size limitation to protect against memory exhaustion due to indefinitely growing buffer
 
 ### Changed
 
