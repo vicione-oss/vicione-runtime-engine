@@ -2,6 +2,7 @@
 using NSubstitute;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ViciOne.Core.Contracts.Runtime;
 using ViciOne.Engine;
 using Xunit;
@@ -18,6 +19,22 @@ public class CommunicationReceivedEntriesObserverTests
             using var observer = new CommunicationReceivedEntriesObserver(communicationManager);
 
             communicationManager.ReceivedWithAnyArgs(1).ChangedEntriesReceived += null;
+        }
+
+        [Fact]
+        public void AttachedEventHandlerStoresOnlyEntriesUntilCapacityReached()
+        {
+            const int BufferCapacity = 100;
+
+            var entriesToReceive = Enumerable.Range(0, BufferCapacity * 2).Select(_ => Substitute.For<ILinkChangedEntry>()).ToArray();
+            var expectedEntries = entriesToReceive.Take(BufferCapacity).ToArray();
+            var communicationManager = Substitute.For<ICommunicationManager>();
+            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, BufferCapacity);
+
+            communicationManager.ChangedEntriesReceived += Raise.Event<EventHandler<IEnumerable<ILinkChangedEntry>>>(communicationManager, entriesToReceive);
+
+            var receivedEntries = observer.GetAndResetReceivedEntries();
+            receivedEntries.Should().BeEquivalentTo(expectedEntries);
         }
     }
 

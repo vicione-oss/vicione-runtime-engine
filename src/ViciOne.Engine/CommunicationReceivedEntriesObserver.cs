@@ -2,26 +2,32 @@
 using System.Collections.Generic;
 using System.Threading;
 using ViciOne.Core.Contracts.Runtime;
+using ViciOne.Engine.Extensions;
 
 namespace ViciOne.Engine;
 
 internal sealed class CommunicationReceivedEntriesObserver : IDisposable
 {
+    private const int DefaultBufferCapacity = 1_000_000;
+
+    private readonly int _bufferCapacity;
     private readonly ICommunicationManager _communicationManager;
     private bool _disposed;
-    private readonly List<ILinkChangedEntry> _receivedEntries = [];
+    private List<ILinkChangedEntry> _receivedEntries = [];
+    private long _receivedEntriesDropped;
     private readonly Lock _receivedEntriesLock = new();
 
-    public CommunicationReceivedEntriesObserver(ICommunicationManager communicationManager)
+    public CommunicationReceivedEntriesObserver(ICommunicationManager communicationManager, int bufferCapacity = DefaultBufferCapacity)
     {
         _communicationManager = communicationManager;
+        _bufferCapacity = bufferCapacity;
         _communicationManager.ChangedEntriesReceived += ChangedEntriesReceived;
     }
 
     private void ChangedEntriesReceived(object? sender, IEnumerable<ILinkChangedEntry> entries)
     {
         lock (_receivedEntriesLock)
-            _receivedEntries.AddRange(entries);
+            _receivedEntries.AddRangeWithDropNewest(entries, _bufferCapacity, ref _receivedEntriesDropped);
     }
 
     public void Dispose()
@@ -35,7 +41,8 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
         if (disposing)
         {
             _communicationManager.ChangedEntriesReceived -= ChangedEntriesReceived;
-            _receivedEntries.Clear();
+            lock (_receivedEntriesLock)
+                _receivedEntries.Clear();
         }
 
         _disposed = true;
@@ -43,12 +50,27 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
 
     public IEnumerable<ILinkChangedEntry> GetAndResetReceivedEntries()
     {
-        List<ILinkChangedEntry> receivedEntriesCopy;
+        List<ILinkChangedEntry>? receivedEntriesSinceReset = null;
+        long droppedEntriesSinceReset;
+
         lock (_receivedEntriesLock)
         {
-            receivedEntriesCopy = [.. _receivedEntries];
-            _receivedEntries.Clear();
+            droppedEntriesSinceReset = _receivedEntriesDropped;
+            _receivedEntriesDropped = 0;
+
+            if (_receivedEntries.Count > 0)
+            {
+                receivedEntriesSinceReset = _receivedEntries;
+                _receivedEntries = [];
+            }
         }
-        return receivedEntriesCopy;
+
+        if (droppedEntriesSinceReset > 0)
+        {
+            // TODO: Log a warning that entries were dropped due to exceeding the cache capacity.
+            // TODO: Telemetry: Increment a counter for dropped entries.
+        }
+
+        return receivedEntriesSinceReset ?? [];
     }
 }
