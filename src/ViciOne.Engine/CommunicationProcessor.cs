@@ -6,11 +6,11 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNameProvider uniqueNameProvider, ICommunicationManager communicationManager, ILogger logger) : IDisposable
+internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNameProvider uniqueNameProvider, ICommunicationManager communicationManager, int receiveBufferCapacity, ILogger logger) : IDisposable
 {
     private bool _disposed;
     private readonly LinkChangedEntryFactory _linkChangedEntryFactory = new();
-    private readonly CommunicationReceivedEntriesObserver _receivedEntriesObserver = new(communicationManager);
+    private readonly CommunicationReceivedEntriesObserver _receivedEntriesObserver = new(communicationManager, receiveBufferCapacity);
 
     private ILinkChangedEntry CreateLinkChangedEntry(IRuntimeLink link, IReferenceTypeCloneHandler cloneHandler)
         => _linkChangedEntryFactory.Create(link, cloneHandler);

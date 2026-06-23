@@ -16,7 +16,7 @@ public class CommunicationReceivedEntriesObserverTests
         {
             var communicationManager = Substitute.For<ICommunicationManager>();
 
-            using var observer = new CommunicationReceivedEntriesObserver(communicationManager);
+            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity);
 
             communicationManager.ReceivedWithAnyArgs(1).ChangedEntriesReceived += null;
         }
@@ -45,7 +45,7 @@ public class CommunicationReceivedEntriesObserverTests
         public void CanDispose()
         {
             var communicationManager = Substitute.For<ICommunicationManager>();
-            var observer = new CommunicationReceivedEntriesObserver(communicationManager);
+            var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity);
 
             Action action = observer.Dispose;
 
@@ -57,7 +57,7 @@ public class CommunicationReceivedEntriesObserverTests
         public void CanCallDisposeMultipleTimes()
         {
             var communicationManager = Substitute.For<ICommunicationManager>();
-            var observer = new CommunicationReceivedEntriesObserver(communicationManager);
+            var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity);
             observer.Dispose();
 
             Action action = observer.Dispose;
@@ -98,7 +98,7 @@ public class CommunicationReceivedEntriesObserverTests
             IEnumerable<ILinkChangedEntry> expectedReceivedEntries)
         {
             var communicationManager = Substitute.For<ICommunicationManager>();
-            using var observer = new CommunicationReceivedEntriesObserver(communicationManager);
+            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity);
             foreach (var entries in entriesToReceive)
                 communicationManager.ChangedEntriesReceived += Raise.Event<EventHandler<IEnumerable<ILinkChangedEntry>>>(communicationManager, entries);
 

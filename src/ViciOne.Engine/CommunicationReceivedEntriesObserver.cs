@@ -8,8 +8,6 @@ namespace ViciOne.Engine;
 
 internal sealed class CommunicationReceivedEntriesObserver : IDisposable
 {
-    private const int DefaultBufferCapacity = 1_000_000;
-
     private readonly int _bufferCapacity;
     private readonly ICommunicationManager _communicationManager;
     private bool _disposed;
@@ -17,7 +15,7 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
     private long _receivedEntriesDropped;
     private readonly Lock _receivedEntriesLock = new();
 
-    public CommunicationReceivedEntriesObserver(ICommunicationManager communicationManager, int bufferCapacity = DefaultBufferCapacity)
+    public CommunicationReceivedEntriesObserver(ICommunicationManager communicationManager, int bufferCapacity)
     {
         _communicationManager = communicationManager;
         _bufferCapacity = bufferCapacity;

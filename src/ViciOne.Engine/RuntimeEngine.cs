@@ -36,6 +36,7 @@ public sealed partial class RuntimeEngine : IRuntimeEngine
     public IEnumerable<Assembly> FunctionBlockAssemblies { get; }
     public ILoggerFactory LoggerFactory { get; }
     public IPoolingValidator PoolingValidator { get; set; } = new DefaultPoolingValidator();
+    public EngineQueueOptions QueueOptions { get; }
     public IReferenceTypeCloneHandler ReferenceTypeCloneHandler { get; set; }
     public IPersistence? SettingsPersistence { get; }
     public EngineState State { get; private set; }
@@ -48,7 +49,7 @@ public sealed partial class RuntimeEngine : IRuntimeEngine
     public event EventHandler? StateChanged;
 
     public RuntimeEngine(IDataflow dataflow, ILoggerFactory loggerFactory, IEnumerable<Assembly> driverAssemblies, IEnumerable<Assembly> functionBlockAssemblies, IUniqueNameProvider uniqueNameProvider,
-        IPersistence? settingsPersistence = null, IPersistence? variablesPersistence = null, ICommunicationManager? communicationManager = null)
+        IPersistence? settingsPersistence = null, IPersistence? variablesPersistence = null, ICommunicationManager? communicationManager = null, EngineQueueOptions? queueOptions = null)
     {
         Dataflow = dataflow;
         LoggerFactory = loggerFactory;
@@ -58,6 +59,7 @@ public sealed partial class RuntimeEngine : IRuntimeEngine
         SettingsPersistence = settingsPersistence;
         VariablesPersistence = variablesPersistence;
         CommunicationManager = communicationManager;
+        QueueOptions = queueOptions ?? new();
 
         _logger = InitializeLogger();
         InitializeRuntimeElementFactories(out _driverFactory, out _functionBlockFactory);
@@ -194,7 +196,7 @@ public sealed partial class RuntimeEngine : IRuntimeEngine
 
     private CommunicationProcessor? InitializeCommunicationProcessor(LinkCache linkCache)
         => CommunicationManager is not null
-                ? new CommunicationProcessor(linkCache, UniqueNameProvider, CommunicationManager, _logger)
+                ? new CommunicationProcessor(linkCache, UniqueNameProvider, CommunicationManager, QueueOptions.CommunicationReceiveBufferCapacity, _logger)
                 : null;
 
     private bool InitializeInstances(IEnumerable<IRuntimeDriver> runtimeDrivers, IEnumerable<IRuntimeFunctionBlock> runtimeFunctionBlocks)
