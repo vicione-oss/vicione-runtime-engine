@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using ViciOne.Core.Contracts.Runtime;
@@ -11,14 +12,16 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
     private readonly int _bufferCapacity;
     private readonly ICommunicationManager _communicationManager;
     private bool _disposed;
+    private readonly ILogger _logger;
     private List<ILinkChangedEntry> _receivedEntries = [];
     private long _receivedEntriesDropped;
     private readonly Lock _receivedEntriesLock = new();
 
-    public CommunicationReceivedEntriesObserver(ICommunicationManager communicationManager, int bufferCapacity)
+    public CommunicationReceivedEntriesObserver(ICommunicationManager communicationManager, int bufferCapacity, ILogger logger)
     {
         _communicationManager = communicationManager;
         _bufferCapacity = bufferCapacity;
+        _logger = logger;
         _communicationManager.ChangedEntriesReceived += ChangedEntriesReceived;
     }
 
@@ -65,7 +68,7 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
 
         if (droppedEntriesSinceReset > 0)
         {
-            // TODO: Log a warning that entries were dropped due to exceeding the cache capacity.
+            _logger.CommunicationReceiveBufferOverflow(droppedEntriesSinceReset, _bufferCapacity, nameof(EngineQueueOptions.CommunicationReceiveBufferCapacity));
             // TODO: Telemetry: Increment a counter for dropped entries.
         }
 

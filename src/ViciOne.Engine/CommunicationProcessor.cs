@@ -10,7 +10,7 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
 {
     private bool _disposed;
     private readonly LinkChangedEntryFactory _linkChangedEntryFactory = new();
-    private readonly CommunicationReceivedEntriesObserver _receivedEntriesObserver = new(communicationManager, receiveBufferCapacity);
+    private readonly CommunicationReceivedEntriesObserver _receivedEntriesObserver = new(communicationManager, receiveBufferCapacity, logger);
 
     private ILinkChangedEntry CreateLinkChangedEntry(IRuntimeLink link, IReferenceTypeCloneHandler cloneHandler)
         => _linkChangedEntryFactory.Create(link, cloneHandler);

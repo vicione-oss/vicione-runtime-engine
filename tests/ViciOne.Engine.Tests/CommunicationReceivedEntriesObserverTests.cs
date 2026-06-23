@@ -1,4 +1,6 @@
 ﻿using AwesomeAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using System;
 using System.Collections.Generic;
@@ -16,7 +18,7 @@ public class CommunicationReceivedEntriesObserverTests
         {
             var communicationManager = Substitute.For<ICommunicationManager>();
 
-            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity);
+            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, NullLogger.Instance);
 
             communicationManager.ReceivedWithAnyArgs(1).ChangedEntriesReceived += null;
         }
@@ -29,7 +31,7 @@ public class CommunicationReceivedEntriesObserverTests
             var entriesToReceive = Enumerable.Range(0, BufferCapacity * 2).Select(_ => Substitute.For<ILinkChangedEntry>()).ToArray();
             var expectedEntries = entriesToReceive.Take(BufferCapacity).ToArray();
             var communicationManager = Substitute.For<ICommunicationManager>();
-            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, BufferCapacity);
+            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, BufferCapacity, NullLogger.Instance);
 
             communicationManager.ChangedEntriesReceived += Raise.Event<EventHandler<IEnumerable<ILinkChangedEntry>>>(communicationManager, entriesToReceive);
 
@@ -45,7 +47,7 @@ public class CommunicationReceivedEntriesObserverTests
         public void CanDispose()
         {
             var communicationManager = Substitute.For<ICommunicationManager>();
-            var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity);
+            var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, NullLogger.Instance);
 
             Action action = observer.Dispose;
 
@@ -57,7 +59,7 @@ public class CommunicationReceivedEntriesObserverTests
         public void CanCallDisposeMultipleTimes()
         {
             var communicationManager = Substitute.For<ICommunicationManager>();
-            var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity);
+            var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, NullLogger.Instance);
             observer.Dispose();
 
             Action action = observer.Dispose;
@@ -98,7 +100,7 @@ public class CommunicationReceivedEntriesObserverTests
             IEnumerable<ILinkChangedEntry> expectedReceivedEntries)
         {
             var communicationManager = Substitute.For<ICommunicationManager>();
-            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity);
+            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, NullLogger.Instance);
             foreach (var entries in entriesToReceive)
                 communicationManager.ChangedEntriesReceived += Raise.Event<EventHandler<IEnumerable<ILinkChangedEntry>>>(communicationManager, entries);
 
@@ -107,6 +109,24 @@ public class CommunicationReceivedEntriesObserverTests
 
             receivedEntries1.Should().BeEquivalentTo(expectedReceivedEntries);
             receivedEntries2.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void LogsWarningOnReceiveBufferOverflow()
+        {
+            var communicationManager = Substitute.For<ICommunicationManager>();
+            var logger = new TestLogger();
+            var capacity = 5;
+            var expectedDropped = 3;
+            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, capacity, logger);
+            var entriesToReceive = Enumerable.Range(0, capacity + expectedDropped).Select(_ => Substitute.For<ILinkChangedEntry>()).ToArray();
+            communicationManager.ChangedEntriesReceived += Raise.Event<EventHandler<IEnumerable<ILinkChangedEntry>>>(communicationManager, entriesToReceive);
+
+            _ = observer.GetAndResetReceivedEntries();
+
+            var warnings = logger.GetLoggedMessages(LogLevel.Warning);
+            warnings.Should().HaveCount(1);
+            warnings.First().Should().MatchEquivalentOf($"*overflow*drop*{expectedDropped}*capacity*{capacity}*{nameof(EngineQueueOptions.CommunicationReceiveBufferCapacity)}*");
         }
     }
 }
