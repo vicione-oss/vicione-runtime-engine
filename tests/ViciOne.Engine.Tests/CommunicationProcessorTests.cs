@@ -22,7 +22,7 @@ public class CommunicationProcessorTests
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var communicationManager = Substitute.For<ICommunicationManager>();
             var logger = Substitute.For<ILogger>();
-            var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, logger);
+            var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
 
             Action action = processor.Dispose;
 
@@ -36,7 +36,7 @@ public class CommunicationProcessorTests
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var communicationManager = Substitute.For<ICommunicationManager>();
             var logger = Substitute.For<ILogger>();
-            var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, logger);
+            var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
             processor.Dispose();
 
             Action action = processor.Dispose;
@@ -86,7 +86,7 @@ public class CommunicationProcessorTests
             });
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, logger);
+            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
             var receivedEntry1 = Substitute.For<ILinkChangedEntry, ILinkChangedEntry<int>>();
             var receivedEntry2 = Substitute.For<ILinkChangedEntry, ILinkChangedEntry<int>>();
             var expectedChangedTime = now.AddSeconds(1);
@@ -136,7 +136,7 @@ public class CommunicationProcessorTests
             using var linkCache = new LinkCache([runtimeBlock], [externalIncomingLink], () => validator, createRuntimeLink: (_, _) => runtimeLink);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, logger);
+            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
             var receivedEntryLater = Substitute.For<ILinkChangedEntry, ILinkChangedEntry<int>>();
             var receivedEntryNow = Substitute.For<ILinkChangedEntry, ILinkChangedEntry<int>>();
             var valueToReceiveFirst = 666;
@@ -202,7 +202,7 @@ public class CommunicationProcessorTests
             });
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = new TestLogger();
-            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, logger);
+            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
             var receivedEntry1 = Substitute.For<ILinkChangedEntry, ILinkChangedEntry<int>>();
             var receivedEntry2 = Substitute.For<ILinkChangedEntry, ILinkChangedEntry<int>>();
             var expectedChangedTime = now.AddSeconds(1);
@@ -250,7 +250,7 @@ public class CommunicationProcessorTests
             using var linkCache = new LinkCache([runtimeBlock], [externalIncomingLink1], () => validator, createRuntimeLink: (_, _) => runtimeLink);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
-            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, logger);
+            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
             var receivedEntry = Substitute.For<ILinkChangedEntry, ILinkChangedEntry<int>>();
             var receivedGuid = Guid.NewGuid();
             receivedEntry.Id.Returns(receivedGuid);
@@ -315,7 +315,7 @@ public class CommunicationProcessorTests
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var communicationManager = Substitute.For<ICommunicationManager>();
             var logger = Substitute.For<ILogger>();
-            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, logger);
+            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
             var cloneHandler = Substitute.For<IReferenceTypeCloneHandler>();
 
             processor.ProcessOutputCommunication(cloneHandler);
@@ -372,7 +372,7 @@ public class CommunicationProcessorTests
             var nameCache = new DefaultUniqueNameProvider(uniqueNames);
             var communicationManager = Substitute.For<ICommunicationManager>();
             var logger = new TestLogger();
-            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, logger);
+            using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
             var cloneHandler = Substitute.For<IReferenceTypeCloneHandler>();
 
             processor.ProcessOutputCommunication(cloneHandler);
