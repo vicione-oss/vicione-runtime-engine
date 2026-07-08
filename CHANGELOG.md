@@ -5,6 +5,7 @@
 ### Added
 
 - Communication receive buffer size limitation to protect against memory exhaustion due to indefinitely growing buffer
+- Per link queue size limitation
 
 ### Changed
 
