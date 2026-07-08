@@ -15,4 +15,15 @@ public class EngineQueueOptionsTests
             action.Should().Throw<ArgumentOutOfRangeException>();
         }
     }
+
+    public class PerLinkQueueCapacity
+    {
+        [Fact]
+        public void ThrowsIfSettingValueLessThanOne()
+        {
+            var action = () => _ = new EngineQueueOptions() { PerLinkQueueCapacity = 0 };
+
+            action.Should().Throw<ArgumentOutOfRangeException>();
+        }
+    }
 }

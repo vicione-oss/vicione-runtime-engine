@@ -6,11 +6,9 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-internal abstract class QueueingRuntimeLink<TSource, TValue>(ILink<TValue> link, object? value, int queueCapacity = QueueingRuntimeLink<TSource, TValue>.DefaultQueueCapacity) :
+internal abstract class QueueingRuntimeLink<TSource, TValue>(ILink<TValue> link, object? value, int queueCapacity) :
     RuntimeLink<TSource, TValue>(link, value), IQueueingRuntimeLink<TValue>
 {
-    private const int DefaultQueueCapacity = 1_000;
-
     private readonly int _queueCapacity = queueCapacity;
     private readonly Queue<TValue?> _queue = new();
     private readonly Lock _queueLock = new();

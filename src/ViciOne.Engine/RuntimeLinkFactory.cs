@@ -5,12 +5,12 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-public sealed class RuntimeLinkFactory : IDisposable
+public sealed class RuntimeLinkFactory(int queueCapacity) : IDisposable
 {
     private bool _disposed;
-    private readonly ExternalIncomingRuntimeLinkFactory _externalIncomingRuntimeLinkFactory = new();
+    private readonly ExternalIncomingRuntimeLinkFactory _externalIncomingRuntimeLinkFactory = new(queueCapacity);
     private readonly ExternalOutgoingRuntimeLinkFactory _externalOutgoingRuntimeLinkFactory = new();
-    private readonly InternalRuntimeLinkFactory _internalRuntimeLinkFactory = new();
+    private readonly InternalRuntimeLinkFactory _internalRuntimeLinkFactory = new(queueCapacity);
 
     public IRuntimeLink Create(ILink link, IDictionary<Guid, IRuntimeConnector> connectedConnectors)
         => link switch

@@ -15,7 +15,7 @@ public class QueueingRuntimeLinkTests
         public void ReturnsTrueIfValueWasDequeued()
         {
             var link = CreateLink<object>();
-            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default);
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var value1 = 42;
             var value2 = 666;
             runtimeLink.SetData(value1, default, default);
@@ -31,7 +31,7 @@ public class QueueingRuntimeLinkTests
         public void ReturnsFalseIfQueueWasEmpty()
         {
             var link = CreateLink<object>();
-            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default);
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, EngineQueueOptions.DefaultPerLinkQueueCapacity);
 
             var result = runtimeLink.TryDequeueValue(out _);
 
@@ -42,7 +42,7 @@ public class QueueingRuntimeLinkTests
         public void RemovesReturnedValueFromQueue()
         {
             var link = CreateLink<object>();
-            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default);
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var value1 = 42;
             var value2 = 666;
             runtimeLink.SetData(value1, default, default);
@@ -62,7 +62,7 @@ public class QueueingRuntimeLinkTests
         public void ReturnsQueuedValues()
         {
             var link = CreateLink<object>();
-            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default);
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var value1 = 42;
             var value2 = 666;
             runtimeLink.SetData(value1, default, default);
@@ -78,7 +78,7 @@ public class QueueingRuntimeLinkTests
         public void ClearsQueuedValues()
         {
             var link = CreateLink<object>();
-            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default);
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, EngineQueueOptions.DefaultPerLinkQueueCapacity);
             runtimeLink.SetData(42, default, default);
             runtimeLink.SetData(666, default, default);
 
@@ -95,7 +95,7 @@ public class QueueingRuntimeLinkTests
         public void EnqueuesValue()
         {
             var link = CreateLink<object>();
-            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default);
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var valueToSet = 42;
 
             runtimeLink.SetData(valueToSet, default, default);
@@ -110,7 +110,7 @@ public class QueueingRuntimeLinkTests
             var link = Substitute.For<ILink<int>>();
             link.TypeConversion!.UseConvertFrom.Returns(true);
             link.TypeConversion!.TypeConverter.Returns(TypeDescriptor.GetConverter(typeof(int)));
-            var runtimeLink = new MockQueueingRuntimeLink<string, int>(link, "0");
+            var runtimeLink = new MockQueueingRuntimeLink<string, int>(link, "0", EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var valueToSet = "42";
             var expectedEnqueuedValue = 42;
 
@@ -124,7 +124,7 @@ public class QueueingRuntimeLinkTests
         public void CallsSetConvertedData()
         {
             var link = CreateLink<object>();
-            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default);
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var valueToSet = 42;
             var changedTimeToSet = DateTime.UtcNow;
             var validityToSet = Validity.Valid;
@@ -158,7 +158,7 @@ public class QueueingRuntimeLinkTests
         public void StoresValue()
         {
             var link = CreateLink<object>();
-            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default);
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var valueToStore = 42;
 
             runtimeLink.StoreValue(valueToStore);
@@ -174,7 +174,8 @@ public class QueueingRuntimeLinkTests
         return link;
     }
 
-    private sealed class MockQueueingRuntimeLink<TSource, TValue>(ILink<TValue> link, TSource? value, int bufferCapacity = 100) : QueueingRuntimeLink<TSource, TValue>(link, value, bufferCapacity)
+    private sealed class MockQueueingRuntimeLink<TSource, TValue>(ILink<TValue> link, TSource? value, int bufferCapacity) :
+        QueueingRuntimeLink<TSource, TValue>(link, value, bufferCapacity)
     {
         public (TValue? Value, DateTime ChangedTime, Validity Validity)? SetConvertedDataArgs { get; private set; }
 

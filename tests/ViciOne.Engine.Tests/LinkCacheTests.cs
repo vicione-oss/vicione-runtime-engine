@@ -110,7 +110,7 @@ public class LinkCacheTests
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
         public void CanDispose()
         {
-            var linkCache = new LinkCache([], [], () => Substitute.For<IPoolingValidator>());
+            var linkCache = new LinkCache([], [], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity);
 
             Action action = linkCache.Dispose;
 
@@ -120,7 +120,7 @@ public class LinkCacheTests
         [Fact]
         public void CanCallDisposeMultipleTimes()
         {
-            var linkCache = new LinkCache([], [], () => Substitute.For<IPoolingValidator>());
+            var linkCache = new LinkCache([], [], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity);
             linkCache.Dispose();
 
             Action action = linkCache.Dispose;
@@ -136,7 +136,7 @@ public class LinkCacheTests
         {
             var validator = Substitute.For<IPoolingValidator>();
             var getValidator = new Func<IPoolingValidator>(() => validator);
-            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, getValidator);
+            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, getValidator, EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var externalIncomingRuntimeLink = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == ExternalIncomingLink);
             var internalRuntimeLink1 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == InternalLink1);
             var internalRuntimeLink2 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == InternalLink2);
@@ -175,7 +175,7 @@ public class LinkCacheTests
         [Fact]
         public void GetsOutgoingInputLinkGroups()
         {
-            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>());
+            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var externalOutgoingRuntimeLink1 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == ExternalOutgoingLink1);
             var externalOutgoingRuntimeLink2 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == ExternalOutgoingLink2);
             var internalRuntimeLink1 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == InternalLink1);
@@ -204,7 +204,7 @@ public class LinkCacheTests
         [Fact]
         public void GetsOutputLinkGroups()
         {
-            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>());
+            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var externalOutgoingRuntimeLink1 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == ExternalOutgoingLink1);
             var externalOutgoingRuntimeLink2 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == ExternalOutgoingLink2);
             var internalRuntimeLink1 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == InternalLink1);
@@ -236,7 +236,7 @@ public class LinkCacheTests
         [Fact]
         public void GetsExternalIncomingLinks()
         {
-            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>());
+            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var externalIncomingRuntimeLink = linkCache.Links.First(x => x.Link == ExternalIncomingLink);
             var expected = new KeyValuePair<Guid, IRuntimeLink>(ExternalIncomingLinkId, externalIncomingRuntimeLink);
 
@@ -252,7 +252,7 @@ public class LinkCacheTests
         [Fact]
         public void GetsExternalOutgoingLinks()
         {
-            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>());
+            using var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity);
             var expected = linkCache.Links.Where(x => x.Link == ExternalOutgoingLink1 || x.Link == ExternalOutgoingLink2);
 
             var result = linkCache.GetExternalOutgoingLinks();

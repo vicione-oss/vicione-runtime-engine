@@ -8,16 +8,16 @@ using ViciOne.Engine.Extensions;
 
 namespace ViciOne.Engine;
 
-internal sealed class InternalRuntimeLinkFactory() : GenericFactory(GetGenericCreateMethod())
+internal sealed class InternalRuntimeLinkFactory(int queueCapacity) : GenericFactory(GetGenericCreateMethod())
 {
     public IRuntimeLink Create(IInternalLink link, IDictionary<Guid, IRuntimeConnector> connectedConnectors)
-        => Create<IRuntimeLink>([link, connectedConnectors],
+        => Create<IRuntimeLink>([link, connectedConnectors, queueCapacity],
             DataTypeCompatibilityValidator.DetermineValueType(link.Source),
             DataTypeCompatibilityValidator.DetermineValueType(link),
             DataTypeCompatibilityValidator.DetermineValueType(link.Destination));
 
     private static IRuntimeLink Create<TSource, TValue, TDestination>(IInternalLink<TSource, TValue, TDestination> link,
-        IDictionary<Guid, IRuntimeConnector> connectedConnectors)
+        IDictionary<Guid, IRuntimeConnector> connectedConnectors, int queueCapacity)
     {
         bool sourceIsOnThisEngine = connectedConnectors.TryGetValue(link.Source.Id, out IRuntimeConnector? sourceRuntimeConnector);
         bool destinationIsOnThisEngine = connectedConnectors.ContainsKey(link.Destination.Id);
@@ -31,7 +31,7 @@ internal sealed class InternalRuntimeLinkFactory() : GenericFactory(GetGenericCr
             : link.Source.Value;
 
         return needsQueue
-            ? new InternalQueueingRuntimeLink<TSource, TValue, TDestination>(link, defaultValue)
+            ? new InternalQueueingRuntimeLink<TSource, TValue, TDestination>(link, defaultValue, queueCapacity)
             : new InternalRuntimeLink<TSource, TValue, TDestination>(link, defaultValue);
     }
 
