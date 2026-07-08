@@ -2,6 +2,7 @@
 using NSubstitute;
 using System;
 using System.ComponentModel;
+using System.Linq;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Engine;
 using Xunit;
@@ -132,6 +133,23 @@ public class QueueingRuntimeLinkTests
 
             runtimeLink.SetConvertedDataArgs.Should().BeEquivalentTo((valueToSet, changedTimeToSet, validityToSet));
         }
+
+        [Fact]
+        public void DropsOldestEntryIfCapacityReached()
+        {
+            const int QueueCapacity = 10;
+
+            var link = CreateLink<object>();
+            var runtimeLink = new MockQueueingRuntimeLink<object, object>(link, default, QueueCapacity);
+            var valuesToSet = QueueCapacity + 5;
+            var expectedQueued = Enumerable.Range(0 - QueueCapacity + valuesToSet, QueueCapacity);
+
+            for (var valueToSet = 0; valueToSet < valuesToSet; valueToSet++)
+                runtimeLink.SetData(valueToSet, default, default);
+
+            var queued = runtimeLink.GetAndClearQueuedValues();
+            queued.Should().BeEquivalentTo(expectedQueued);
+        }
     }
 
     public class StoreValue
@@ -156,7 +174,7 @@ public class QueueingRuntimeLinkTests
         return link;
     }
 
-    private sealed class MockQueueingRuntimeLink<TSource, TValue>(ILink<TValue> link, TSource? value) : QueueingRuntimeLink<TSource, TValue>(link, value)
+    private sealed class MockQueueingRuntimeLink<TSource, TValue>(ILink<TValue> link, TSource? value, int bufferCapacity = 100) : QueueingRuntimeLink<TSource, TValue>(link, value, bufferCapacity)
     {
         public (TValue? Value, DateTime ChangedTime, Validity Validity)? SetConvertedDataArgs { get; private set; }
 
