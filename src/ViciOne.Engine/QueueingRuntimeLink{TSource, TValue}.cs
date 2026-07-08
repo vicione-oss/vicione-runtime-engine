@@ -50,7 +50,7 @@ internal abstract class QueueingRuntimeLink<TSource, TValue>(ILink<TValue> link,
         if (droppedEntry)
         {
             logger.PerLinkQueueOverflow(_queueCapacity, currentEntriesDropped, nameof(EngineQueueOptions.PerLinkQueueCapacity));
-            // TODO: Telemetry: Increment a counter for dropped entries.
+            EngineTelemetry.LinkQueuesOverflowCount.Add(1);
         }
 
         SetConvertedData(convertedValue, changedTime, validity);
