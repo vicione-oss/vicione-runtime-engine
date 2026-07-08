@@ -4,6 +4,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.Runtime;
+using ViciOne.Engine.Extensions;
 
 namespace ViciOne.Engine;
 
@@ -24,11 +25,7 @@ internal abstract class QueueingRuntimeLink<TSource, TValue>(ILink<TValue> link,
     public TValue?[] GetAndClearQueuedValues()
     {
         lock (_queueLock)
-        {
-            TValue?[] values = [.. _queue];
-            _queue.Clear();
-            return values;
-        }
+            return _queue.GetAllAndClear();
     }
 
     public override void SetData(object? value, DateTime changedTime, Validity validity)
