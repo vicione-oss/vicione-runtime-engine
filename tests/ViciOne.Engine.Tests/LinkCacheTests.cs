@@ -105,7 +105,7 @@ public class LinkCacheTests
         ];
     }
 
-    public class Dispose
+    public class Dispose : LinkCacheTests
     {
         [Fact]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
@@ -128,6 +128,18 @@ public class LinkCacheTests
 
             action.Should().NotThrow();
         }
+
+        [Fact]
+        public void DisposesIDisposableIncomingInputLinkGroups()
+        {
+            var disposableGroup = Substitute.For<IIncomingInputLinkGroup, IDisposable>();
+            var linkCache = new LinkCache(RuntimeFunctionBlocks, AllLinks, () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance,
+                createIncomingInputLinkGroup: (_, _, _) => disposableGroup);
+
+            linkCache.Dispose();
+
+            ((IDisposable)disposableGroup).Received().Dispose();
+        }
     }
 
     public class GetIncomingInputLinkGroups : LinkCacheTests
@@ -141,23 +153,21 @@ public class LinkCacheTests
             var externalIncomingRuntimeLink = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == ExternalIncomingLink);
             var internalRuntimeLink1 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == InternalLink1);
             var internalRuntimeLink2 = (IRuntimeLink<object>)linkCache.Links.First(x => x.Link == InternalLink2);
-            IIncomingInputLinkGroup[] expected =
-            [
-                new QueueingIncomingInputLinkGroup<object>(
+            using var expectedQueueingGroup = new QueueingIncomingInputLinkGroup<object>(
                     connector: (IRuntimeConnector<object>)RuntimeInput1,
                     links:
                     [
                         externalIncomingRuntimeLink,
                         internalRuntimeLink1,
                     ],
-                    getPoolingValidator: getValidator),
-                new AggregatingIncomingInputLinkGroup<object>(
+                    getPoolingValidator: getValidator);
+            var expectedAggregatingGroup = new AggregatingIncomingInputLinkGroup<object>(
                     connector: (IRuntimeConnector<object>)RuntimeInput2,
                     links:
                     [
                         internalRuntimeLink2,
-                    ]),
-            ];
+                    ]);
+            IIncomingInputLinkGroup[] expected = [expectedQueueingGroup, expectedAggregatingGroup,];
 
             var result = linkCache.GetIncomingInputLinkGroups(RuntimeFunctionBlocks.First());
 

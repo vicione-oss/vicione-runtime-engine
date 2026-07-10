@@ -5,11 +5,12 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLinkGroup<TValue, TValue>
+internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLinkGroup<TValue, TValue>, IDisposable
 {
     // TODO: Soll das konfigurierbar sein? Falls ja, wie?
     internal const int MaximumCapacityPerLink = 100;
 
+    private bool _disposed;
     private readonly int _maximumCapacity;
     private readonly Queue<TValue?> _queue = new();
     private readonly Func<IPoolingValidator> _getPoolingValidator;
@@ -22,14 +23,30 @@ internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLink
     {
         _getPoolingValidator = getPoolingValidator;
         _maximumCapacity = MaximumCapacityPerLink * links.Length;
+
         if (PerSourceAggregatingPooling is null)
             foreach (IRuntimeLink<TValue> link in links)
-                // TODO: Die Klasse sollte IDisposable implementieren und sich von diesem Event wieder abhängen
                 link.LinkChanged += LinkChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+
+        if (PerSourceAggregatingPooling is null)
+            foreach (IRuntimeLink<TValue> link in Links)
+                link.LinkChanged -= LinkChanged;
+
+        _queue.Clear();
     }
 
     private void Enqueue(TValue? item)
     {
+        if (_disposed)
+            return;
+
         _queue.Enqueue(item);
         if (_queue.Count > _maximumCapacity)
             _queue.Dequeue();
