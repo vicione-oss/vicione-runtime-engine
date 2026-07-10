@@ -12,6 +12,9 @@
     <File Path="VERSION" />
   </Folder>
   <Folder Name="/samples/" />
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/ViciOne.Core.Dataflow.Benchmarks/ViciOne.Core.Dataflow.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/samples/design-time/">
     <Project Path="samples/design-time/GenerateFBDesigns/GenerateFBDesigns.csproj" />
   </Folder>

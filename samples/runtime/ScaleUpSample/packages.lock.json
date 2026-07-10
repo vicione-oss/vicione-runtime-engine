@@ -114,7 +114,6 @@
       "vicione.core.dataflow": {
         "type": "Project",
         "dependencies": {
-          "FastCloner": "[3.5.5, )",
           "ViciOne.Core.Contracts": "[1.0.1, )"
         }
       },
@@ -147,12 +146,6 @@
         "dependencies": {
           "Newtonsoft.Json": "[13.0.4, )"
         }
-      },
-      "FastCloner": {
-        "type": "CentralTransitive",
-        "requested": "[3.5.5, )",
-        "resolved": "3.5.5",
-        "contentHash": "q553fGj+/MiKS/LoaAinN9CCeKE6tKCUuCWck38vRB7odTurhlssiSKHWbskPBiEhSnXXWewLAGoqoTaieKMGw=="
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "CentralTransitive",

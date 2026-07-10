@@ -80,9 +80,6 @@ public class DataflowEditor : IDisposable
         if (_disposed)
             return;
 
-        if (disposing)
-            FastCloner.FastCloner.ClearCache();
-
         _disposed = true;
     }
 
