@@ -1,5 +1,6 @@
 ﻿using System;
 using ViciOne.Core.Contracts.DataModel;
+using ViciOne.Core.Dataflow.Cloning;
 
 namespace ViciOne.Core.Dataflow.DataModel.Editors;
 
@@ -17,7 +18,7 @@ public class ConnectorInputEditor<TValue>(ConnectorInput<TValue> connector) : IC
     }
 
     private static IAggregatingPooling<TValue>? ClonePoolingIfNecessary(IAggregatingPooling<TValue>? pooling)
-        => pooling is not null ? FastCloner.FastCloner.DeepClone(pooling) : null;
+        => DeepCloner.DeepClone(pooling);
 
     private static ConnectorInput<TValue> CreateModel(ConnectorDesignInput<TValue> design)
     {

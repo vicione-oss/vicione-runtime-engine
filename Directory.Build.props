@@ -76,4 +76,11 @@
     <IsPublishable>true</IsPublishable>
   </PropertyGroup>
 
+  <!-- Properties for benchmark projects -->
+  <PropertyGroup Condition="$(MSBuildProjectDirectory.Contains('benchmarks'))">
+    <IsPackable>false</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
 </Project>
