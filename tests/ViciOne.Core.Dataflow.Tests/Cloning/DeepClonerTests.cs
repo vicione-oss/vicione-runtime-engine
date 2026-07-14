@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -1039,6 +1040,130 @@ public class DeepClonerTests
             act.Should().Throw<NotSupportedException>()
                 .WithMessage("*TagOnlyDictionary*no constructor that can create a valid empty clone*");
         }
+
+        [Fact]
+        public void DeepClone_Queue_PreservesOrderAndClonesElements()
+        {
+            var first = new SimplePoco { X = 1 };
+            var second = new SimplePoco { X = 2 };
+            var original = new Queue<SimplePoco>([first, second]);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Select(item => item.X).Should().Equal(1, 2);
+            clone.ElementAt(0).Should().NotBeSameAs(first);
+            clone.ElementAt(1).Should().NotBeSameAs(second);
+        }
+
+        [Fact]
+        public void DeepClone_QueueContainingItself_PreservesCycle()
+        {
+            var original = new Queue<object>();
+            original.Enqueue(original);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Single().Should().BeSameAs(clone);
+        }
+
+        [Fact]
+        public void DeepClone_Stack_PreservesTopToBottomOrderAndCycle()
+        {
+            var item = new SimplePoco { X = 1 };
+            var original = new Stack<object>();
+            original.Push(item);
+            original.Push(original);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Pop().Should().BeSameAs(clone);
+            var clonedItem = clone.Pop().Should().BeOfType<SimplePoco>().Subject;
+            clonedItem.Should().NotBeSameAs(item);
+            clonedItem.X.Should().Be(1);
+        }
+
+        [Fact]
+        public void DeepClone_DerivedList_PreservesRuntimeTypeAndDerivedState()
+        {
+            var item = new SimplePoco { X = 1 };
+            var original = new DerivedPocoList(4)
+            {
+                Metadata = new SimplePoco { X = 2 }
+            };
+            original.Add(item);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().BeOfType<DerivedPocoList>();
+            clone.Single().Should().NotBeSameAs(item);
+            clone.Single().X.Should().Be(1);
+            clone.Metadata.Should().NotBeSameAs(original.Metadata);
+            clone.Metadata!.X.Should().Be(2);
+        }
+
+        // An int parameter is only a capacity when the constructor names it one. A domain int must
+        // not be fed the element count, so the parameterless constructor is used instead.
+        [Fact]
+        public void DeepClone_ListSubclassWithDomainIntConstructor_UsesParameterlessConstructor()
+        {
+            var original = new TaggedList(42) { 1, 2, 3 };
+
+            TaggedList clone = DeepCloner.DeepClone(original)!;
+
+            clone.Tag.Should().Be(42);
+            clone.Should().Equal(1, 2, 3);
+        }
+
+        // With no parameterless constructor there is no way to build a valid empty shell without
+        // running domain logic against a fabricated argument, so the clone is rejected by name.
+        [Fact]
+        public void DeepClone_ListSubclassWithOnlyADomainIntConstructor_FailsFast()
+        {
+            var original = new TagOnlyList(42) { 1 };
+
+            Action act = () => DeepCloner.DeepClone(original);
+
+            act.Should().Throw<NotSupportedException>()
+                .WithMessage("*TagOnlyList*no constructor that can create a valid empty clone*");
+        }
+
+        [Fact]
+        public void DeepClone_LinkedListAndExternalNode_PreservesNodeOwnershipAlias()
+        {
+            var item = new SimplePoco { X = 16 };
+            var list = new LinkedList<SimplePoco>();
+            LinkedListNode<SimplePoco> node = list.AddLast(item);
+            var original = new LinkedListHolder(list, node);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.List.Should().NotBeSameAs(list);
+            clone.Node.Should().NotBeSameAs(node);
+            clone.Node.Should().BeSameAs(clone.List!.First);
+            clone.Node!.List.Should().BeSameAs(clone.List);
+            clone.Node.Value.Should().NotBeSameAs(item);
+        }
+
+        [Fact]
+        public void DeepClone_ReadOnlyCollection_PreservesBackingListAlias()
+        {
+            var list = new List<SimplePoco> { new() { X = 17 } };
+            var original = new ReadOnlyCollectionHolder(
+                list,
+                new ReadOnlyCollection<SimplePoco>(list));
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.List.Should().NotBeSameAs(list);
+            clone.View.Should().NotBeSameAs(original.View);
+            clone.View![0].Should().BeSameAs(clone.List![0]);
+            clone.List.Add(new SimplePoco { X = 18 });
+            clone.View.Should().HaveCount(2,
+                "the cloned wrapper must reference the cloned backing list");
+        }
     }
 
     // =========================================================================
@@ -1696,6 +1821,28 @@ public class DeepClonerTests
         public SimplePoco? Data { get; set; }
     }
 
+    public sealed class LinkedListHolder(
+        LinkedList<SimplePoco> list,
+        LinkedListNode<SimplePoco> node)
+    {
+        private readonly LinkedList<SimplePoco> _list = list;
+        private readonly LinkedListNode<SimplePoco> _node = node;
+
+        public LinkedList<SimplePoco> List => _list;
+        public LinkedListNode<SimplePoco> Node => _node;
+    }
+
+    public sealed class ReadOnlyCollectionHolder(
+        List<SimplePoco> list,
+        ReadOnlyCollection<SimplePoco> view)
+    {
+        private readonly List<SimplePoco> _list = list;
+        private readonly ReadOnlyCollection<SimplePoco> _view = view;
+
+        public List<SimplePoco> List => _list;
+        public ReadOnlyCollection<SimplePoco> View => _view;
+    }
+
     [SuppressMessage("Performance", "CA1821:Remove empty finalizers",
         Justification = "Exercises the clone policy for arbitrary finalizable resource owners.")]
     public sealed class FinalizableResource
@@ -1919,6 +2066,38 @@ public class DeepClonerTests
     public sealed class TagOnlyDictionary : Dictionary<string, int>
     {
         public TagOnlyDictionary(int tag)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
+            Tag = tag;
+        }
+
+        public int Tag { get; set; }
+    }
+
+    public sealed class DerivedPocoList(int capacity) : List<SimplePoco>(capacity)
+    {
+        public SimplePoco? Metadata { get; set; }
+    }
+
+    // The int is a domain value, not a capacity.
+    public sealed class TaggedList : List<int>
+    {
+        public TaggedList()
+        {
+        }
+
+        public TaggedList(int tag)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
+            Tag = tag;
+        }
+
+        public int Tag { get; set; }
+    }
+
+    public sealed class TagOnlyList : List<int>
+    {
+        public TagOnlyList(int tag)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
             Tag = tag;

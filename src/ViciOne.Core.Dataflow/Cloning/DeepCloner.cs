@@ -40,7 +40,9 @@ public static class DeepCloner
     /// criteria: a data object that merely happens to be disposable is cloned like any other.
     /// Constructors, field initializers, property setters, and serialization callbacks are
     /// not invoked for ordinary objects. Supported collection types may use a constructor to
-    /// create a valid empty shell before their contents are cloned. The source graph must not
+    /// create a valid empty shell before their contents are cloned. Linked-list node ownership
+    /// and read-only wrapper/backing-collection aliases are preserved as part of the graph.
+    /// The source graph must not
     /// be mutated concurrently while it is cloned. Fields marked with
     /// <see cref="NonSerializedAttribute"/> are left at their default value.
     /// Deep graphs automatically switch to an explicit work stack to avoid exhausting the

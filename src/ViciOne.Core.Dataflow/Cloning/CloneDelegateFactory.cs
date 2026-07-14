@@ -77,6 +77,18 @@ internal static class CloneDelegateFactory
         if (hashSetBase is not null)
             return BuildHashSetDelegate(type, hashSetBase);
 
+        Type? listBase = FindConstructedGenericBase(type, typeof(List<>));
+        if (listBase is not null)
+            return BuildSequenceDelegate(type, listBase, "Add", reverseSourceOrder: false);
+
+        Type? queueBase = FindConstructedGenericBase(type, typeof(Queue<>));
+        if (queueBase is not null)
+            return BuildSequenceDelegate(type, queueBase, "Enqueue", reverseSourceOrder: false);
+
+        Type? stackBase = FindConstructedGenericBase(type, typeof(Stack<>));
+        if (stackBase is not null)
+            return BuildSequenceDelegate(type, stackBase, "Push", reverseSourceOrder: true);
+
         if (type.IsValueType)
             return BuildValueTypeDelegate(type);
 
@@ -299,6 +311,100 @@ internal static class CloneDelegateFactory
         MethodCallExpression call = Expression.Call(
             Expression.Convert(collection, collectionBase),
             addMethod,
+            Expression.Convert(item, elementType));
+
+        return Expression.Lambda<Action<object, object?>>(
+            Expression.Block(call, Expression.Empty()),
+            collection,
+            item).Compile();
+    }
+
+    // -------------------------------------------------------------------------
+    // Mutable sequential collections — rebuild through their public APIs so the
+    // implementation's internal arrays, head indices, and version fields remain valid.
+    // -------------------------------------------------------------------------
+
+    private static CloneDelegate BuildSequenceDelegate(
+        Type type,
+        Type collectionBase,
+        string insertionMethodName,
+        bool reverseSourceOrder)
+    {
+        Type elementType = collectionBase.GetGenericArguments()[0];
+        PropertyInfo countProperty = collectionBase.GetProperty("Count")!;
+        Func<int, object> factory = BuildSequenceFactory(type);
+        Action<object, object?> insert = CompileCollectionInsertion(
+            collectionBase,
+            elementType,
+            insertionMethodName);
+        bool shallowElement = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
+        FieldCopyStep[] derivedSteps = type == collectionBase
+            ? []
+            : BuildFieldCopySteps(type, collectionBase);
+
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            if (reverseSourceOrder)
+            {
+                // Stack<T> enumerates from top to bottom. Push the cloned snapshot in
+                // reverse so the destination exposes the same top-to-bottom ordering.
+                var items = new List<object?>();
+                foreach (object? item in (IEnumerable)source)
+                    items.Add(shallowElement ? item : CloneObject(item, context));
+
+                for (int i = items.Count - 1; i >= 0; i--)
+                    insert(destination, items[i]);
+            }
+            else
+            {
+                foreach (object? item in (IEnumerable)source)
+                    insert(destination, shallowElement ? item : CloneObject(item, context));
+            }
+
+            foreach (FieldCopyStep step in derivedSteps)
+                step(destination, source, context);
+        };
+
+        return (source, context) =>
+        {
+            int count = (int)countProperty.GetValue(source)!;
+            object destination = factory(count);
+            context.Register(source, destination);
+            context.PopulateOrDefer(source, destination, populate);
+            return destination;
+        };
+    }
+
+    private static Func<int, object> BuildSequenceFactory(Type type)
+    {
+        const BindingFlags ConstructorFlags =
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        ConstructorInfo? capacityConstructor = type.GetConstructor(
+            ConstructorFlags, binder: null, [typeof(int)], modifiers: null);
+        if (TakesOnlyCapacityInts(capacityConstructor))
+            return capacity => capacityConstructor!.Invoke([capacity]);
+
+        ConstructorInfo? parameterlessConstructor = type.GetConstructor(
+            ConstructorFlags, binder: null, Type.EmptyTypes, modifiers: null);
+        if (parameterlessConstructor is not null)
+            return _ => parameterlessConstructor.Invoke(null);
+
+        throw new NotSupportedException(
+            $"Sequential collection type '{type}' has no constructor that can create a valid empty clone.");
+    }
+
+    private static Action<object, object?> CompileCollectionInsertion(
+        Type collectionBase,
+        Type elementType,
+        string methodName)
+    {
+        MethodInfo insertionMethod = collectionBase.GetMethod(methodName, [elementType])!;
+        ParameterExpression collection = Expression.Parameter(typeof(object), "collection");
+        ParameterExpression item = Expression.Parameter(typeof(object), "item");
+        MethodCallExpression call = Expression.Call(
+            Expression.Convert(collection, collectionBase),
+            insertionMethod,
             Expression.Convert(item, elementType));
 
         return Expression.Lambda<Action<object, object?>>(
