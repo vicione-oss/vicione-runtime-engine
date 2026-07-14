@@ -38,8 +38,13 @@ internal static class CloneDelegateFactory
 
         Type type = source.GetType();
 
-        if (ImmutableTypes.IsShallowCopyable(type))
-            return source;
+        switch (CloneTypePolicy.GetBehavior(type))
+        {
+            case CloneBehavior.Reference:
+                return source;
+            case CloneBehavior.Ignore:
+                return null;
+        }
 
         // Return the already-created clone for already-seen references (cycle / sharing).
         if (context.TryGetClone(source, out object? existing))
@@ -54,19 +59,7 @@ internal static class CloneDelegateFactory
 
     internal static CloneDelegate Build(Type type)
     {
-        // Delegates are value types semantically — copy by reference.
-        if (typeof(Delegate).IsAssignableFrom(type))
-            return static (source, _) => source;
-
-        // Runtime type-system objects (Type, MemberInfo subtypes, Assembly) must be shared
-        // by reference — deep-cloning them would corrupt the CLR's internal state.
-        if (typeof(MemberInfo).IsAssignableFrom(type) || typeof(Assembly).IsAssignableFrom(type))
-            return static (source, _) => source;
-
-        // Runtime-generated proxies (mocking frameworks, ORM lazy-loading, DI interceptors)
-        // are behavior objects, not data: traversing them would duplicate framework state
-        // that is shared far beyond the instance (and may be mutated concurrently).
-        if (IsRuntimeProxy(type))
+        if (CloneTypePolicy.GetBehavior(type) != CloneBehavior.DeepClone)
             return static (source, _) => source;
 
         if (type.IsArray)
@@ -101,8 +94,8 @@ internal static class CloneDelegateFactory
         ConstructorInfo ctorWithCapacityAndComparer = type.GetConstructor(
             [typeof(int), typeof(IEqualityComparer<>).MakeGenericType(keyType)])!;
 
-        bool shallowKey = ImmutableTypes.IsShallowCopyable(keyType);
-        bool shallowValue = ImmutableTypes.IsShallowCopyable(valueType);
+        bool shallowKey = CloneTypePolicy.GetBehavior(keyType) == CloneBehavior.Reference;
+        bool shallowValue = CloneTypePolicy.GetBehavior(valueType) == CloneBehavior.Reference;
 
         return (source, context) =>
         {
@@ -181,8 +174,7 @@ internal static class CloneDelegateFactory
         {
             // Capture locally for closure correctness.
             FieldInfo f = field;
-            bool shallow = ImmutableTypes.IsShallowCopyable(f.FieldType)
-                           || IsDelegateType(f.FieldType);
+            bool shallow = CloneTypePolicy.GetBehavior(f.FieldType) == CloneBehavior.Reference;
 
             if (shallow)
             {
@@ -228,7 +220,7 @@ internal static class CloneDelegateFactory
         // Pre-classify each field at build time so the clone lambda pays no reflection
         // cost for shallowness decisions (mirrors how BuildFieldCopySteps works).
         bool[] isShallow = Array.ConvertAll(allFields, f =>
-            ImmutableTypes.IsShallowCopyable(f.FieldType) || IsDelegateType(f.FieldType));
+            CloneTypePolicy.GetBehavior(f.FieldType) == CloneBehavior.Reference);
 
         return (source, context) =>
         {
@@ -257,7 +249,7 @@ internal static class CloneDelegateFactory
     {
         Type elementType = type.GetElementType()!;
         int rank = type.GetArrayRank();
-        bool shallowElements = ImmutableTypes.IsShallowCopyable(elementType);
+        bool shallowElements = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
 
         return (source, context) =>
         {
@@ -384,40 +376,4 @@ internal static class CloneDelegateFactory
                 yield return field;
     }
 
-    private static bool IsDelegateType(Type type)
-        => typeof(Delegate).IsAssignableFrom(type);
-
-    // Well-known namespaces of proxy types emitted into persisted (non-dynamic) assemblies.
-    private static readonly string[] s_proxyTypeNamePrefixes =
-    [
-        "Castle.Proxies.",
-        "System.Data.Entity.DynamicProxies.",
-        "NHibernate.Proxy.",
-    ];
-
-    /// <summary>
-    /// Detects runtime-generated proxy types: anything emitted via Reflection.Emit
-    /// (covers Castle DynamicProxy's <c>DynamicProxyGenAssembly2</c> used by NSubstitute,
-    /// Moq, and EF Core lazy-loading proxies) plus well-known proxy namespaces for
-    /// generators that persist their assemblies. Types without a <see cref="Type.FullName"/>
-    /// (open generics, exotic runtime types) are treated as proxies as well — they cannot
-    /// be cloned meaningfully.
-    /// </summary>
-    private static bool IsRuntimeProxy(Type type)
-    {
-        if (type.Assembly.IsDynamic)
-            return true;
-
-        string? fullName = type.FullName;
-        if (fullName is null)
-            return true;
-
-        foreach (string prefix in s_proxyTypeNamePrefixes)
-        {
-            if (fullName.StartsWith(prefix, StringComparison.Ordinal))
-                return true;
-        }
-
-        return false;
-    }
 }
