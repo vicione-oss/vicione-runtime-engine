@@ -72,15 +72,27 @@ internal static class CloneDelegateFactory
 
         Type? dictionaryBase = FindConstructedGenericBase(type, typeof(Dictionary<,>));
         if (dictionaryBase is not null)
-            return BuildDictionaryDelegate(type, dictionaryBase);
+            return BuildDictionaryDelegate(type, dictionaryBase, typeof(IEqualityComparer<>));
 
         Type? concurrentDictionaryBase = FindConstructedGenericBase(type, typeof(ConcurrentDictionary<,>));
         if (concurrentDictionaryBase is not null)
-            return BuildDictionaryDelegate(type, concurrentDictionaryBase);
+            return BuildDictionaryDelegate(type, concurrentDictionaryBase, typeof(IEqualityComparer<>));
+
+        Type? sortedDictionaryBase = FindConstructedGenericBase(type, typeof(SortedDictionary<,>));
+        if (sortedDictionaryBase is not null)
+            return BuildDictionaryDelegate(type, sortedDictionaryBase, typeof(IComparer<>));
+
+        Type? sortedListBase = FindConstructedGenericBase(type, typeof(SortedList<,>));
+        if (sortedListBase is not null)
+            return BuildDictionaryDelegate(type, sortedListBase, typeof(IComparer<>));
 
         Type? hashSetBase = FindConstructedGenericBase(type, typeof(HashSet<>));
         if (hashSetBase is not null)
-            return BuildHashSetDelegate(type, hashSetBase);
+            return BuildSetDelegate(type, hashSetBase, typeof(IEqualityComparer<>));
+
+        Type? sortedSetBase = FindConstructedGenericBase(type, typeof(SortedSet<>));
+        if (sortedSetBase is not null)
+            return BuildSetDelegate(type, sortedSetBase, typeof(IComparer<>));
 
         Type? listBase = FindConstructedGenericBase(type, typeof(List<>));
         if (listBase is not null)
@@ -116,12 +128,15 @@ internal static class CloneDelegateFactory
     // Dictionary<K,V> cloning — fast-path via KeyValuePair iteration
     // -------------------------------------------------------------------------
 
-    private static CloneDelegate BuildDictionaryDelegate(Type type, Type dictionaryBase)
+    private static CloneDelegate BuildDictionaryDelegate(
+        Type type,
+        Type dictionaryBase,
+        Type comparerGenericDefinition)
     {
         Type[] typeArgs = dictionaryBase.GetGenericArguments(); // [K, V]
         Type keyType = typeArgs[0];
         Type valueType = typeArgs[1];
-        Type comparerType = typeof(IEqualityComparer<>).MakeGenericType(keyType);
+        Type comparerType = comparerGenericDefinition.MakeGenericType(keyType);
         PropertyInfo comparerProp = dictionaryBase.GetProperty("Comparer")!;
         CollectionFactory factory = BuildCollectionFactory(type, comparerType);
         FieldCopyStep[] derivedSteps = type == dictionaryBase
@@ -172,21 +187,24 @@ internal static class CloneDelegateFactory
     }
 
     // -------------------------------------------------------------------------
-    // HashSet<T> cloning — rebuild so cloned elements are re-hashed
+    // Set cloning — rebuild so cloned elements are re-hashed or re-ordered
     // -------------------------------------------------------------------------
 
-    private static CloneDelegate BuildHashSetDelegate(Type type, Type hashSetBase)
+    private static CloneDelegate BuildSetDelegate(
+        Type type,
+        Type setBase,
+        Type comparerGenericDefinition)
     {
-        Type elementType = hashSetBase.GetGenericArguments()[0];
-        Type comparerType = typeof(IEqualityComparer<>).MakeGenericType(elementType);
-        PropertyInfo comparerProp = hashSetBase.GetProperty("Comparer")!;
-        PropertyInfo countProp = hashSetBase.GetProperty("Count")!;
+        Type elementType = setBase.GetGenericArguments()[0];
+        Type comparerType = comparerGenericDefinition.MakeGenericType(elementType);
+        PropertyInfo comparerProp = setBase.GetProperty("Comparer")!;
+        PropertyInfo countProp = setBase.GetProperty("Count")!;
         CollectionFactory factory = BuildCollectionFactory(type, comparerType);
-        Action<object, object?> add = CompileCollectionAdd(hashSetBase, elementType);
+        Action<object, object?> add = CompileCollectionAdd(setBase, elementType);
         bool shallowElement = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
-        FieldCopyStep[] derivedSteps = type == hashSetBase
+        FieldCopyStep[] derivedSteps = type == setBase
             ? []
-            : BuildFieldCopySteps(type, hashSetBase);
+            : BuildFieldCopySteps(type, setBase);
 
         ClonePopulateDelegate populate = (source, destination, context) =>
         {

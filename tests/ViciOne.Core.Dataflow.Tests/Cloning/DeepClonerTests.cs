@@ -1192,6 +1192,59 @@ public class DeepClonerTests
         }
 
         [Fact]
+        public void DeepClone_SortedDictionary_RebuildsKeysAndPreservesComparer()
+        {
+            var comparer = new PocoValueComparer();
+            var key = new SimplePoco { X = 3 };
+            var original = new SortedDictionary<SimplePoco, SimplePoco>(comparer)
+            {
+                [key] = new SimplePoco { X = 4 }
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            SimplePoco clonedKey = clone.Keys.Single();
+
+            clonedKey.Should().NotBeSameAs(key);
+            clone.ContainsKey(clonedKey).Should().BeTrue();
+            clone[clonedKey].Should().NotBeSameAs(original[key]);
+            clone.Comparer.Should().BeSameAs(comparer);
+        }
+
+        [Fact]
+        public void DeepClone_SortedList_RebuildsKeysAndValues()
+        {
+            var comparer = new PocoValueComparer();
+            var key = new SimplePoco { X = 7 };
+            var original = new SortedList<SimplePoco, SimplePoco>(comparer)
+            {
+                [key] = new SimplePoco { X = 8 }
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            SimplePoco clonedKey = clone.Keys.Single();
+
+            clonedKey.Should().NotBeSameAs(key);
+            clone.ContainsKey(clonedKey).Should().BeTrue();
+            clone.Values.Single().Should().NotBeSameAs(original.Values.Single());
+            clone.Comparer.Should().BeSameAs(comparer);
+        }
+
+        [Fact]
+        public void DeepClone_SortedSet_RebuildsElementsAndPreservesComparer()
+        {
+            var comparer = new PocoValueComparer();
+            var item = new SimplePoco { X = 9 };
+            var original = new SortedSet<SimplePoco>(comparer) { item };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            SimplePoco clonedItem = clone.Single();
+
+            clonedItem.Should().NotBeSameAs(item);
+            clone.Contains(clonedItem).Should().BeTrue();
+            clone.Comparer.Should().BeSameAs(comparer);
+        }
+
+        [Fact]
         public void DeepClone_LinkedListAndExternalNode_PreservesNodeOwnershipAlias()
         {
             var item = new SimplePoco { X = 16 };
@@ -2049,6 +2102,12 @@ public class DeepClonerTests
         public int Modulo { get; set; } = 10;
         public bool Equals(int x, int y) => x % Modulo == y % Modulo;
         public int GetHashCode(int obj) => obj % Modulo;
+    }
+
+    private sealed class PocoValueComparer : IComparer<SimplePoco>
+    {
+        public int Compare(SimplePoco? x, SimplePoco? y)
+            => Nullable.Compare(x?.X, y?.X);
     }
 
     public sealed class IdentityHashKey
