@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -73,6 +74,10 @@ internal static class CloneDelegateFactory
         if (dictionaryBase is not null)
             return BuildDictionaryDelegate(type, dictionaryBase);
 
+        Type? concurrentDictionaryBase = FindConstructedGenericBase(type, typeof(ConcurrentDictionary<,>));
+        if (concurrentDictionaryBase is not null)
+            return BuildDictionaryDelegate(type, concurrentDictionaryBase);
+
         Type? hashSetBase = FindConstructedGenericBase(type, typeof(HashSet<>));
         if (hashSetBase is not null)
             return BuildHashSetDelegate(type, hashSetBase);
@@ -88,6 +93,18 @@ internal static class CloneDelegateFactory
         Type? stackBase = FindConstructedGenericBase(type, typeof(Stack<>));
         if (stackBase is not null)
             return BuildSequenceDelegate(type, stackBase, "Push", reverseSourceOrder: true);
+
+        Type? concurrentQueueBase = FindConstructedGenericBase(type, typeof(ConcurrentQueue<>));
+        if (concurrentQueueBase is not null)
+            return BuildSequenceDelegate(type, concurrentQueueBase, "Enqueue", reverseSourceOrder: false);
+
+        Type? concurrentStackBase = FindConstructedGenericBase(type, typeof(ConcurrentStack<>));
+        if (concurrentStackBase is not null)
+            return BuildSequenceDelegate(type, concurrentStackBase, "Push", reverseSourceOrder: true);
+
+        Type? concurrentBagBase = FindConstructedGenericBase(type, typeof(ConcurrentBag<>));
+        if (concurrentBagBase is not null)
+            return BuildSequenceDelegate(type, concurrentBagBase, "Add", reverseSourceOrder: false);
 
         if (type.IsValueType)
             return BuildValueTypeDelegate(type);
@@ -240,7 +257,7 @@ internal static class CloneDelegateFactory
         }
 
         throw new NotSupportedException(
-            $"Hash collection type '{type}' has no constructor that can create a valid empty clone.");
+            $"Keyed collection type '{type}' has no constructor that can create a valid empty clone.");
     }
 
     /// <summary>
@@ -293,7 +310,7 @@ internal static class CloneDelegateFactory
         }
 
         throw new NotSupportedException(
-            $"Hash collection type '{collectionType}' cannot preserve its comparer when cloned.");
+            $"Keyed collection type '{collectionType}' cannot preserve its comparer when cloned.");
     }
 
     /// <summary>

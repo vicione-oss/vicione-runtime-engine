@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
@@ -1128,6 +1129,66 @@ public class DeepClonerTests
 
             act.Should().Throw<NotSupportedException>()
                 .WithMessage("*TagOnlyList*no constructor that can create a valid empty clone*");
+        }
+
+        [Fact]
+        public void DeepClone_ConcurrentDictionary_RehashesKeysAndPreservesComparer()
+        {
+            var key = new IdentityHashKey { Value = 11 };
+            var original = new ConcurrentDictionary<IdentityHashKey, SimplePoco>(
+                ReferenceEqualityComparer.Instance);
+            original[key] = new SimplePoco { X = 12 };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            IdentityHashKey clonedKey = clone.Keys.Single();
+
+            clone.Should().NotBeSameAs(original);
+            clonedKey.Should().NotBeSameAs(key);
+            clone.ContainsKey(clonedKey).Should().BeTrue();
+            clone[clonedKey].Should().NotBeSameAs(original[key]);
+            clone.Comparer.Should().BeSameAs(ReferenceEqualityComparer.Instance);
+        }
+
+        [Fact]
+        public void DeepClone_ConcurrentQueueContainingItself_PreservesCycle()
+        {
+            var original = new ConcurrentQueue<object>();
+            original.Enqueue(original);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Single().Should().BeSameAs(clone);
+        }
+
+        [Fact]
+        public void DeepClone_ConcurrentStack_PreservesOrderAndClonesElements()
+        {
+            var first = new SimplePoco { X = 1 };
+            var second = new SimplePoco { X = 2 };
+            var original = new ConcurrentStack<SimplePoco>();
+            original.Push(first);
+            original.Push(second);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Select(item => item.X).Should().Equal(2, 1);
+            clone.ElementAt(0).Should().NotBeSameAs(second);
+            clone.ElementAt(1).Should().NotBeSameAs(first);
+        }
+
+        [Fact]
+        public void DeepClone_ConcurrentBag_ClonesSnapshotElements()
+        {
+            var item = new SimplePoco { X = 5 };
+            var original = new ConcurrentBag<SimplePoco> { item };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Should().ContainSingle();
+            clone.Single().Should().NotBeSameAs(item);
+            clone.Single().X.Should().Be(5);
         }
 
         [Fact]
