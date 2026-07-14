@@ -105,6 +105,11 @@ internal sealed class LinkCache : IDisposable
 
         if (disposing)
         {
+            foreach (IIncomingInputLinkGroup[] groups in _incomingInputLinkGroups.Values)
+                foreach (IIncomingInputLinkGroup group in groups)
+                    if (group is IDisposable disposable)
+                        disposable.Dispose();
+
             _incomingInputLinkGroups.Clear();
             _outgoingInputLinkGroups.Clear();
             _outputLinkGroups.Clear();
