@@ -859,6 +859,129 @@ public class DeepClonerTests
             clone[999].X.Should().Be(999);
             clone[999].Y.Should().Be("value-999");
         }
+
+        [Fact]
+        public void DeepClone_HashSetWithIdentityHashedElements_RebuildsValidBuckets()
+        {
+            var element = new IdentityHashKey { Value = 42 };
+            var original = new HashSet<IdentityHashKey> { element };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            IdentityHashKey clonedElement = clone.Single();
+
+            clone.Should().NotBeSameAs(original);
+            clonedElement.Should().NotBeSameAs(element);
+            clone.Contains(clonedElement).Should().BeTrue(
+                "the clone must hash the cloned element rather than retain the source bucket hash");
+        }
+
+        [Fact]
+        public void DeepClone_HashSetContainingItself_PreservesCycleAndLookup()
+        {
+            var original = new HashSet<object>(ReferenceEqualityComparer.Instance);
+            original.Add(original);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Single().Should().BeSameAs(clone);
+            clone.Contains(clone).Should().BeTrue();
+            clone.Comparer.Should().BeSameAs(ReferenceEqualityComparer.Instance);
+        }
+
+        [Fact]
+        public void DeepClone_DerivedDictionary_RehashesKeysAndClonesDerivedState()
+        {
+            var key = new IdentityHashKey { Value = 7 };
+            var original = new DerivedIdentityDictionary(ReferenceEqualityComparer.Instance)
+            {
+                [key] = new SimplePoco { X = 10 },
+                Metadata = new SimplePoco { X = 20 }
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            IdentityHashKey clonedKey = clone.Keys.Single();
+
+            clone.Should().BeOfType<DerivedIdentityDictionary>();
+            clonedKey.Should().NotBeSameAs(key);
+            clone.ContainsKey(clonedKey).Should().BeTrue();
+            clone[clonedKey].Should().NotBeSameAs(original[key]);
+            clone.Metadata.Should().NotBeSameAs(original.Metadata);
+            clone.Metadata!.X.Should().Be(20);
+            clone.Comparer.Should().BeSameAs(original.Comparer);
+        }
+
+        [Fact]
+        public void DeepClone_DerivedHashSet_RehashesElementsAndClonesDerivedState()
+        {
+            var element = new IdentityHashKey { Value = 9 };
+            var original = new DerivedIdentityHashSet(ReferenceEqualityComparer.Instance)
+            {
+                Metadata = new SimplePoco { X = 30 }
+            };
+            original.Add(element);
+
+            var clone = DeepCloner.DeepClone(original)!;
+            IdentityHashKey clonedElement = clone.Single();
+
+            clone.Should().BeOfType<DerivedIdentityHashSet>();
+            clonedElement.Should().NotBeSameAs(element);
+            clone.Contains(clonedElement).Should().BeTrue();
+            clone.Metadata.Should().NotBeSameAs(original.Metadata);
+            clone.Metadata!.X.Should().Be(30);
+            clone.Comparer.Should().BeSameAs(original.Comparer);
+        }
+
+        // Constructors are not inherited, so the clone is built through the subclass's own
+        // parameterless constructor — which supplies an equivalent comparer of its own.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithBaseSuppliedComparer_PreservesLookup()
+        {
+            var original = new CaseInsensitiveDictionary { ["Alpha"] = 1 };
+
+            CaseInsensitiveDictionary clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone["ALPHA"].Should().Be(1);
+        }
+
+        // A comparer that carries configuration cannot be assumed equivalent just because the type
+        // matches, so the clone is rejected instead of silently changing lookup semantics.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithStatefulComparer_FailsFast()
+        {
+            var original = new TrimmingDictionary { ["a"] = 1 };
+
+            Action act = () => DeepCloner.DeepClone(original);
+
+            act.Should().Throw<NotSupportedException>().WithMessage("*cannot preserve its comparer*");
+        }
+
+        // An int parameter is only a capacity when the constructor names it one. A domain int must
+        // not be fed the element count, so the parameterless constructor is used instead.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithDomainIntConstructor_UsesParameterlessConstructor()
+        {
+            var original = new TaggedDictionary(42) { ["a"] = 1 };
+
+            TaggedDictionary clone = DeepCloner.DeepClone(original)!;
+
+            clone.Tag.Should().Be(42);
+            clone["a"].Should().Be(1);
+        }
+
+        // With no parameterless constructor there is no way to build a valid empty shell without
+        // running domain logic against a fabricated argument, so the clone is rejected by name.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithOnlyADomainIntConstructor_FailsFast()
+        {
+            var original = new TagOnlyDictionary(42) { ["a"] = 1 };
+
+            Action act = () => DeepCloner.DeepClone(original);
+
+            act.Should().Throw<NotSupportedException>()
+                .WithMessage("*TagOnlyDictionary*no constructor that can create a valid empty clone*");
+        }
     }
 
     // =========================================================================
@@ -1456,6 +1579,87 @@ public class DeepClonerTests
         public int Modulo { get; set; } = 10;
         public bool Equals(int x, int y) => x % Modulo == y % Modulo;
         public int GetHashCode(int obj) => obj % Modulo;
+    }
+
+    public sealed class IdentityHashKey
+    {
+        public int Value { get; set; }
+        public override int GetHashCode() => RuntimeHelpers.GetHashCode(this);
+    }
+
+    public sealed class DerivedIdentityDictionary(IEqualityComparer<IdentityHashKey> comparer)
+        : Dictionary<IdentityHashKey, SimplePoco>(comparer)
+    {
+        public SimplePoco? Metadata { get; set; }
+    }
+
+    public sealed class DerivedIdentityHashSet(IEqualityComparer<IdentityHashKey> comparer)
+        : HashSet<IdentityHashKey>(comparer)
+    {
+        public SimplePoco? Metadata { get; set; }
+    }
+
+    // Stateless, so any instance behaves exactly like any other.
+    public sealed class OrdinalIgnoreCaseKeys : IEqualityComparer<string>
+    {
+        public bool Equals(string? x, string? y) => StringComparer.OrdinalIgnoreCase.Equals(x, y);
+
+        public int GetHashCode(string obj) => StringComparer.OrdinalIgnoreCase.GetHashCode(obj);
+    }
+
+    // Carries configuration, so two instances of it are not interchangeable.
+    public sealed class TrimmingKeys(bool trim) : IEqualityComparer<string>
+    {
+        private readonly bool _trim = trim;
+
+        public bool Equals(string? x, string? y)
+            => string.Equals(Normalize(x), Normalize(y), StringComparison.Ordinal);
+
+        public int GetHashCode(string obj) => Normalize(obj)?.GetHashCode(StringComparison.Ordinal) ?? 0;
+
+        private string? Normalize(string? value) => _trim ? value?.Trim() : value;
+    }
+
+    public sealed class CaseInsensitiveDictionary : Dictionary<string, int>
+    {
+        public CaseInsensitiveDictionary() : base(new OrdinalIgnoreCaseKeys())
+        {
+        }
+    }
+
+    public sealed class TrimmingDictionary : Dictionary<string, int>
+    {
+        public TrimmingDictionary() : base(new TrimmingKeys(trim: true))
+        {
+        }
+    }
+
+    // The int is a domain value, not a capacity — feeding it the element count would run this
+    // validation against a fabricated argument.
+    public sealed class TaggedDictionary : Dictionary<string, int>
+    {
+        public TaggedDictionary()
+        {
+        }
+
+        public TaggedDictionary(int tag)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
+            Tag = tag;
+        }
+
+        public int Tag { get; set; }
+    }
+
+    public sealed class TagOnlyDictionary : Dictionary<string, int>
+    {
+        public TagOnlyDictionary(int tag)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
+            Tag = tag;
+        }
+
+        public int Tag { get; set; }
     }
 
     [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]

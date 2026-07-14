@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -65,10 +66,13 @@ internal static class CloneDelegateFactory
         if (type.IsArray)
             return BuildArrayDelegate(type);
 
-        // Dictionary<K,V> fast-path: reconstruct via KeyValuePair iteration instead of
-        // traversing private backing fields, reducing allocation ~3× and time ~3–6×.
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            return BuildDictionaryDelegate(type);
+        Type? dictionaryBase = FindConstructedGenericBase(type, typeof(Dictionary<,>));
+        if (dictionaryBase is not null)
+            return BuildDictionaryDelegate(type, dictionaryBase);
+
+        Type? hashSetBase = FindConstructedGenericBase(type, typeof(HashSet<>));
+        if (hashSetBase is not null)
+            return BuildHashSetDelegate(type, hashSetBase);
 
         if (type.IsValueType)
             return BuildValueTypeDelegate(type);
@@ -80,45 +84,37 @@ internal static class CloneDelegateFactory
     // Dictionary<K,V> cloning — fast-path via KeyValuePair iteration
     // -------------------------------------------------------------------------
 
-    private static CloneDelegate BuildDictionaryDelegate(Type type)
+    private static CloneDelegate BuildDictionaryDelegate(Type type, Type dictionaryBase)
     {
-        Type[] typeArgs = type.GetGenericArguments(); // [K, V]
+        Type[] typeArgs = dictionaryBase.GetGenericArguments(); // [K, V]
         Type keyType = typeArgs[0];
         Type valueType = typeArgs[1];
-
-        // Resolve the IEqualityComparer<K> Comparer property and Dictionary(int, IEqualityComparer<K>) ctor.
-        // Comparers are intentionally shared by reference: they define dictionary lookup
-        // semantics and are commonly immutable singleton instances such as StringComparer.
-        // Deep-cloning arbitrary comparer implementations risks changing those semantics.
-        PropertyInfo comparerProp = type.GetProperty("Comparer")!;
-        ConstructorInfo ctorWithCapacityAndComparer = type.GetConstructor(
-            [typeof(int), typeof(IEqualityComparer<>).MakeGenericType(keyType)])!;
+        Type comparerType = typeof(IEqualityComparer<>).MakeGenericType(keyType);
+        PropertyInfo comparerProp = dictionaryBase.GetProperty("Comparer")!;
+        CollectionFactory factory = BuildCollectionFactory(type, comparerType);
+        FieldCopyStep[] derivedSteps = type == dictionaryBase
+            ? []
+            : BuildFieldCopySteps(type, dictionaryBase);
 
         bool shallowKey = CloneTypePolicy.GetBehavior(keyType) == CloneBehavior.Reference;
         bool shallowValue = CloneTypePolicy.GetBehavior(valueType) == CloneBehavior.Reference;
 
         return (source, context) =>
         {
-            // Dictionary<K,V> implements the non-generic collection interfaces, so the
-            // per-entry loop below runs without any reflection; only resolving the
-            // comparer and constructing the destination invoke reflection (once per
-            // dictionary instance).
-            var srcDict = (System.Collections.IDictionary)source;
+            var srcDict = (IDictionary)source;
             object? comparer = comparerProp.GetValue(source);
-            var dest = (System.Collections.IDictionary)ctorWithCapacityAndComparer.Invoke([srcDict.Count, comparer]);
+            var dest = (IDictionary)factory.Create(srcDict.Count, comparer);
 
-            // Register before iterating so self-referential values resolve correctly.
+            EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
             context.Register(source, dest);
 
-            // Enumerate entries without touching private backing fields.
-            System.Collections.IDictionaryEnumerator enumerator = srcDict.GetEnumerator();
+            IDictionaryEnumerator enumerator = srcDict.GetEnumerator();
             try
             {
                 while (enumerator.MoveNext())
                 {
                     object key = enumerator.Key;
                     object? value = enumerator.Value;
-
                     object? clonedKey = shallowKey ? key : CloneObject(key, context);
                     object? clonedValue = shallowValue ? value : CloneObject(value, context);
 
@@ -130,8 +126,172 @@ internal static class CloneDelegateFactory
                 (enumerator as IDisposable)?.Dispose();
             }
 
+            foreach (FieldCopyStep step in derivedSteps)
+                step(dest, source, context);
+
             return dest;
         };
+    }
+
+    // -------------------------------------------------------------------------
+    // HashSet<T> cloning — rebuild so cloned elements are re-hashed
+    // -------------------------------------------------------------------------
+
+    private static CloneDelegate BuildHashSetDelegate(Type type, Type hashSetBase)
+    {
+        Type elementType = hashSetBase.GetGenericArguments()[0];
+        Type comparerType = typeof(IEqualityComparer<>).MakeGenericType(elementType);
+        PropertyInfo comparerProp = hashSetBase.GetProperty("Comparer")!;
+        PropertyInfo countProp = hashSetBase.GetProperty("Count")!;
+        CollectionFactory factory = BuildCollectionFactory(type, comparerType);
+        Action<object, object?> add = CompileCollectionAdd(hashSetBase, elementType);
+        bool shallowElement = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
+        FieldCopyStep[] derivedSteps = type == hashSetBase
+            ? []
+            : BuildFieldCopySteps(type, hashSetBase);
+
+        return (source, context) =>
+        {
+            int count = (int)countProp.GetValue(source)!;
+            object? comparer = comparerProp.GetValue(source);
+            object dest = factory.Create(count, comparer);
+
+            EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
+            context.Register(source, dest);
+
+            foreach (object? item in (IEnumerable)source)
+                add(dest, shallowElement ? item : CloneObject(item, context));
+
+            foreach (FieldCopyStep step in derivedSteps)
+                step(dest, source, context);
+
+            return dest;
+        };
+    }
+
+    private sealed record CollectionFactory(
+        Func<int, object?, object> Create,
+        bool AcceptsComparer);
+
+    private static CollectionFactory BuildCollectionFactory(Type type, Type comparerType)
+    {
+        const BindingFlags ConstructorFlags =
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        ConstructorInfo? capacityAndComparer = type.GetConstructor(
+            ConstructorFlags, binder: null, [typeof(int), comparerType], modifiers: null);
+        if (TakesOnlyCapacityInts(capacityAndComparer))
+        {
+            return new CollectionFactory(
+                (capacity, comparer) => capacityAndComparer!.Invoke([capacity, comparer]),
+                AcceptsComparer: true);
+        }
+
+        ConstructorInfo? comparerOnly = type.GetConstructor(
+            ConstructorFlags, binder: null, [comparerType], modifiers: null);
+        if (comparerOnly is not null)
+        {
+            return new CollectionFactory(
+                (_, comparer) => comparerOnly.Invoke([comparer]),
+                AcceptsComparer: true);
+        }
+
+        ConstructorInfo? capacityOnly = type.GetConstructor(
+            ConstructorFlags, binder: null, [typeof(int)], modifiers: null);
+        if (TakesOnlyCapacityInts(capacityOnly))
+        {
+            return new CollectionFactory(
+                (capacity, _) => capacityOnly!.Invoke([capacity]),
+                AcceptsComparer: false);
+        }
+
+        ConstructorInfo? parameterless = type.GetConstructor(
+            ConstructorFlags, binder: null, Type.EmptyTypes, modifiers: null);
+        if (parameterless is not null)
+        {
+            return new CollectionFactory(
+                (_, _) => parameterless.Invoke(null),
+                AcceptsComparer: false);
+        }
+
+        throw new NotSupportedException(
+            $"Hash collection type '{type}' has no constructor that can create a valid empty clone.");
+    }
+
+    /// <summary>
+    /// <see langword="true"/> when every <see langword="int"/> the constructor declares is a capacity.
+    /// The clone factory feeds the source's element count into those parameters, which is only correct
+    /// when they mean capacity: a derived collection may declare an <see langword="int"/> for its own
+    /// domain, and passing the element count would run foreign logic against a fabricated value.
+    /// </summary>
+    private static bool TakesOnlyCapacityInts(ConstructorInfo? constructor)
+    {
+        if (constructor is null)
+            return false;
+
+        foreach (ParameterInfo parameter in constructor.GetParameters())
+        {
+            if (parameter.ParameterType == typeof(int) &&
+                !string.Equals(parameter.Name, "capacity", StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void EnsureComparerPreserved(
+        Type collectionType,
+        PropertyInfo comparerProperty,
+        object? sourceComparer,
+        object destination,
+        bool factoryAcceptsComparer)
+    {
+        if (factoryAcceptsComparer)
+            return;
+
+        object? destinationComparer = comparerProperty.GetValue(destination);
+        if (ReferenceEquals(sourceComparer, destinationComparer))
+            return;
+
+        // Constructors are not inherited, so a derived collection never matches the comparer-taking
+        // constructors and is built through its own parameterless one — which supplied a comparer of
+        // its own. A stateless comparer has no configuration to lose, so any instance of that type
+        // behaves identically and the shell is already correct.
+        if (destinationComparer is not null &&
+            sourceComparer is not null &&
+            sourceComparer.GetType() == destinationComparer.GetType() &&
+            IsStateless(sourceComparer.GetType()))
+        {
+            return;
+        }
+
+        throw new NotSupportedException(
+            $"Hash collection type '{collectionType}' cannot preserve its comparer when cloned.");
+    }
+
+    /// <summary>
+    /// <see langword="true"/> when the type carries no instance state, so every instance of it is
+    /// interchangeable with every other.
+    /// </summary>
+    private static bool IsStateless(Type type)
+        => type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Length == 0;
+
+    private static Action<object, object?> CompileCollectionAdd(Type collectionBase, Type elementType)
+    {
+        MethodInfo addMethod = collectionBase.GetMethod("Add", [elementType])!;
+        ParameterExpression collection = Expression.Parameter(typeof(object), "collection");
+        ParameterExpression item = Expression.Parameter(typeof(object), "item");
+        MethodCallExpression call = Expression.Call(
+            Expression.Convert(collection, collectionBase),
+            addMethod,
+            Expression.Convert(item, elementType));
+
+        return Expression.Lambda<Action<object, object?>>(
+            Expression.Block(call, Expression.Empty()),
+            collection,
+            item).Compile();
     }
 
     // -------------------------------------------------------------------------
@@ -166,11 +326,11 @@ internal static class CloneDelegateFactory
     // FieldCopyStep: (destination, source, context) → void
     private delegate void FieldCopyStep(object dest, object source, CloneContext context);
 
-    private static FieldCopyStep[] BuildFieldCopySteps(Type type)
+    private static FieldCopyStep[] BuildFieldCopySteps(Type type, Type? stopExclusive = null)
     {
         var steps = new List<FieldCopyStep>();
 
-        foreach (FieldInfo field in GetAllInstanceFields(type))
+        foreach (FieldInfo field in GetAllInstanceFields(type, stopExclusive))
         {
             // Capture locally for closure correctness.
             FieldInfo f = field;
@@ -360,12 +520,12 @@ internal static class CloneDelegateFactory
     /// Walks the full inheritance chain (excluding <see cref="object"/>) and yields
     /// every declared instance field in declaration order from base to derived.
     /// </summary>
-    private static IEnumerable<FieldInfo> GetAllInstanceFields(Type type)
+    private static IEnumerable<FieldInfo> GetAllInstanceFields(Type type, Type? stopExclusive = null)
     {
         // Build base-first list so fields are processed in hierarchy order.
         var hierarchy = new Stack<Type>();
         Type? t = type;
-        while (t is not null && t != typeof(object))
+        while (t is not null && t != typeof(object) && t != stopExclusive)
         {
             hierarchy.Push(t);
             t = t.BaseType;
@@ -374,6 +534,17 @@ internal static class CloneDelegateFactory
         while (hierarchy.TryPop(out Type? current))
             foreach (FieldInfo field in current.GetFields(InstanceAllDeclared))
                 yield return field;
+    }
+
+    private static Type? FindConstructedGenericBase(Type type, Type genericDefinition)
+    {
+        for (Type? current = type; current is not null; current = current.BaseType)
+        {
+            if (current.IsGenericType && current.GetGenericTypeDefinition() == genericDefinition)
+                return current;
+        }
+
+        return null;
     }
 
 }

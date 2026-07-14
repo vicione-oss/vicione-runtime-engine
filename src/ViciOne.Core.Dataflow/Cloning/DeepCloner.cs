@@ -35,9 +35,11 @@ public static class DeepCloner
     /// <see cref="System.Reflection.Assembly"/>, runtime-generated proxies (mocks, ORM
     /// lazy-loading proxies, DI interceptors), and critical finalizers such as
     /// <see cref="System.Runtime.InteropServices.SafeHandle"/> guarding native resources.
-    /// The source graph must not be mutated concurrently while it is being cloned, and
-    /// traversal is recursive — extremely deep graphs (thousands of nesting levels) can
-    /// exhaust the stack.
+    /// Constructors, field initializers, property setters, and serialization callbacks are
+    /// not invoked for ordinary objects. Supported collection types may use a constructor to
+    /// create a valid empty shell before their contents are cloned. The source graph must not
+    /// be mutated concurrently while it is cloned, and traversal is recursive — extremely deep
+    /// graphs (thousands of nesting levels) can exhaust the stack.
     /// </remarks>
     public static T? DeepClone<T>(T? obj)
     {
