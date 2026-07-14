@@ -41,8 +41,9 @@ public static class DeepCloner
     /// Constructors, field initializers, property setters, and serialization callbacks are
     /// not invoked for ordinary objects. Supported collection types may use a constructor to
     /// create a valid empty shell before their contents are cloned. The source graph must not
-    /// be mutated concurrently while it is cloned, and traversal is recursive — extremely deep
-    /// graphs (thousands of nesting levels) can exhaust the stack.
+    /// be mutated concurrently while it is cloned. Fields marked with
+    /// <see cref="NonSerializedAttribute"/> are left at their default value. Traversal is
+    /// recursive — extremely deep graphs (thousands of nesting levels) can exhaust the stack.
     /// </remarks>
     public static T? DeepClone<T>(T? obj)
     {

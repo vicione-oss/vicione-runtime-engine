@@ -42,6 +42,11 @@ internal static class CloneTypePolicy
     internal static CloneBehavior GetBehavior(Type type)
         => s_cache.GetValue(type, static t => new CacheEntry(Evaluate(t))).Behavior;
 
+    internal static CloneBehavior GetFieldBehavior(FieldInfo field)
+        => field.GetCustomAttribute<NonSerializedAttribute>() is not null
+            ? CloneBehavior.Ignore
+            : GetBehavior(field.FieldType);
+
     private static CloneBehavior Evaluate(Type type)
     {
         if (ImmutableTypes.IsShallowCopyable(type))

@@ -334,7 +334,16 @@ internal static class CloneDelegateFactory
         {
             // Capture locally for closure correctness.
             FieldInfo f = field;
-            bool shallow = CloneTypePolicy.GetBehavior(f.FieldType) == CloneBehavior.Reference;
+            CloneBehavior behavior = CloneTypePolicy.GetFieldBehavior(f);
+
+            if (behavior == CloneBehavior.Ignore)
+            {
+                object? defaultValue = GetDefaultValue(f.FieldType);
+                steps.Add((dest, _, _) => f.SetValue(dest, defaultValue));
+                continue;
+            }
+
+            bool shallow = behavior == CloneBehavior.Reference;
 
             if (shallow)
             {
@@ -379,8 +388,7 @@ internal static class CloneDelegateFactory
         FieldInfo[] allFields = [.. GetAllInstanceFields(type)];
         // Pre-classify each field at build time so the clone lambda pays no reflection
         // cost for shallowness decisions (mirrors how BuildFieldCopySteps works).
-        bool[] isShallow = Array.ConvertAll(allFields, f =>
-            CloneTypePolicy.GetBehavior(f.FieldType) == CloneBehavior.Reference);
+        CloneBehavior[] behaviors = Array.ConvertAll(allFields, CloneTypePolicy.GetFieldBehavior);
 
         return (source, context) =>
         {
@@ -393,8 +401,13 @@ internal static class CloneDelegateFactory
 
             for (int i = 0; i < allFields.Length; i++)
             {
+                if (behaviors[i] == CloneBehavior.Ignore)
+                    continue;
+
                 object? value = allFields[i].GetValue(source);
-                allFields[i].SetValue(dest, isShallow[i] ? value : CloneObject(value, context));
+                allFields[i].SetValue(
+                    dest,
+                    behaviors[i] == CloneBehavior.Reference ? value : CloneObject(value, context));
             }
 
             return dest;
@@ -546,5 +559,8 @@ internal static class CloneDelegateFactory
 
         return null;
     }
+
+    private static object? GetDefaultValue(Type type)
+        => type.IsValueType ? Array.CreateInstance(type, 1).GetValue(0) : null;
 
 }

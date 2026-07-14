@@ -410,6 +410,60 @@ public class DeepClonerTests
     }
 
     // =========================================================================
+    // Standard member behavior
+    // =========================================================================
+
+    public class MemberBehaviorTests
+    {
+        [Fact]
+        public void DeepClone_NonSerializedFields_AreLeftAtDefaultValues()
+        {
+            var original = new WithNonSerializedFields
+            {
+                Persistent = new SimplePoco { X = 1 },
+                Transient = new SimplePoco { X = 2 },
+                TransientNumber = 3,
+                TransientNullable = 4
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Persistent.Should().NotBeSameAs(original.Persistent);
+            clone.Persistent!.X.Should().Be(1);
+            clone.Transient.Should().BeNull();
+            clone.TransientNumber.Should().Be(0);
+            clone.TransientNullable.Should().BeNull();
+        }
+
+        [Fact]
+        public void DeepClone_NonSerializedStructField_IsLeftAtDefaultValue()
+        {
+            var original = new StructWithNonSerializedField
+            {
+                Persistent = new SimplePoco { X = 1 },
+                Transient = new SimplePoco { X = 2 }
+            };
+
+            var clone = DeepCloner.DeepClone(original);
+
+            clone.Persistent.Should().NotBeSameAs(original.Persistent);
+            clone.Transient.Should().BeNull();
+        }
+
+        [Fact]
+        public void DeepClone_NonSerializedEvent_DoesNotCopyInvocationList()
+        {
+            var original = new WithNonSerializedEvent();
+            original.SomeEvent += static () => { };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            original.GetEventDelegate().Should().NotBeNull();
+            clone.GetEventDelegate().Should().BeNull();
+        }
+    }
+
+    // =========================================================================
     // Caching / independence tests
     // =========================================================================
 
@@ -909,6 +963,8 @@ public class DeepClonerTests
             clone[clonedKey].Should().NotBeSameAs(original[key]);
             clone.Metadata.Should().NotBeSameAs(original.Metadata);
             clone.Metadata!.X.Should().Be(20);
+            clone.Transient.Should().BeNull(
+                "ignored derived state must be reset even though the collection constructor ran");
             clone.Comparer.Should().BeSameAs(original.Comparer);
         }
 
@@ -1672,6 +1728,37 @@ public class DeepClonerTests
         public Delegate? GetEventDelegate() => _someEvent;
     }
 
+    public sealed class WithNonSerializedFields
+    {
+        public SimplePoco? Persistent { get; set; }
+
+        [field: NonSerialized]
+        public SimplePoco? Transient { get; set; }
+
+        [field: NonSerialized]
+        public int TransientNumber { get; set; }
+
+        [field: NonSerialized]
+        public int? TransientNullable { get; set; }
+    }
+
+    [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]
+    public struct StructWithNonSerializedField
+    {
+        public SimplePoco? Persistent { get; set; }
+
+        [field: NonSerialized]
+        public SimplePoco? Transient { get; set; }
+    }
+
+    public sealed class WithNonSerializedEvent
+    {
+        [field: NonSerialized]
+        public event Action? SomeEvent;
+
+        public Delegate? GetEventDelegate() => SomeEvent;
+    }
+
     public class WithTypeField
     {
         public Type? StoredType { get; set; }
@@ -1744,6 +1831,9 @@ public class DeepClonerTests
         : Dictionary<IdentityHashKey, SimplePoco>(comparer)
     {
         public SimplePoco? Metadata { get; set; }
+
+        [field: NonSerialized]
+        public SimplePoco? Transient { get; set; } = new() { X = -1 };
     }
 
     public sealed class DerivedIdentityHashSet(IEqualityComparer<IdentityHashKey> comparer)
