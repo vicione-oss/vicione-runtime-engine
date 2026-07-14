@@ -843,6 +843,22 @@ public class DeepClonerTests
             comparer.Modulo = 5;
             ((MutableModuloComparer)clone.Comparer).Modulo.Should().Be(5);
         }
+
+        [Fact] // Guards the enumeration-based fast path against loop rewrite regressions
+        public void DeepClone_LargeDictionary_AllEntriesRoundTrip()
+        {
+            var original = new Dictionary<int, SimplePoco>();
+            for (var i = 0; i < 1_000; i++)
+                original[i] = new SimplePoco { X = i, Y = $"value-{i}" };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Should().HaveCount(1_000);
+            clone[0].Should().NotBeSameAs(original[0]);
+            clone[999].X.Should().Be(999);
+            clone[999].Y.Should().Be("value-999");
+        }
     }
 
     // =========================================================================
