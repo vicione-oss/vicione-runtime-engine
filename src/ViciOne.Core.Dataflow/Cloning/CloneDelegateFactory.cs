@@ -63,6 +63,12 @@ internal static class CloneDelegateFactory
         if (typeof(MemberInfo).IsAssignableFrom(type) || typeof(Assembly).IsAssignableFrom(type))
             return static (source, _) => source;
 
+        // Runtime-generated proxies (mocking frameworks, ORM lazy-loading, DI interceptors)
+        // are behavior objects, not data: traversing them would duplicate framework state
+        // that is shared far beyond the instance (and may be mutated concurrently).
+        if (IsRuntimeProxy(type))
+            return static (source, _) => source;
+
         if (type.IsArray)
             return BuildArrayDelegate(type);
 
@@ -389,4 +395,38 @@ internal static class CloneDelegateFactory
 
     private static bool IsDelegateType(Type type)
         => typeof(Delegate).IsAssignableFrom(type);
+
+    // Well-known namespaces of proxy types emitted into persisted (non-dynamic) assemblies.
+    private static readonly string[] s_proxyTypeNamePrefixes =
+    [
+        "Castle.Proxies.",
+        "System.Data.Entity.DynamicProxies.",
+        "NHibernate.Proxy.",
+    ];
+
+    /// <summary>
+    /// Detects runtime-generated proxy types: anything emitted via Reflection.Emit
+    /// (covers Castle DynamicProxy's <c>DynamicProxyGenAssembly2</c> used by NSubstitute,
+    /// Moq, and EF Core lazy-loading proxies) plus well-known proxy namespaces for
+    /// generators that persist their assemblies. Types without a <see cref="Type.FullName"/>
+    /// (open generics, exotic runtime types) are treated as proxies as well — they cannot
+    /// be cloned meaningfully.
+    /// </summary>
+    private static bool IsRuntimeProxy(Type type)
+    {
+        if (type.Assembly.IsDynamic)
+            return true;
+
+        string? fullName = type.FullName;
+        if (fullName is null)
+            return true;
+
+        foreach (string prefix in s_proxyTypeNamePrefixes)
+        {
+            if (fullName.StartsWith(prefix, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
 }

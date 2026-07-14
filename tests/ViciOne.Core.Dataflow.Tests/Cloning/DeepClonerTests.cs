@@ -7,6 +7,7 @@ using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
+using NSubstitute;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Dataflow.Cloning;
 using ViciOne.Core.Dataflow.DataModel;
@@ -1022,6 +1023,58 @@ public class DeepClonerTests
                 count++;
             }
             count.Should().Be(Depth);
+        }
+    }
+
+    // =========================================================================
+    // Runtime-generated proxies — shared by reference, never traversed
+    // =========================================================================
+
+    public class RuntimeProxyTests
+    {
+        [Fact] // Traversing a mock would walk into the mocking framework's shared state
+        public void DeepClone_NSubstituteProxy_ReturnsSameReference()
+        {
+            var substitute = Substitute.For<IAggregatingPooling<object>>();
+
+            var clone = DeepCloner.DeepClone(substitute);
+
+            clone.Should().BeSameAs(substitute);
+        }
+
+        [Fact] // The pass-through must not break the substitute's call tracking
+        public void DeepClone_NSubstituteProxy_CallTrackingStillWorksAfterClone()
+        {
+            var substitute = Substitute.For<IAggregatingPooling<object>>();
+
+            var clone = DeepCloner.DeepClone(substitute)!;
+            clone.Aggregate([]);
+
+            substitute.Received(1).Aggregate(Arg.Any<IEnumerable<object?>>());
+        }
+
+        [Fact] // A proxy reached through a field is shared while the rest is deep-cloned
+        public void DeepClone_ObjectWithProxyField_ProxyIsSharedRestIsCloned()
+        {
+            var substitute = Substitute.For<IAggregatingPooling<object>>();
+            var holder = new ProxyHolder
+            {
+                Pooling = substitute,
+                Poco = new SimplePoco { X = 42, Y = "zweiundvierzig" },
+            };
+
+            var clone = DeepCloner.DeepClone(holder)!;
+
+            clone.Should().NotBeSameAs(holder);
+            clone.Pooling.Should().BeSameAs(substitute);
+            clone.Poco.Should().NotBeSameAs(holder.Poco);
+            clone.Poco!.X.Should().Be(42);
+        }
+
+        private class ProxyHolder
+        {
+            public IAggregatingPooling<object>? Pooling { get; set; }
+            public SimplePoco? Poco { get; set; }
         }
     }
 
