@@ -9,12 +9,9 @@ namespace ViciOne.Engine;
 
 internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLinkGroup<TValue, TValue>, IDisposable
 {
-    // TODO: Soll das konfigurierbar sein? Falls ja, wie?
-    internal const int MaximumCapacityPerLink = 100;
-
     private bool _disposed;
-    private readonly int _maximumCapacity;
     private readonly Queue<TValue?> _queue = new();
+    private readonly int _queueCapacity;
     private int _queueCount;
     private readonly Lock _queueLock = new();
     private readonly Func<IPoolingValidator> _getPoolingValidator;
@@ -23,10 +20,11 @@ internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLink
         Volatile.Read(ref _queueCount) > 0 || // Stale read is still possible but only delays processing by one engine cycle — acceptable.
         (PerSourceAggregatingPooling is not null && Links.Any(x => x.Changed));
 
-    public QueueingIncomingInputLinkGroup(IRuntimeConnector<TValue> connector, IRuntimeLink<TValue>[] links, Func<IPoolingValidator> getPoolingValidator) : base(connector, links)
+    public QueueingIncomingInputLinkGroup(IRuntimeConnector<TValue> connector, IRuntimeLink<TValue>[] links, Func<IPoolingValidator> getPoolingValidator, int queueCapacityPerLink)
+        : base(connector, links)
     {
         _getPoolingValidator = getPoolingValidator;
-        _maximumCapacity = MaximumCapacityPerLink * links.Length;
+        _queueCapacity = queueCapacityPerLink * links.Length;
 
         if (PerSourceAggregatingPooling is null)
             foreach (IRuntimeLink<TValue> link in links)
@@ -58,7 +56,7 @@ internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLink
                 return;
 
             _queue.Enqueue(item, out _queueCount);
-            if (_queue.Count > _maximumCapacity)
+            if (_queue.Count > _queueCapacity)
                 _queue.Dequeue(out _queueCount);
         }
     }

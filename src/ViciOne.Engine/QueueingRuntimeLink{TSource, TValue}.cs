@@ -12,8 +12,8 @@ internal abstract class QueueingRuntimeLink<TSource, TValue>(ILink<TValue> link,
     RuntimeLink<TSource, TValue>(link, value), IQueueingRuntimeLink<TValue>
 {
     private long _entriesDropped;
-    private readonly int _queueCapacity = queueCapacity;
     private readonly Queue<TValue?> _queue = new();
+    private readonly int _queueCapacity = queueCapacity;
     private readonly Lock _queueLock = new();
 
     public bool TryDequeueValue(out TValue? dequeued)

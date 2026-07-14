@@ -8,20 +8,20 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-public sealed class IncomingInputLinkGroupFactory() : GenericFactory(GetGenericCreateMethod())
+public sealed class IncomingInputLinkGroupFactory(int queueCapacityPerLink) : GenericFactory(GetGenericCreateMethod())
 {
     public IIncomingInputLinkGroup Create(IRuntimeConnector connector, IEnumerable<IRuntimeLink> links, Func<IPoolingValidator> getPoolingValidator)
-        => Create<IIncomingInputLinkGroup>([connector, links, getPoolingValidator],
+        => Create<IIncomingInputLinkGroup>([connector, links, getPoolingValidator, queueCapacityPerLink],
             DataTypeCompatibilityValidator.DetermineLinkValueType(connector),
             DataTypeCompatibilityValidator.DetermineValueType(connector));
 
-    private static IIncomingInputLinkGroup Create<TLinkValue, TInput>(IRuntimeConnector<TInput> connector, IEnumerable<IRuntimeLink> links, Func<IPoolingValidator> getPoolingValidator)
+    private static IIncomingInputLinkGroup Create<TLinkValue, TInput>(IRuntimeConnector<TInput> connector, IEnumerable<IRuntimeLink> links, Func<IPoolingValidator> getPoolingValidator, int queueCapacityPerLink)
     {
         PoolingStrategy strategy = ((IPoolable)connector.Connector).CrossSourcePoolingStrategy;
         IRuntimeLink<TLinkValue>[] genericLinks = [.. links.Cast<IRuntimeLink<TLinkValue>>()];
         return strategy switch
         {
-            PoolingStrategy.Queue => new QueueingIncomingInputLinkGroup<TLinkValue>((IRuntimeConnector<TLinkValue>)connector, genericLinks, getPoolingValidator),
+            PoolingStrategy.Queue => new QueueingIncomingInputLinkGroup<TLinkValue>((IRuntimeConnector<TLinkValue>)connector, genericLinks, getPoolingValidator, queueCapacityPerLink),
             PoolingStrategy.Concat => new ConcatenatingIncomingInputLinkGroup<TLinkValue>((IRuntimeConnector<TLinkValue?[]>)connector, genericLinks),
             PoolingStrategy.Aggregate => new AggregatingIncomingInputLinkGroup<TLinkValue>((IRuntimeConnector<TLinkValue>)connector, genericLinks),
             _ => throw new NotImplementedException($"{nameof(PoolingStrategy)} '{strategy}' is not implemented."),

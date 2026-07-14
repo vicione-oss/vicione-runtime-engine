@@ -219,7 +219,7 @@ public sealed partial class RuntimeEngine : IRuntimeEngine
     }
 
     private LinkCache InitializeLinkCache(IRuntimeFunctionBlock[] runtimeFunctionBlocks, IEnumerable<ILink> links)
-        => new(runtimeFunctionBlocks, links, () => PoolingValidator, QueueOptions.PerLinkQueueCapacity, _logger);
+        => new(runtimeFunctionBlocks, links, () => PoolingValidator, QueueOptions.PerLinkQueueCapacity, QueueOptions.CrossSourceQueueCapacityPerLink, _logger);
 
     private ILogger InitializeLogger()
         => LoggerFactory.CreateLogger<RuntimeEngine>();
