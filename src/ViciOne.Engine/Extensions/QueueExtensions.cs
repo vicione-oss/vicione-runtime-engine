@@ -6,6 +6,19 @@ internal static class QueueExtensions
 {
     extension<T>(Queue<T> queue)
     {
+        internal T Dequeue(out int queueCount)
+        {
+            T value = queue.Dequeue();
+            queueCount = queue.Count;
+            return value;
+        }
+
+        internal void Enqueue(T value, out int queueCount)
+        {
+            queue.Enqueue(value);
+            queueCount = queue.Count;
+        }
+
         internal T[] GetAllAndClear()
         {
             int count = queue.Count;
