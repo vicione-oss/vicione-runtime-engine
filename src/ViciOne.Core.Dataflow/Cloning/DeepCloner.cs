@@ -42,8 +42,9 @@ public static class DeepCloner
     /// not invoked for ordinary objects. Supported collection types may use a constructor to
     /// create a valid empty shell before their contents are cloned. The source graph must not
     /// be mutated concurrently while it is cloned. Fields marked with
-    /// <see cref="NonSerializedAttribute"/> are left at their default value. Traversal is
-    /// recursive — extremely deep graphs (thousands of nesting levels) can exhaust the stack.
+    /// <see cref="NonSerializedAttribute"/> are left at their default value.
+    /// Deep graphs automatically switch to an explicit work stack to avoid exhausting the
+    /// executing thread's call stack.
     /// </remarks>
     public static T? DeepClone<T>(T? obj)
     {
@@ -65,7 +66,9 @@ public static class DeepCloner
         var context = new CloneContext();
 
         // Boxing value types here is intentional: the delegate operates on object.
-        return (T?)del(obj, context);
+        object clone = del(obj, context);
+        context.DrainPendingWork();
+        return (T?)clone;
     }
 
     /// <summary>

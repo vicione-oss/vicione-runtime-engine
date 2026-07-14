@@ -1188,14 +1188,10 @@ public class DeepClonerTests
 
     public class DeepGraphTests
     {
-        // NOTE: the current implementation is recursive (CloneObject → delegate → CloneObject).
-        // At ~6 stack frames per node level, 200 nodes fits safely in a 4 MB thread stack even
-        // in a test-runner environment that already has substantial stack usage.
-        // If the implementation is changed to an iterative approach this limit can be raised.
-        [Fact] // Moderately deep linked list must not cause a StackOverflowException
+        [Fact]
         public void DeepClone_DeepLinkedList_DoesNotOverflowStack()
         {
-            const int Depth = 200;
+            const int Depth = 20_000;
             var head = new Node { Value = 0 };
             var current = head;
             for (var i = 1; i < Depth; i++)
@@ -1219,6 +1215,32 @@ public class DeepClonerTests
                 count++;
             }
             count.Should().Be(Depth);
+        }
+
+        [Fact]
+        public void DeepClone_DeepArrayChain_DoesNotOverflowStack()
+        {
+            const int Depth = 5_000;
+            var root = new object[1];
+            object[] current = root;
+            for (var i = 1; i < Depth; i++)
+            {
+                var next = new object[1];
+                current[0] = next;
+                current = next;
+            }
+
+            object[] clone = DeepCloner.DeepClone(root)!;
+
+            object[] originalCursor = root;
+            object[] cloneCursor = clone;
+            for (var i = 1; i < Depth; i++)
+            {
+                cloneCursor.Should().NotBeSameAs(originalCursor);
+                originalCursor = (object[])originalCursor[0];
+                cloneCursor = (object[])cloneCursor[0];
+            }
+            cloneCursor.Should().NotBeSameAs(originalCursor);
         }
     }
 

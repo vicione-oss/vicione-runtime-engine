@@ -14,6 +14,9 @@ namespace ViciOne.Core.Dataflow.Cloning;
 /// </summary>
 internal delegate object CloneDelegate(object source, CloneContext context);
 
+/// <summary>Populates a previously allocated and registered clone shell.</summary>
+internal delegate void ClonePopulateDelegate(object source, object destination, CloneContext context);
+
 /// <summary>
 /// Builds <see cref="CloneDelegate"/> instances for concrete runtime types.
 /// Delegates are generated once per type and cached by <see cref="DeepCloner"/>.
@@ -99,15 +102,10 @@ internal static class CloneDelegateFactory
         bool shallowKey = CloneTypePolicy.GetBehavior(keyType) == CloneBehavior.Reference;
         bool shallowValue = CloneTypePolicy.GetBehavior(valueType) == CloneBehavior.Reference;
 
-        return (source, context) =>
+        ClonePopulateDelegate populate = (source, destination, context) =>
         {
             var srcDict = (IDictionary)source;
-            object? comparer = comparerProp.GetValue(source);
-            var dest = (IDictionary)factory.Create(srcDict.Count, comparer);
-
-            EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
-            context.Register(source, dest);
-
+            var dest = (IDictionary)destination;
             IDictionaryEnumerator enumerator = srcDict.GetEnumerator();
             try
             {
@@ -128,6 +126,17 @@ internal static class CloneDelegateFactory
 
             foreach (FieldCopyStep step in derivedSteps)
                 step(dest, source, context);
+        };
+
+        return (source, context) =>
+        {
+            var srcDict = (IDictionary)source;
+            object? comparer = comparerProp.GetValue(source);
+            var dest = (IDictionary)factory.Create(srcDict.Count, comparer);
+
+            EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
+            context.Register(source, dest);
+            context.PopulateOrDefer(source, dest, populate);
 
             return dest;
         };
@@ -150,6 +159,15 @@ internal static class CloneDelegateFactory
             ? []
             : BuildFieldCopySteps(type, hashSetBase);
 
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            foreach (object? item in (IEnumerable)source)
+                add(destination, shallowElement ? item : CloneObject(item, context));
+
+            foreach (FieldCopyStep step in derivedSteps)
+                step(destination, source, context);
+        };
+
         return (source, context) =>
         {
             int count = (int)countProp.GetValue(source)!;
@@ -158,12 +176,7 @@ internal static class CloneDelegateFactory
 
             EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
             context.Register(source, dest);
-
-            foreach (object? item in (IEnumerable)source)
-                add(dest, shallowElement ? item : CloneObject(item, context));
-
-            foreach (FieldCopyStep step in derivedSteps)
-                step(dest, source, context);
+            context.PopulateOrDefer(source, dest, populate);
 
             return dest;
         };
@@ -304,6 +317,11 @@ internal static class CloneDelegateFactory
         // Steps are closures that already hold pre-compiled getter/setter delegates,
         // so no per-call FieldInfo lookup occurs.
         FieldCopyStep[] steps = BuildFieldCopySteps(type);
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            foreach (FieldCopyStep step in steps)
+                step(destination, source, context);
+        };
 
         return (source, context) =>
         {
@@ -315,9 +333,7 @@ internal static class CloneDelegateFactory
             // Register BEFORE processing fields so that back-edges in the graph
             // resolve to this (not-yet-finished) clone rather than re-entering.
             context.Register(source, dest);
-
-            foreach (FieldCopyStep step in steps)
-                step(dest, source, context);
+            context.PopulateOrDefer(source, dest, populate);
 
             return dest;
         };
@@ -424,6 +440,37 @@ internal static class CloneDelegateFactory
         int rank = type.GetArrayRank();
         bool shallowElements = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
 
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            var srcArray = (Array)source;
+            var destArray = (Array)destination;
+
+            if (shallowElements)
+            {
+                Array.Copy(srcArray, destArray, srcArray.Length);
+                return;
+            }
+
+            if (rank == 1)
+            {
+                int lowerBound = srcArray.GetLowerBound(0);
+                int length = srcArray.GetLength(0);
+                for (int i = lowerBound; i < lowerBound + length; i++)
+                    destArray.SetValue(CloneObject(srcArray.GetValue(i), context), i);
+                return;
+            }
+
+            int[] lengths = new int[rank];
+            int[] lowerBounds = new int[rank];
+            for (int dimension = 0; dimension < rank; dimension++)
+            {
+                lengths[dimension] = srcArray.GetLength(dimension);
+                lowerBounds[dimension] = srcArray.GetLowerBound(dimension);
+            }
+
+            CopyMultiDimArray(srcArray, destArray, rank, lengths, lowerBounds, context);
+        };
+
         return (source, context) =>
         {
             var srcArray = (Array)source;
@@ -440,23 +487,7 @@ internal static class CloneDelegateFactory
 
             // Register before iterating so that arrays containing themselves are handled.
             context.Register(source, destArray);
-
-            if (shallowElements)
-            {
-                // Element type is immutable — a bulk copy is sufficient.
-                Array.Copy(srcArray, destArray, srcArray.Length);
-            }
-            else if (rank == 1)
-            {
-                int lb = lowerBounds[0];
-                int len = lengths[0];
-                for (int i = lb; i < lb + len; i++)
-                    destArray.SetValue(CloneObject(srcArray.GetValue(i), context), i);
-            }
-            else
-            {
-                CopyMultiDimArray(srcArray, destArray, rank, lengths, lowerBounds, context);
-            }
+            context.PopulateOrDefer(source, destArray, populate);
 
             return destArray;
         };

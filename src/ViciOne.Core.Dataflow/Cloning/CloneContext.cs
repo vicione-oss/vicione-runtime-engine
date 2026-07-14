@@ -10,9 +10,20 @@ namespace ViciOne.Core.Dataflow.Cloning;
 /// </summary>
 internal sealed class CloneContext
 {
+    // A field clone passes through several framework/expression frames per graph level.
+    // Keep a conservative bound, then continue through the explicit work stack.
+    private const int MaxRecursiveDepth = 128;
+
     // Lazily initialized: null for flat/simple object graphs that contain no
     // shared or circular references, saving one Dictionary allocation per call.
     private Dictionary<object, object>? _map;
+    private Stack<PendingWork>? _pending;
+    private int _depth;
+
+    private readonly record struct PendingWork(
+        object Source,
+        object Destination,
+        ClonePopulateDelegate Populate);
 
     /// <summary>
     /// Returns <see langword="true"/> and sets <paramref name="clone"/> when
@@ -36,5 +47,42 @@ internal sealed class CloneContext
     {
         _map ??= new Dictionary<object, object>(ReferenceEqualityComparer.Instance);
         _map.Add(source, clone);
+    }
+
+    /// <summary>
+    /// Populates a registered clone immediately while recursion remains bounded; otherwise
+    /// defers the work until the current recursive branch unwinds.
+    /// </summary>
+    internal void PopulateOrDefer(
+        object source,
+        object destination,
+        ClonePopulateDelegate populate)
+    {
+        if (_depth >= MaxRecursiveDepth)
+        {
+            _pending ??= new Stack<PendingWork>();
+            _pending.Push(new PendingWork(source, destination, populate));
+            return;
+        }
+
+        _depth++;
+        try
+        {
+            populate(source, destination, this);
+        }
+        finally
+        {
+            _depth--;
+        }
+    }
+
+    /// <summary>Completes population work deferred by the recursion guard.</summary>
+    internal void DrainPendingWork()
+    {
+        while (_pending is { Count: > 0 })
+        {
+            PendingWork work = _pending.Pop();
+            PopulateOrDefer(work.Source, work.Destination, work.Populate);
+        }
     }
 }
