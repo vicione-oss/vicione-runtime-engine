@@ -1,4 +1,5 @@
 ﻿using AwesomeAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using System;
 using System.Collections.Generic;
@@ -19,7 +20,7 @@ public class RuntimeLinkFactoryTests
         {
             var link = CreateInternalLink<int, int, int>();
             var connectedConnectors = MockConnectedConnectors<int>();
-            using var factory = new RuntimeLinkFactory();
+            using var factory = new RuntimeLinkFactory(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
 
             var runtimeLink = factory.Create(link, connectedConnectors);
 
@@ -49,7 +50,7 @@ public class RuntimeLinkFactoryTests
         [MemberData(nameof(ArgumentsFor_CreatesCorrectRuntimeLinkTypeAccordingLinkType))]
         public void CreatesCorrectRuntimeLinkTypeAccordingLinkType(ILink link, IDictionary<Guid, IRuntimeConnector> connectedConnectors, Type expectedType)
         {
-            using var factory = new RuntimeLinkFactory();
+            using var factory = new RuntimeLinkFactory(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
 
             var runtimeLink = factory.Create(link, connectedConnectors);
 
@@ -75,7 +76,7 @@ public class RuntimeLinkFactoryTests
         [MemberData(nameof(ArgumentsFor_CreatesQueueingRuntimeLinkIfNeccessary))]
         public void CreatesQueueingRuntimeLinkIfNeccessary(ILink link, IDictionary<Guid, IRuntimeConnector> connectedConnectors, Type expectedType)
         {
-            using var factory = new RuntimeLinkFactory();
+            using var factory = new RuntimeLinkFactory(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
 
             var runtimeLink = factory.Create(link, connectedConnectors);
 
@@ -90,7 +91,7 @@ public class RuntimeLinkFactoryTests
             {
                 { link.Source.Id, CreateRuntimeConnector(link.Source, null) },
             };
-            using var factory = new RuntimeLinkFactory();
+            using var factory = new RuntimeLinkFactory(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
 
             var runtimeLink = factory.Create(link, connectedConnectors);
 
@@ -109,7 +110,7 @@ public class RuntimeLinkFactoryTests
         public void PassesCorrectDefaultValue(ILink link, IDictionary<Guid, IRuntimeConnector> connectedConnectors, object expectedDefaultValue)
         {
             var mockTypeConverter = (IMockTypeConverter)link.TypeConversion!.TypeConverter;
-            using var factory = new RuntimeLinkFactory();
+            using var factory = new RuntimeLinkFactory(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
 
             factory.Create(link, connectedConnectors);
 
@@ -120,7 +121,7 @@ public class RuntimeLinkFactoryTests
         public void ThrowsOnUnknownLinkType()
         {
             var link = new UnknownLink();
-            using var factory = new RuntimeLinkFactory();
+            using var factory = new RuntimeLinkFactory(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
 
             Action action = () => factory.Create(link, Substitute.For<IDictionary<Guid, IRuntimeConnector>>());
 
@@ -236,7 +237,7 @@ public class RuntimeLinkFactoryTests
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
         public void CanDispose()
         {
-            var factory = new RuntimeLinkFactory();
+            var factory = new RuntimeLinkFactory(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
 
             Action action = factory.Dispose;
 
@@ -246,7 +247,7 @@ public class RuntimeLinkFactoryTests
         [Fact]
         public void CanCallDisposeMultipleTimes()
         {
-            var factory = new RuntimeLinkFactory();
+            var factory = new RuntimeLinkFactory(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             factory.Dispose();
 
             Action action = factory.Dispose;

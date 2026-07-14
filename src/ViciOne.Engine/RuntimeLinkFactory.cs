@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-public sealed class RuntimeLinkFactory : IDisposable
+public sealed class RuntimeLinkFactory(int queueCapacity, ILogger logger) : IDisposable
 {
     private bool _disposed;
-    private readonly ExternalIncomingRuntimeLinkFactory _externalIncomingRuntimeLinkFactory = new();
+    private readonly ExternalIncomingRuntimeLinkFactory _externalIncomingRuntimeLinkFactory = new(queueCapacity, logger);
     private readonly ExternalOutgoingRuntimeLinkFactory _externalOutgoingRuntimeLinkFactory = new();
-    private readonly InternalRuntimeLinkFactory _internalRuntimeLinkFactory = new();
+    private readonly InternalRuntimeLinkFactory _internalRuntimeLinkFactory = new(queueCapacity, logger);
 
     public IRuntimeLink Create(ILink link, IDictionary<Guid, IRuntimeConnector> connectedConnectors)
         => link switch

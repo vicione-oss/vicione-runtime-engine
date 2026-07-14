@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.DataModel.Extensions;
 using ViciOne.Core.Contracts.Runtime;
@@ -20,14 +21,14 @@ internal sealed class LinkCache : IDisposable
     // TODO: Diese Eigenschaft ist nur für die Tests nützlich, evtl. kann man die noch eliminieren
     public IRuntimeLink[] Links { get; }
 
-    public LinkCache(IRuntimeFunctionBlock[] runtimeFunctionBlocks, IEnumerable<ILink> allLinks, Func<IPoolingValidator> getPoolingValidator,
+    public LinkCache(IRuntimeFunctionBlock[] runtimeFunctionBlocks, IEnumerable<ILink> allLinks, Func<IPoolingValidator> getPoolingValidator, int perLinkQueueCapacity, ILogger logger,
         Func<IRuntimeConnector, IEnumerable<IRuntimeLink>, Func<IPoolingValidator>, IIncomingInputLinkGroup>? createIncomingInputLinkGroup = null,
         Func<ILink, IDictionary<Guid, IRuntimeConnector>, IRuntimeLink>? createRuntimeLink = null)
     {
         using IncomingInputLinkGroupFactory incomingInputLinkGroupFactory = new();
         using OutgoingInputLinkGroupFactory outgoingInputLinkGroupFactory = new();
         using OutputLinkGroupFactory outputLinkGroupFactory = new();
-        using RuntimeLinkFactory runtimeLinkFactory = new();
+        using RuntimeLinkFactory runtimeLinkFactory = new(perLinkQueueCapacity, logger);
 
         createIncomingInputLinkGroup ??= incomingInputLinkGroupFactory.Create;
         createRuntimeLink ??= runtimeLinkFactory.Create;

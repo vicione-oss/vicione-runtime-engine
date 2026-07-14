@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using AwesomeAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ReceivedExtensions;
 using ViciOne.Core.Contracts;
@@ -22,7 +23,7 @@ public class RuntimeFunctionBlockProcessorTests
         public void CanDispose()
         {
             var runtimeFunctionBlocks = Substitute.For<IEnumerable<IRuntimeFunctionBlock>>();
-            using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => Substitute.For<IPoolingValidator>());
+            using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger, Guid.Empty);
@@ -36,7 +37,7 @@ public class RuntimeFunctionBlockProcessorTests
         public void CanCallDisposeMultipleTimes()
         {
             var runtimeFunctionBlocks = Substitute.For<IEnumerable<IRuntimeFunctionBlock>>();
-            using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => Substitute.For<IPoolingValidator>());
+            using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger, Guid.Empty);
@@ -55,7 +56,7 @@ public class RuntimeFunctionBlockProcessorTests
         {
             var runtimeFunctionBlocks = Substitute.For<IEnumerable<IRuntimeFunctionBlock>>();
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => validator);
+            using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(runtimeFunctionBlocks, linkCache, nameCache, logger, Guid.Empty);
@@ -91,7 +92,7 @@ public class RuntimeFunctionBlockProcessorTests
             inputLinkGroup.Links.Returns([runtimeLink1]);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [externalIncomingLink1], () => validator, createIncomingInputLinkGroup: (_, _, _) => inputLinkGroup);
+            using var linkCache = new LinkCache(blocks, [externalIncomingLink1], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createIncomingInputLinkGroup: (_, _, _) => inputLinkGroup);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -128,7 +129,7 @@ public class RuntimeFunctionBlockProcessorTests
             inputLinkGroup.NeedsFurtherProcessing.Returns(true);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [externalIncomingLink1], () => validator, createIncomingInputLinkGroup: (_, _, _) => inputLinkGroup);
+            using var linkCache = new LinkCache(blocks, [externalIncomingLink1], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createIncomingInputLinkGroup: (_, _, _) => inputLinkGroup);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -177,7 +178,7 @@ public class RuntimeFunctionBlockProcessorTests
                 .Throw(new Exception());
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [externalIncomingLink1], () => validator, createIncomingInputLinkGroup: (_, _, _) => inputLinkGroup);
+            using var linkCache = new LinkCache(blocks, [externalIncomingLink1], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createIncomingInputLinkGroup: (_, _, _) => inputLinkGroup);
             var dataflow = Substitute.For<IDataflow>();
             dataflow.RootContainer.FunctionBlocks.Returns([block]);
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
@@ -234,7 +235,7 @@ public class RuntimeFunctionBlockProcessorTests
                 .Do(x => { throw new Exception(); });
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [externalOutgoingLink], () => validator, createRuntimeLink: (_, _) => runtimeLink);
+            using var linkCache = new LinkCache(blocks, [externalOutgoingLink], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (_, _) => runtimeLink);
             var dataflow = Substitute.For<IDataflow>();
             dataflow.RootContainer.FunctionBlocks.Returns([block]);
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
@@ -274,7 +275,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.Settings.Returns(settings);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -305,7 +306,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.Settings.Returns(settings);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -338,7 +339,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.Settings.Returns(settings);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -377,7 +378,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.Settings.Returns(settings);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var dataflow = Substitute.For<IDataflow>();
             dataflow.RootContainer.FunctionBlocks.Returns([block]);
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
@@ -411,7 +412,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock2.GetAndResetChanged().Returns(true);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock1, runtimeBlock2];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -437,7 +438,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.CycleFrequency.Returns((uint)2);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -467,7 +468,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock2.CycleFrequency.Returns((uint)1234);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock1, runtimeBlock2];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -493,7 +494,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.RunMode.Returns((RunMode)invalidRunModeValue);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var dataflow = Substitute.For<IDataflow>();
             dataflow.RootContainer.FunctionBlocks.Returns([block]);
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
@@ -531,7 +532,7 @@ public class RuntimeFunctionBlockProcessorTests
                 .Throw(new Exception());
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var dataflow = Substitute.For<IDataflow>();
             dataflow.RootContainer.FunctionBlocks.Returns([block]);
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
@@ -560,7 +561,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.GetAndResetChanged().Returns(true);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -594,7 +595,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.CycleFrequency.Returns((uint)1);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -618,7 +619,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.Settings.Returns(settings);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -666,7 +667,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeLink2.Link.Returns(externalOutgoingLink2);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [externalOutgoingLink1, externalOutgoingLink2], () => validator, createRuntimeLink: (link, _) =>
+            using var linkCache = new LinkCache(blocks, [externalOutgoingLink1, externalOutgoingLink2], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (link, _) =>
             {
                 if (link == externalOutgoingLink1) return runtimeLink1;
                 if (link == externalOutgoingLink2) return runtimeLink2;
@@ -706,7 +707,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeLink.Link.Returns(externalOutgoingLink);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [externalOutgoingLink], () => validator, createRuntimeLink: (_, _) => runtimeLink);
+            using var linkCache = new LinkCache(blocks, [externalOutgoingLink], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (_, _) => runtimeLink);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -735,7 +736,7 @@ public class RuntimeFunctionBlockProcessorTests
             runtimeBlock.ProcessDataOutputs.Returns([output]);
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -783,7 +784,7 @@ public class RuntimeFunctionBlockProcessorTests
                 .Do(x => { throw new Exception(); });
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [externalOutgoingLink], () => validator, createRuntimeLink: (_, _) => runtimeLink);
+            using var linkCache = new LinkCache(blocks, [externalOutgoingLink], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (_, _) => runtimeLink);
             var dataflow = Substitute.For<IDataflow>();
             dataflow.RootContainer.FunctionBlocks.Returns([block]);
             var uniqueNames = NameGenerator.CreateUniqueNames(dataflow);
@@ -822,7 +823,7 @@ public class RuntimeFunctionBlockProcessorTests
             }));
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
@@ -846,7 +847,7 @@ public class RuntimeFunctionBlockProcessorTests
 
             IRuntimeFunctionBlock[] blocks = [runtimeBlock];
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache(blocks, [], () => validator);
+            using var linkCache = new LinkCache(blocks, [], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
