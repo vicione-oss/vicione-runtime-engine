@@ -36,6 +36,11 @@ internal static class ImmutableTypes
         if (typeof(MemberInfo).IsAssignableFrom(type)) return true;
         if (typeof(Assembly).IsAssignableFrom(type)) return true;
 
+        // Critical finalizers (SafeHandle, CriticalHandle, Thread) guard native
+        // resources: duplicating one copies the raw handle, and the clone's
+        // finalizer would release the original's native resource (double free).
+        if (typeof(System.Runtime.ConstrainedExecution.CriticalFinalizerObject).IsAssignableFrom(type)) return true;
+
         // Structs whose every instance field is also shallow-copyable need no deep clone.
         if (type.IsValueType && IsPureValueType(type))
             return true;
