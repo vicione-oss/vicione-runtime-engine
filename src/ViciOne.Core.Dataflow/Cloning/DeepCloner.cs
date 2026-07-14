@@ -28,6 +28,17 @@ public static class DeepCloner
     ///   <item><description>Works on any type — no <see cref="ICloneable"/>, attributes, or parameterless constructor required.</description></item>
     /// </list>
     /// </summary>
+    /// <remarks>
+    /// Intended for plain data graphs (settings, poolings, values). Objects that represent
+    /// behavior or identity rather than data are shared by reference instead of cloned:
+    /// delegates, <see cref="Type"/>/<see cref="System.Reflection.MemberInfo"/>/
+    /// <see cref="System.Reflection.Assembly"/>, runtime-generated proxies (mocks, ORM
+    /// lazy-loading proxies, DI interceptors), and critical finalizers such as
+    /// <see cref="System.Runtime.InteropServices.SafeHandle"/> guarding native resources.
+    /// The source graph must not be mutated concurrently while it is being cloned, and
+    /// traversal is recursive — extremely deep graphs (thousands of nesting levels) can
+    /// exhaust the stack.
+    /// </remarks>
     public static T? DeepClone<T>(T? obj)
     {
         if (obj is null)
