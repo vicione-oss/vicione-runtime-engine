@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using ViciOne.Core.Contracts.Runtime;
@@ -19,9 +18,20 @@ internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLink
     private readonly Func<IPoolingValidator> _getPoolingValidator;
     private readonly ILogger _logger;
 
+    private bool IsAnyLinkChanged
+    {
+        get
+        {
+            foreach (IRuntimeLink<TValue> link in Links)
+                if (link.Changed)
+                    return true;
+            return false;
+        }
+    }
+
     public override bool NeedsFurtherProcessing =>
         Volatile.Read(ref _queueCount) > 0 || // Stale read is still possible but only delays processing by one engine cycle — acceptable.
-        (PerSourceAggregatingPooling is not null && Links.Any(x => x.Changed));
+        (PerSourceAggregatingPooling is not null && IsAnyLinkChanged);
 
     public QueueingIncomingInputLinkGroup(IRuntimeConnector<TValue> connector, IRuntimeLink<TValue>[] links, Func<IPoolingValidator> getPoolingValidator, int queueCapacityPerLink, ILogger logger)
         : base(connector, links)
@@ -90,15 +100,21 @@ internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLink
     protected override TValue? PoolValidLinks(IEnumerable<IRuntimeLink<TValue>> validLinks, out bool createdValue)
     {
         if (PerSourceAggregatingPooling is not null)
-            foreach (IQueueingRuntimeLink<TValue> link in validLinks.OfType<IQueueingRuntimeLink<TValue>>())
+        {
+            IPoolingValidator validator = _getPoolingValidator();
+            foreach (IRuntimeLink<TValue> link in validLinks)
             {
-                TValue?[] queuedValues = link.GetAndClearQueuedValues();
+                if (link is not IQueueingRuntimeLink<TValue> queueingLink)
+                    continue;
+
+                TValue?[] queuedValues = queueingLink.GetAndClearQueuedValues();
                 if (queuedValues.Length > 0)
                 {
-                    link.StoreValue(PerSourceAggregatingPooling.Aggregate(queuedValues));
-                    LinkChanged(link, _getPoolingValidator());
+                    queueingLink.StoreValue(PerSourceAggregatingPooling.Aggregate(queuedValues));
+                    LinkChanged(queueingLink, validator);
                 }
             }
+        }
 
         lock (_queueLock)
         {

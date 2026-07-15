@@ -259,7 +259,7 @@ public class QueueingIncomingInputLinkGroupTests
         }
 
         [Fact]
-        public void ReturnsFalseIfQueueIsEmpty()
+        public void ReturnsFalseIfQueueIsEmptyAndPerSourceAggregatingPoolingIsNull()
         {
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
@@ -286,6 +286,24 @@ public class QueueingIncomingInputLinkGroupTests
             var result = group.NeedsFurtherProcessing;
 
             result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void ReturnsFalseIfQueueIsEmptyAndPerSourceAggregatingPoolingIsNotNullButNoLinkIsChanged()
+        {
+            var connector = Substitute.For<IConnector<int>, IPoolable>();
+            ((IPoolable)connector).PerSourceAggregatingPooling.Returns(Substitute.For<IAggregatingPooling<int>>());
+            ((IPoolable)connector).PerSourcePoolingStrategy.Returns(PoolingStrategy.Aggregate);
+            var runtimeConnector = Substitute.For<IRuntimeConnector<int>>();
+            runtimeConnector.Connector.Returns(connector);
+            var link = Substitute.For<IRuntimeLink<int>>();
+            link.Changed.Returns(false);
+            var validator = Substitute.For<IPoolingValidator>();
+            using var group = new QueueingIncomingInputLinkGroup<int>(runtimeConnector, [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
+
+            var result = group.NeedsFurtherProcessing;
+
+            result.Should().BeFalse();
         }
     }
 
