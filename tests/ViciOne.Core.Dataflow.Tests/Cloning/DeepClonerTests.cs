@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -7,6 +7,7 @@ using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
+using NSubstitute;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Dataflow.Cloning;
 using ViciOne.Core.Dataflow.DataModel;
@@ -842,6 +843,22 @@ public class DeepClonerTests
             comparer.Modulo = 5;
             ((MutableModuloComparer)clone.Comparer).Modulo.Should().Be(5);
         }
+
+        [Fact] // Guards the enumeration-based fast path against loop rewrite regressions
+        public void DeepClone_LargeDictionary_AllEntriesRoundTrip()
+        {
+            var original = new Dictionary<int, SimplePoco>();
+            for (var i = 0; i < 1_000; i++)
+                original[i] = new SimplePoco { X = i, Y = $"value-{i}" };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Should().HaveCount(1_000);
+            clone[0].Should().NotBeSameAs(original[0]);
+            clone[999].X.Should().Be(999);
+            clone[999].Y.Should().Be("value-999");
+        }
     }
 
     // =========================================================================
@@ -1022,6 +1039,109 @@ public class DeepClonerTests
                 count++;
             }
             count.Should().Be(Depth);
+        }
+    }
+
+    // =========================================================================
+    // Runtime-generated proxies — shared by reference, never traversed
+    // =========================================================================
+
+    public class RuntimeProxyTests
+    {
+        [Fact] // Traversing a mock would walk into the mocking framework's shared state
+        public void DeepClone_NSubstituteProxy_ReturnsSameReference()
+        {
+            var substitute = Substitute.For<IAggregatingPooling<object>>();
+
+            var clone = DeepCloner.DeepClone(substitute);
+
+            clone.Should().BeSameAs(substitute);
+        }
+
+        [Fact] // The pass-through must not break the substitute's call tracking
+        public void DeepClone_NSubstituteProxy_CallTrackingStillWorksAfterClone()
+        {
+            var substitute = Substitute.For<IAggregatingPooling<object>>();
+
+            var clone = DeepCloner.DeepClone(substitute)!;
+            clone.Aggregate([]);
+
+            substitute.Received(1).Aggregate(Arg.Any<IEnumerable<object?>>());
+        }
+
+        [Fact] // A proxy reached through a field is shared while the rest is deep-cloned
+        public void DeepClone_ObjectWithProxyField_ProxyIsSharedRestIsCloned()
+        {
+            var substitute = Substitute.For<IAggregatingPooling<object>>();
+            var holder = new ProxyHolder
+            {
+                Pooling = substitute,
+                Poco = new SimplePoco { X = 42, Y = "zweiundvierzig" },
+            };
+
+            var clone = DeepCloner.DeepClone(holder)!;
+
+            clone.Should().NotBeSameAs(holder);
+            clone.Pooling.Should().BeSameAs(substitute);
+            clone.Poco.Should().NotBeSameAs(holder.Poco);
+            clone.Poco!.X.Should().Be(42);
+        }
+
+        private class ProxyHolder
+        {
+            public IAggregatingPooling<object>? Pooling { get; set; }
+            public SimplePoco? Poco { get; set; }
+        }
+    }
+
+    // =========================================================================
+    // Native resource guards — shared by reference, never duplicated
+    // =========================================================================
+
+    public class CriticalFinalizerTests
+    {
+        [Fact] // Duplicating a SafeHandle would double-free the native handle on finalize
+        public void DeepClone_SafeHandle_ReturnsSameReference()
+        {
+            using var handle = new Microsoft.Win32.SafeHandles.SafeFileHandle(IntPtr.Zero, ownsHandle: false);
+
+            var clone = DeepCloner.DeepClone(handle);
+
+            clone.Should().BeSameAs(handle);
+        }
+
+        [Fact] // A handle reached through a field is shared while the rest is deep-cloned
+        public void DeepClone_ObjectWithSafeHandleField_HandleIsSharedRestIsCloned()
+        {
+            using var handle = new Microsoft.Win32.SafeHandles.SafeFileHandle(IntPtr.Zero, ownsHandle: false);
+            var holder = new HandleHolder
+            {
+                Handle = handle,
+                Poco = new SimplePoco { X = 7, Y = "sieben" },
+            };
+
+            var clone = DeepCloner.DeepClone(holder)!;
+
+            clone.Should().NotBeSameAs(holder);
+            clone.Handle.Should().BeSameAs(handle);
+            clone.Poco.Should().NotBeSameAs(holder.Poco);
+        }
+
+        [Fact] // Boxed-as-object handles must be caught by runtime-type dispatch too
+        public void DeepClone_ObjectFieldHoldingSafeHandle_HandleIsShared()
+        {
+            using var handle = new Microsoft.Win32.SafeHandles.SafeFileHandle(IntPtr.Zero, ownsHandle: false);
+            var holder = new BoxHolder { Value = handle };
+
+            var clone = DeepCloner.DeepClone(holder)!;
+
+            clone.Value.Should().BeSameAs(handle);
+        }
+
+        private class HandleHolder
+        {
+            public Microsoft.Win32.SafeHandles.SafeFileHandle? Handle { get; set; }
+            public SimplePoco? Poco { get; set; }
         }
     }
 

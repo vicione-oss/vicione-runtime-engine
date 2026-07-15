@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ViciOne.Core.Dataflow.Cloning;
 
@@ -10,6 +11,14 @@ namespace ViciOne.Core.Dataflow.Cloning;
 /// </summary>
 internal static class ImmutableTypes
 {
+    // Memoized per Type: the check runs on every object visited during a clone, and
+    // for structs it recursively reflects over all fields. ConditionalWeakTable keeps
+    // the cache ALC-safe (entries die with their Type), matching DeepCloner's delegate
+    // cache; the boxed results are shared so no allocation occurs after first lookup.
+    private static readonly ConditionalWeakTable<Type, object> s_cache = [];
+    private static readonly object s_true = true;
+    private static readonly object s_false = false;
+
     /// <summary>
     /// Returns <see langword="true"/> when a value of <paramref name="type"/> can be copied
     /// without further recursion: primitives, enums, known immutable BCL structs/classes,
@@ -17,6 +26,9 @@ internal static class ImmutableTypes
     /// shallow-copyable).
     /// </summary>
     internal static bool IsShallowCopyable(Type type)
+        => (bool)s_cache.GetValue(type, static t => Evaluate(t) ? s_true : s_false);
+
+    private static bool Evaluate(Type type)
     {
         if (type.IsPrimitive) return true;
         if (type.IsEnum) return true;
@@ -35,6 +47,11 @@ internal static class ImmutableTypes
         // would corrupt the type system.
         if (typeof(MemberInfo).IsAssignableFrom(type)) return true;
         if (typeof(Assembly).IsAssignableFrom(type)) return true;
+
+        // Critical finalizers (SafeHandle, CriticalHandle, Thread) guard native
+        // resources: duplicating one copies the raw handle, and the clone's
+        // finalizer would release the original's native resource (double free).
+        if (typeof(System.Runtime.ConstrainedExecution.CriticalFinalizerObject).IsAssignableFrom(type)) return true;
 
         // Structs whose every instance field is also shallow-copyable need no deep clone.
         if (type.IsValueType && IsPureValueType(type))

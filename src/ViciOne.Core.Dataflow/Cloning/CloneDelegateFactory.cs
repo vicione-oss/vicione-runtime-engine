@@ -63,6 +63,12 @@ internal static class CloneDelegateFactory
         if (typeof(MemberInfo).IsAssignableFrom(type) || typeof(Assembly).IsAssignableFrom(type))
             return static (source, _) => source;
 
+        // Runtime-generated proxies (mocking frameworks, ORM lazy-loading, DI interceptors)
+        // are behavior objects, not data: traversing them would duplicate framework state
+        // that is shared far beyond the instance (and may be mutated concurrently).
+        if (IsRuntimeProxy(type))
+            return static (source, _) => source;
+
         if (type.IsArray)
             return BuildArrayDelegate(type);
 
@@ -92,53 +98,44 @@ internal static class CloneDelegateFactory
         // semantics and are commonly immutable singleton instances such as StringComparer.
         // Deep-cloning arbitrary comparer implementations risks changing those semantics.
         PropertyInfo comparerProp = type.GetProperty("Comparer")!;
-        PropertyInfo countProp = type.GetProperty("Count")!;
         ConstructorInfo ctorWithCapacityAndComparer = type.GetConstructor(
             [typeof(int), typeof(IEqualityComparer<>).MakeGenericType(keyType)])!;
-
-        // Resolve the generic Add(K, V) method.
-        MethodInfo addMethod = type.GetMethod("Add", [keyType, valueType])!;
-
-        // Resolve KeyValuePair<K,V> and its Key/Value properties via the enumerator.
-        Type kvpType = typeof(KeyValuePair<,>).MakeGenericType(keyType, valueType);
-        PropertyInfo kvpKeyProp = kvpType.GetProperty("Key")!;
-        PropertyInfo kvpValueProp = kvpType.GetProperty("Value")!;
-
-        // Build a typed enumerator accessor: (object src) => IEnumerable<KeyValuePair<K,V>>
-        // We use reflection here at delegate-build time; the hot loop below is reflection-free.
-        MethodInfo getEnumeratorMethod = type.GetMethod("GetEnumerator")!;
 
         bool shallowKey = ImmutableTypes.IsShallowCopyable(keyType);
         bool shallowValue = ImmutableTypes.IsShallowCopyable(valueType);
 
         return (source, context) =>
         {
-            int count = (int)countProp.GetValue(source)!;
+            // Dictionary<K,V> implements the non-generic collection interfaces, so the
+            // per-entry loop below runs without any reflection; only resolving the
+            // comparer and constructing the destination invoke reflection (once per
+            // dictionary instance).
+            var srcDict = (System.Collections.IDictionary)source;
             object? comparer = comparerProp.GetValue(source);
-            object dest = ctorWithCapacityAndComparer.Invoke([count, comparer]);
+            var dest = (System.Collections.IDictionary)ctorWithCapacityAndComparer.Invoke([srcDict.Count, comparer]);
 
             // Register before iterating so self-referential values resolve correctly.
             context.Register(source, dest);
 
-            // Enumerate KeyValuePairs without touching private backing fields.
-            object enumerator = getEnumeratorMethod.Invoke(source, null)!;
-            MethodInfo moveNextMethod = enumerator.GetType().GetMethod("MoveNext")!;
-            PropertyInfo currentProp = enumerator.GetType().GetProperty("Current")!;
-
-            while ((bool)moveNextMethod.Invoke(enumerator, null)!)
+            // Enumerate entries without touching private backing fields.
+            System.Collections.IDictionaryEnumerator enumerator = srcDict.GetEnumerator();
+            try
             {
-                object kvp = currentProp.GetValue(enumerator)!;
-                object? key = kvpKeyProp.GetValue(kvp);
-                object? value = kvpValueProp.GetValue(kvp);
+                while (enumerator.MoveNext())
+                {
+                    object key = enumerator.Key;
+                    object? value = enumerator.Value;
 
-                object? clonedKey = shallowKey ? key : CloneObject(key, context);
-                object? clonedValue = shallowValue ? value : CloneObject(value, context);
+                    object? clonedKey = shallowKey ? key : CloneObject(key, context);
+                    object? clonedValue = shallowValue ? value : CloneObject(value, context);
 
-                addMethod.Invoke(dest, [clonedKey, clonedValue]);
+                    dest.Add(clonedKey!, clonedValue);
+                }
             }
-
-            // Dispose the enumerator if it implements IDisposable.
-            (enumerator as IDisposable)?.Dispose();
+            finally
+            {
+                (enumerator as IDisposable)?.Dispose();
+            }
 
             return dest;
         };
@@ -389,4 +386,38 @@ internal static class CloneDelegateFactory
 
     private static bool IsDelegateType(Type type)
         => typeof(Delegate).IsAssignableFrom(type);
+
+    // Well-known namespaces of proxy types emitted into persisted (non-dynamic) assemblies.
+    private static readonly string[] s_proxyTypeNamePrefixes =
+    [
+        "Castle.Proxies.",
+        "System.Data.Entity.DynamicProxies.",
+        "NHibernate.Proxy.",
+    ];
+
+    /// <summary>
+    /// Detects runtime-generated proxy types: anything emitted via Reflection.Emit
+    /// (covers Castle DynamicProxy's <c>DynamicProxyGenAssembly2</c> used by NSubstitute,
+    /// Moq, and EF Core lazy-loading proxies) plus well-known proxy namespaces for
+    /// generators that persist their assemblies. Types without a <see cref="Type.FullName"/>
+    /// (open generics, exotic runtime types) are treated as proxies as well — they cannot
+    /// be cloned meaningfully.
+    /// </summary>
+    private static bool IsRuntimeProxy(Type type)
+    {
+        if (type.Assembly.IsDynamic)
+            return true;
+
+        string? fullName = type.FullName;
+        if (fullName is null)
+            return true;
+
+        foreach (string prefix in s_proxyTypeNamePrefixes)
+        {
+            if (fullName.StartsWith(prefix, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
 }
