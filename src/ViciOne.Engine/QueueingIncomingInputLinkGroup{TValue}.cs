@@ -71,7 +71,10 @@ internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLink
         }
 
         if (droppedEntry)
+        {
             _logger.CrossSourceQueueOverflow(_queueCapacity, currentEntriesDropped, nameof(EngineQueueOptions.CrossSourceQueueCapacityPerLink));
+            EngineTelemetry.CrossSourceQueuesOverflowCount.Add(1);
+        }
     }
 
     private void LinkChanged(object? sender, EventArgs e)
