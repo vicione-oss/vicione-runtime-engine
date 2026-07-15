@@ -165,7 +165,8 @@ public class LinkCacheTests
                         internalRuntimeLink1,
                     ],
                     getPoolingValidator: getValidator,
-                    EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+                    EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, 
+                    NullLogger.Instance);
             var expectedAggregatingGroup = new AggregatingIncomingInputLinkGroup<object>(
                     connector: (IRuntimeConnector<object>)RuntimeInput2,
                     links:

@@ -1,9 +1,11 @@
 ﻿using AwesomeAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.Runtime;
 using ViciOne.Engine;
@@ -19,7 +21,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link1 = Substitute.For<IRuntimeLink<int>>();
             var link2 = Substitute.For<IRuntimeLink<int>>();
 
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link1, link2], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link1, link2], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             link1.Received(1).LinkChanged += Arg.Any<EventHandler<EventArgs>>();
             link2.Received(1).LinkChanged += Arg.Any<EventHandler<EventArgs>>();
@@ -36,7 +38,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link1 = Substitute.For<IRuntimeLink<int>>();
             var link2 = Substitute.For<IRuntimeLink<int>>();
 
-            using var group = new QueueingIncomingInputLinkGroup<int>(runtimeConnector, [link1, link2], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(runtimeConnector, [link1, link2], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             link1.DidNotReceive().LinkChanged += Arg.Any<EventHandler<EventArgs>>();
             link2.DidNotReceive().LinkChanged += Arg.Any<EventHandler<EventArgs>>();
@@ -49,7 +51,7 @@ public class QueueingIncomingInputLinkGroupTests
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
         public void CanDispose()
         {
-            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             Action action = group.Dispose;
 
@@ -59,7 +61,7 @@ public class QueueingIncomingInputLinkGroupTests
         [Fact]
         public void CanCallDisposeMultipleTimes()
         {
-            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             group.Dispose();
 
             Action action = group.Dispose;
@@ -74,7 +76,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link2 = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link1, link2], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link1, link2], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             group.Dispose();
 
@@ -94,7 +96,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link2 = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            var group = new QueueingIncomingInputLinkGroup<int>(runtimeConnector, [link1, link2], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            var group = new QueueingIncomingInputLinkGroup<int>(runtimeConnector, [link1, link2], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             group.Dispose();
 
@@ -108,7 +110,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             link.Value.Returns(42);
             link.LinkChanged += Raise.Event();
             
@@ -127,7 +129,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             var linkValue = 42;
             link.Value.Returns(linkValue);
 
@@ -142,7 +144,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(false);
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             var linkValue = 42;
             link.Value.Returns(linkValue);
 
@@ -157,7 +159,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             var linkValue = 42;
             link.Value.Returns(linkValue);
             group.Dispose();
@@ -173,11 +175,70 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(false);
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             link.LinkChanged += Raise.Event();
 
             link.Received().GetAndResetChanged();
+        }
+
+        [Fact]
+        public void LimitsQueuedEntriesToCapacity()
+        {
+            const int QueueCapacityPerLink = 10;
+
+            var link1 = Substitute.For<IRuntimeLink<int>>();
+            var link2 = Substitute.For<IRuntimeLink<int>>();
+            IRuntimeLink<int>[] links = [link1, link2];
+            var validator = Substitute.For<IPoolingValidator>();
+            validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), links, () => validator, QueueCapacityPerLink, NullLogger.Instance);
+            
+            var expectedCount = QueueCapacityPerLink * links.Length;
+            var overflowCount = 10;
+            var valuesToQueue = Enumerable.Range(1, expectedCount + overflowCount).ToArray();
+            var expectedValues = valuesToQueue.Skip(overflowCount);
+
+            foreach (var value in valuesToQueue)
+            {
+                link1.Value.Returns(value);
+                link1.LinkChanged += Raise.Event();
+            }
+
+            var returnedValues = new List<int>();
+            for (var i = 0; i < valuesToQueue.Length; i++)
+            {
+                var returnedValue = PrivateAccessor<int>.CallPoolValidLinks(group, [], out var valueCreated);
+                if (valueCreated)
+                    returnedValues.Add(returnedValue);
+            }
+            returnedValues.Should().BeEquivalentTo(expectedValues);
+        }
+
+        [Fact]
+        public void LogsWarningOnQueueOverflow()
+        {
+            const int QueueCapacityPerLink = 10;
+
+            var link1 = Substitute.For<IRuntimeLink<int>>();
+            var link2 = Substitute.For<IRuntimeLink<int>>();
+            link1.Value.Returns(42);
+            IRuntimeLink<int>[] links = [link1, link2];
+            var validator = Substitute.For<IPoolingValidator>();
+            validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
+            var logger = new TestLogger();
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), links, () => validator, QueueCapacityPerLink, logger);
+            var totalQueueCapacity = QueueCapacityPerLink * links.Length;
+            var valuesToEnqueue = totalQueueCapacity + 10;
+            var expectedValuesToDrop = valuesToEnqueue - totalQueueCapacity;
+
+            for (var i = 0; i < valuesToEnqueue; i++)
+                link1.LinkChanged += Raise.Event();
+
+            var warnings = logger.GetLoggedMessages(LogLevel.Warning).ToArray();
+            warnings.Should().HaveCount(expectedValuesToDrop);
+            for (var i = 0; i < expectedValuesToDrop; i++)
+                warnings[i].Should().MatchEquivalentOf($"*overflow*drop*oldest*capacity*{totalQueueCapacity}*total*{i + 1}*{nameof(EngineQueueOptions.CrossSourceQueueCapacityPerLink)}*");
         }
     }
 
@@ -189,7 +250,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             link.LinkChanged += Raise.Event();
 
             var result = group.NeedsFurtherProcessing;
@@ -202,7 +263,7 @@ public class QueueingIncomingInputLinkGroupTests
         {
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             var result = group.NeedsFurtherProcessing;
 
@@ -220,7 +281,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             link.Changed.Returns(true);
             var validator = Substitute.For<IPoolingValidator>();
-            using var group = new QueueingIncomingInputLinkGroup<int>(runtimeConnector, [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(runtimeConnector, [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             var result = group.NeedsFurtherProcessing;
 
@@ -236,7 +297,7 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             var linkValue1 = 42;
             link.Value.Returns(linkValue1);
             link.LinkChanged += Raise.Event();
@@ -244,8 +305,8 @@ public class QueueingIncomingInputLinkGroupTests
             link.Value.Returns(linkValue2);
             link.LinkChanged += Raise.Event();
 
-            var result1 = CallPoolValidLinks(group, [], out _);
-            var result2 = CallPoolValidLinks(group, [], out _);
+            var result1 = PrivateAccessor<int>.CallPoolValidLinks(group, [], out _);
+            var result2 = PrivateAccessor<int>.CallPoolValidLinks(group, [], out _);
 
             result1.Should().Be(linkValue1);
             result2.Should().Be(linkValue2);
@@ -257,10 +318,10 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), [link], () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             link.LinkChanged += Raise.Event();
 
-            CallPoolValidLinks(group, [], out var valueCreated);
+            PrivateAccessor<int>.CallPoolValidLinks(group, [], out var valueCreated);
 
             valueCreated.Should().BeTrue();
         }
@@ -271,43 +332,11 @@ public class QueueingIncomingInputLinkGroupTests
             var link = Substitute.For<IRuntimeLink<int>>();
             IRuntimeLink<int>[] links = [link];
             var validator = Substitute.For<IPoolingValidator>();
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
-            CallPoolValidLinks(group, links, out var valueCreated);
+            PrivateAccessor<int>.CallPoolValidLinks(group, links, out var valueCreated);
 
             valueCreated.Should().BeFalse();
-        }
-
-        [Fact]
-        public void LimitsQueuedEntriesToMaximumCapacity()
-        {
-            const int QueueCapacityPerLink = 10;
-
-            var link1 = Substitute.For<IRuntimeLink<int>>();
-            var link2 = Substitute.For<IRuntimeLink<int>>();
-            IRuntimeLink<int>[] links = [link1, link2];
-            var validator = Substitute.For<IPoolingValidator>();
-            validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<int>(Substitute.For<IRuntimeConnector<int>>(), links, () => validator, QueueCapacityPerLink);
-            var expectedCount = QueueCapacityPerLink * links.Length;
-            var overflowCount = 10;
-            var valuesToQueue = Enumerable.Range(1, expectedCount + overflowCount).ToArray();
-            var expectedValues = valuesToQueue.Skip(overflowCount);
-            foreach (var value in valuesToQueue)
-            {
-                link1.Value.Returns(value);
-                link1.LinkChanged += Raise.Event();
-            }
-
-            var returnedValues = new List<int>();
-            for (var i = 0; i < valuesToQueue.Length; i++)
-            {
-                var returnedValue = CallPoolValidLinks(group, [], out var valueCreated);
-                if (valueCreated)
-                    returnedValues.Add(returnedValue);
-            }
-
-            returnedValues.Should().BeEquivalentTo(expectedValues);
         }
 
         [Fact]
@@ -326,9 +355,9 @@ public class QueueingIncomingInputLinkGroupTests
             var links = new[] { link1, link2, link3 };
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<object>(connector, links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<object>(connector, links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
-            CallPoolValidLinks(group, links, out _);
+            PrivateAccessor<object>.CallPoolValidLinks(group, links, out _);
 
             aggregatingPooling.Received().Aggregate(Arg.Is<IEnumerable<object>>(x => x.SequenceEqual(linkValues1)));
             aggregatingPooling.Received().Aggregate(Arg.Is<IEnumerable<object>>(x => x.SequenceEqual(linkValues2)));
@@ -348,9 +377,9 @@ public class QueueingIncomingInputLinkGroupTests
             var links = new[] { link1, link2, link3 };
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<object>(connector, links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<object>(connector, links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
-            CallPoolValidLinks(group, links, out _);
+            PrivateAccessor<object>.CallPoolValidLinks(group, links, out _);
 
             aggregatingPooling.DidNotReceiveWithAnyArgs().Aggregate(default!);
         }
@@ -377,9 +406,9 @@ public class QueueingIncomingInputLinkGroupTests
             var links = new[] { link1, link2, link3 };
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<object>(connector, links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<object>(connector, links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
-            CallPoolValidLinks(group, links, out _);
+            PrivateAccessor<object>.CallPoolValidLinks(group, links, out _);
 
             link1.Received().StoreValue(expectedValueLink1);
             link2.Received().StoreValue(expectedValueLink2);
@@ -398,9 +427,9 @@ public class QueueingIncomingInputLinkGroupTests
             var links = new[] { link };
             var validator = Substitute.For<IPoolingValidator>();
             validator.IsLinkValid(Arg.Any<IRuntimeLink<int>>()).ReturnsForAnyArgs(true);
-            using var group = new QueueingIncomingInputLinkGroup<int>(connector, links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink);
+            using var group = new QueueingIncomingInputLinkGroup<int>(connector, links, () => validator, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
-            var result = CallPoolValidLinks(group, links, out _);
+            var result = PrivateAccessor<int>.CallPoolValidLinks(group, links, out _);
 
             result.Should().Be(expectedPoolingResult);
         }
@@ -416,14 +445,11 @@ public class QueueingIncomingInputLinkGroupTests
             runtimeConnector.Connector.Returns(connector);
             return (runtimeConnector, aggregatingPooling);
         }
+    }
 
-        private static TValue CallPoolValidLinks<TValue>(QueueingIncomingInputLinkGroup<TValue> linkGroup, IEnumerable<IRuntimeLink<TValue>> validLinks, out bool createdValue)
-        {
-            var methodInfo = typeof(QueueingIncomingInputLinkGroup<TValue>).GetMethod("PoolValidLinks", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            object?[] parameters = [validLinks, null];
-            var result = (TValue)methodInfo.Invoke(linkGroup, parameters)!;
-            createdValue = (bool)parameters[1]!;
-            return result;
-        }
+    private static class PrivateAccessor<TValue>
+    {
+        [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "PoolValidLinks")]
+        public static extern TValue CallPoolValidLinks(QueueingIncomingInputLinkGroup<TValue> linkGroup, IEnumerable<IRuntimeLink<TValue>> validLinks, out bool createdValue);
     }
 }

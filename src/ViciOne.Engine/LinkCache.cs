@@ -26,7 +26,7 @@ internal sealed class LinkCache : IDisposable
         Func<IRuntimeConnector, IEnumerable<IRuntimeLink>, Func<IPoolingValidator>, IIncomingInputLinkGroup>? createIncomingInputLinkGroup = null,
         Func<ILink, IDictionary<Guid, IRuntimeConnector>, IRuntimeLink>? createRuntimeLink = null)
     {
-        using IncomingInputLinkGroupFactory incomingInputLinkGroupFactory = new(crossSourceQueueCapacityPerLink);
+        using IncomingInputLinkGroupFactory incomingInputLinkGroupFactory = new(crossSourceQueueCapacityPerLink, logger);
         using OutgoingInputLinkGroupFactory outgoingInputLinkGroupFactory = new();
         using OutputLinkGroupFactory outputLinkGroupFactory = new();
         using RuntimeLinkFactory runtimeLinkFactory = new(perLinkQueueCapacity, logger);

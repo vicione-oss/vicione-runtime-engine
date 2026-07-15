@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using ViciOne.Core.Contracts.Runtime;
 using ViciOne.Engine.Extensions;
 
@@ -10,21 +11,24 @@ namespace ViciOne.Engine;
 internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLinkGroup<TValue, TValue>, IDisposable
 {
     private bool _disposed;
+    private long _entriesDropped;
     private readonly Queue<TValue?> _queue = new();
     private readonly int _queueCapacity;
     private int _queueCount;
     private readonly Lock _queueLock = new();
     private readonly Func<IPoolingValidator> _getPoolingValidator;
+    private readonly ILogger _logger;
 
     public override bool NeedsFurtherProcessing =>
         Volatile.Read(ref _queueCount) > 0 || // Stale read is still possible but only delays processing by one engine cycle — acceptable.
         (PerSourceAggregatingPooling is not null && Links.Any(x => x.Changed));
 
-    public QueueingIncomingInputLinkGroup(IRuntimeConnector<TValue> connector, IRuntimeLink<TValue>[] links, Func<IPoolingValidator> getPoolingValidator, int queueCapacityPerLink)
+    public QueueingIncomingInputLinkGroup(IRuntimeConnector<TValue> connector, IRuntimeLink<TValue>[] links, Func<IPoolingValidator> getPoolingValidator, int queueCapacityPerLink, ILogger logger)
         : base(connector, links)
     {
         _getPoolingValidator = getPoolingValidator;
         _queueCapacity = queueCapacityPerLink * links.Length;
+        _logger = logger;
 
         if (PerSourceAggregatingPooling is null)
             foreach (IRuntimeLink<TValue> link in links)
@@ -50,6 +54,8 @@ internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLink
 
     private void Enqueue(TValue? item)
     {
+        bool droppedEntry = false;
+        long currentEntriesDropped = 0;
         lock (_queueLock)
         {
             if (_disposed)
@@ -57,8 +63,15 @@ internal sealed class QueueingIncomingInputLinkGroup<TValue> : IncomingInputLink
 
             _queue.Enqueue(item, out _queueCount);
             if (_queue.Count > _queueCapacity)
+            {
                 _queue.Dequeue(out _queueCount);
+                droppedEntry = true;
+                currentEntriesDropped = ++_entriesDropped;
+            }
         }
+
+        if (droppedEntry)
+            _logger.CrossSourceQueueOverflow(_queueCapacity, currentEntriesDropped, nameof(EngineQueueOptions.CrossSourceQueueCapacityPerLink));
     }
 
     private void LinkChanged(object? sender, EventArgs e)
