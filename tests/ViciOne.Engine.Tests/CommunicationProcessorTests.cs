@@ -19,7 +19,8 @@ public class CommunicationProcessorTests
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
         public void CanDispose()
         {
-            using var linkCache = new LinkCache([], [], () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
+            using var linkCache = new LinkCache([], [], () => Substitute.For<IPoolingValidator>(),
+                EngineQueueOptions.DefaultPerLinkQueueCapacity, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var communicationManager = Substitute.For<ICommunicationManager>();
             var logger = Substitute.For<ILogger>();
@@ -33,7 +34,8 @@ public class CommunicationProcessorTests
         [Fact]
         public void CanCallDisposeMultipleTimes()
         {
-            using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => Substitute.For<IPoolingValidator>(), EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance);
+            using var linkCache = new LinkCache([], Substitute.For<IEnumerable<ILink>>(), () => Substitute.For<IPoolingValidator>(),
+                EngineQueueOptions.DefaultPerLinkQueueCapacity, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var communicationManager = Substitute.For<ICommunicationManager>();
             var logger = Substitute.For<ILogger>();
@@ -79,7 +81,9 @@ public class CommunicationProcessorTests
             runtimeLink2.ChangedTime.Returns(now);
             var communicationManager = Substitute.For<ICommunicationManager>();
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache([runtimeBlock], links, () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (link, _) =>
+            using var linkCache = new LinkCache([runtimeBlock], links, () => validator,
+                EngineQueueOptions.DefaultPerLinkQueueCapacity, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance,
+                createRuntimeLink: (link, _) =>
             {
                 if (link == externalIncomingLink1) return runtimeLink1;
                 if (link == externalIncomingLink2) return runtimeLink2;
@@ -134,7 +138,9 @@ public class CommunicationProcessorTests
             runtimeLink.ChangedTime.Returns(earlier);
             var communicationManager = Substitute.For<ICommunicationManager>();
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache([runtimeBlock], [externalIncomingLink], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (_, _) => runtimeLink);
+            using var linkCache = new LinkCache([runtimeBlock], [externalIncomingLink], () => validator,
+                EngineQueueOptions.DefaultPerLinkQueueCapacity, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance,
+                createRuntimeLink: (_, _) => runtimeLink);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
@@ -195,7 +201,9 @@ public class CommunicationProcessorTests
                 .Throw(new Exception());
             var communicationManager = Substitute.For<ICommunicationManager>();
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache([runtimeBlock], [externalIncomingLink1, externalIncomingLink2], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (link, _) =>
+            using var linkCache = new LinkCache([runtimeBlock], [externalIncomingLink1, externalIncomingLink2], () => validator,
+                EngineQueueOptions.DefaultPerLinkQueueCapacity, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance,
+                createRuntimeLink: (link, _) =>
             {
                 if (link == externalIncomingLink1) return runtimeLink1;
                 if (link == externalIncomingLink2) return runtimeLink2;
@@ -248,7 +256,9 @@ public class CommunicationProcessorTests
             runtimeLink.Link.Returns(externalIncomingLink1);
             var communicationManager = Substitute.For<ICommunicationManager>();
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache([runtimeBlock], [externalIncomingLink1], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (_, _) => runtimeLink);
+            using var linkCache = new LinkCache([runtimeBlock], [externalIncomingLink1], () => validator,
+                EngineQueueOptions.DefaultPerLinkQueueCapacity, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance,
+                createRuntimeLink: (_, _) => runtimeLink);
             var nameCache = new DefaultUniqueNameProvider(new Dictionary<Guid, string>());
             var logger = Substitute.For<ILogger>();
             using var processor = new CommunicationProcessor(linkCache, nameCache, communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, logger);
@@ -305,7 +315,9 @@ public class CommunicationProcessorTests
             externalOutgoingRuntimeLink1.GetAndResetChanged().Returns(true);
             externalOutgoingRuntimeLink2.GetAndResetChanged().Returns(false);
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache([runtimeBlock], [internalLink1, internalLink2, externalOutgoingLink1, externalOutgoingLink2], () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (link, _) =>
+            using var linkCache = new LinkCache([runtimeBlock], [internalLink1, internalLink2, externalOutgoingLink1, externalOutgoingLink2], () => validator,
+                EngineQueueOptions.DefaultPerLinkQueueCapacity, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance,
+                createRuntimeLink: (link, _) =>
             {
                 if (link == internalLink1) return internalRuntimeLink1;
                 if (link == internalLink2) return internalRuntimeLink2;
@@ -360,7 +372,9 @@ public class CommunicationProcessorTests
             externalOutgoingRuntimeLink1.GetAndResetChanged().Returns(true);
             var links = new ILink[] { internalLink1, externalOutgoingLink1 };
             var validator = Substitute.For<IPoolingValidator>();
-            using var linkCache = new LinkCache([runtimeBlock], links, () => validator, EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance, createRuntimeLink: (link, _) =>
+            using var linkCache = new LinkCache([runtimeBlock], links, () => validator,
+                EngineQueueOptions.DefaultPerLinkQueueCapacity, EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance,
+                createRuntimeLink: (link, _) =>
             {
                 if (link == internalLink1) return internalRuntimeLink1;
                 if (link == externalOutgoingLink1) return externalOutgoingRuntimeLink1;

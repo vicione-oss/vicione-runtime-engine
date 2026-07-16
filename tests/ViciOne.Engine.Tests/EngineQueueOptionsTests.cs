@@ -16,6 +16,17 @@ public class EngineQueueOptionsTests
         }
     }
 
+    public class CrossSourceQueueCapacityPerLink
+    {
+        [Fact]
+        public void ThrowsIfSettingValueLessThanOne()
+        {
+            var action = () => _ = new EngineQueueOptions() { CrossSourceQueueCapacityPerLink = 0 };
+
+            action.Should().Throw<ArgumentOutOfRangeException>();
+        }
+    }
+
     public class PerLinkQueueCapacity
     {
         [Fact]

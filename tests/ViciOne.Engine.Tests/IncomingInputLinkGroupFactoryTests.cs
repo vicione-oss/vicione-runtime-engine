@@ -1,4 +1,5 @@
 ﻿using AwesomeAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using System;
 using ViciOne.Core.Contracts.DataModel;
@@ -19,7 +20,7 @@ public class IncomingInputLinkGroupFactoryTests
                 Substitute.For<IRuntimeLink<int>>(),
                 Substitute.For<IRuntimeLink<int>>(),
             ];
-            using var factory = new IncomingInputLinkGroupFactory();
+            using var factory = new IncomingInputLinkGroupFactory(EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             var entry = factory.Create(connector, links, () => Substitute.For<IPoolingValidator>());
 
@@ -40,7 +41,7 @@ public class IncomingInputLinkGroupFactoryTests
         [MemberData(nameof(ArgumentsFor_CreatesCorrectLinkGroupTypeAccordingToPoolingStrategy))]
         public void CreatesCorrectLinkGroupTypeAccordingToPoolingStrategy(IRuntimeConnector connector, Type expectedType)
         {
-            using var factory = new IncomingInputLinkGroupFactory();
+            using var factory = new IncomingInputLinkGroupFactory(EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             var entry = factory.Create(connector, [], () => Substitute.For<IPoolingValidator>());
 
@@ -51,7 +52,7 @@ public class IncomingInputLinkGroupFactoryTests
         public void ThrowsOnUnknownPoolingStrategy()
         {
             var connector = CreateConnector<int>((PoolingStrategy)int.MaxValue);
-            using var factory = new IncomingInputLinkGroupFactory();
+            using var factory = new IncomingInputLinkGroupFactory(EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance);
 
             Action action = () => factory.Create(connector, [], () => Substitute.For<IPoolingValidator>());
 

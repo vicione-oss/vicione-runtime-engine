@@ -30,4 +30,8 @@ public static class EngineTelemetry
     internal static Counter<long> LinkQueuesOverflowCount { get; } = Meter.CreateCounter<long>(
         name: "engine.link.queues.overflow.count",
         description: "Counts entries dropped from all per-link queues due to overflow.");
+
+    internal static Counter<long> CrossSourceQueuesOverflowCount { get; } = Meter.CreateCounter<long>(
+        name: "engine.crosssource.queues.overflow.count",
+        description: "Counts entries dropped from cross-source queues due to overflow.");
 }

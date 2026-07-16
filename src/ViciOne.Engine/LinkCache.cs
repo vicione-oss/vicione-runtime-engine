@@ -21,11 +21,12 @@ internal sealed class LinkCache : IDisposable
     // TODO: Diese Eigenschaft ist nur für die Tests nützlich, evtl. kann man die noch eliminieren
     public IRuntimeLink[] Links { get; }
 
-    public LinkCache(IRuntimeFunctionBlock[] runtimeFunctionBlocks, IEnumerable<ILink> allLinks, Func<IPoolingValidator> getPoolingValidator, int perLinkQueueCapacity, ILogger logger,
+    public LinkCache(IRuntimeFunctionBlock[] runtimeFunctionBlocks, IEnumerable<ILink> allLinks, Func<IPoolingValidator> getPoolingValidator,
+        int perLinkQueueCapacity, int crossSourceQueueCapacityPerLink, ILogger logger,
         Func<IRuntimeConnector, IEnumerable<IRuntimeLink>, Func<IPoolingValidator>, IIncomingInputLinkGroup>? createIncomingInputLinkGroup = null,
         Func<ILink, IDictionary<Guid, IRuntimeConnector>, IRuntimeLink>? createRuntimeLink = null)
     {
-        using IncomingInputLinkGroupFactory incomingInputLinkGroupFactory = new();
+        using IncomingInputLinkGroupFactory incomingInputLinkGroupFactory = new(crossSourceQueueCapacityPerLink, logger);
         using OutgoingInputLinkGroupFactory outgoingInputLinkGroupFactory = new();
         using OutputLinkGroupFactory outputLinkGroupFactory = new();
         using RuntimeLinkFactory runtimeLinkFactory = new(perLinkQueueCapacity, logger);
