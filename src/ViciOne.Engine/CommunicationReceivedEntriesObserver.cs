@@ -62,7 +62,7 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
             if (_receivedEntries.Count > 0)
             {
                 receivedEntriesSinceReset = _receivedEntries;
-                _receivedEntries = [];
+                _receivedEntries = new(receivedEntriesSinceReset.Count); // pre size to avoid the doubling of the internal array when adding entries
             }
         }
 
