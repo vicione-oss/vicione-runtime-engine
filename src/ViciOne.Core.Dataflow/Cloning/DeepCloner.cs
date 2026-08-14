@@ -56,13 +56,8 @@ public static class DeepCloner
         // Use the actual runtime type so that subclasses are handled correctly.
         Type type = obj.GetType();
 
-        switch (CloneTypePolicy.GetBehavior(type))
-        {
-            case CloneBehavior.Reference:
-                return obj;
-            case CloneBehavior.Ignore:
-                return default;
-        }
+        if (CloneTypePolicy.GetBehavior(type) == CloneBehavior.Reference)
+            return obj;
 
         CloneDelegate del = GetOrCreateDelegate(type);
         var context = new CloneContext();

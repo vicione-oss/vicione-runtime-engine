@@ -45,13 +45,9 @@ internal static class CloneDelegateFactory
 
         Type type = source.GetType();
 
-        switch (CloneTypePolicy.GetBehavior(type))
-        {
-            case CloneBehavior.Reference:
-                return source;
-            case CloneBehavior.Ignore:
-                return null;
-        }
+        // Only GetFieldBehavior yields Ignore, so a runtime type is either shared or cloned.
+        if (CloneTypePolicy.GetBehavior(type) == CloneBehavior.Reference)
+            return source;
 
         // Return the already-created clone for already-seen references (cycle / sharing).
         if (context.TryGetClone(source, out object? existing))
@@ -66,7 +62,7 @@ internal static class CloneDelegateFactory
 
     internal static CloneDelegate Build(Type type)
     {
-        if (CloneTypePolicy.GetBehavior(type) != CloneBehavior.DeepClone)
+        if (CloneTypePolicy.GetBehavior(type) == CloneBehavior.Reference)
             return static (source, _) => source;
 
         if (type.IsArray)
@@ -310,12 +306,26 @@ internal static class CloneDelegateFactory
     }
 
     private static Func<object, object?> CompilePropertyGetter(Type declaringType, string name)
+        => CompilePropertyGetter(declaringType, declaringType.GetProperty(name)!);
+
+    private static Func<object, object?> CompilePropertyGetter(Type declaringType, PropertyInfo property)
     {
         ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
-        MemberExpression property = Expression.Property(Expression.Convert(instance, declaringType), name);
+        MemberExpression access = Expression.Property(Expression.Convert(instance, declaringType), property);
 
         return Expression.Lambda<Func<object, object?>>(
-            Expression.Convert(property, typeof(object)), instance).Compile();
+            Expression.Convert(access, typeof(object)), instance).Compile();
+    }
+
+    /// <summary>Reads <c>Count</c> without boxing; called for every cloned collection.</summary>
+    private static Func<object, int> CompileCountGetter(Type declaringType)
+    {
+        ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
+        MemberExpression count = Expression.Property(
+            Expression.Convert(instance, declaringType),
+            declaringType.GetProperty("Count")!);
+
+        return Expression.Lambda<Func<object, int>>(count, instance).Compile();
     }
 
     private static Func<object?, object?, object> CompileKeyValuePairFactory(
@@ -348,6 +358,7 @@ internal static class CloneDelegateFactory
         Type valueType = typeArgs[1];
         Type comparerType = comparerGenericDefinition.MakeGenericType(keyType);
         PropertyInfo comparerProp = dictionaryBase.GetProperty("Comparer")!;
+        Func<object, object?> readComparer = CompilePropertyGetter(dictionaryBase, comparerProp);
         CollectionFactory factory = BuildCollectionFactory(type, comparerType);
         FieldCopyStep[] derivedSteps = type == dictionaryBase
             ? []
@@ -406,7 +417,7 @@ internal static class CloneDelegateFactory
         return (source, context) =>
         {
             var srcDict = (IDictionary)source;
-            object? comparer = comparerProp.GetValue(source);
+            object? comparer = readComparer(source);
             var dest = (IDictionary)factory.Create(srcDict.Count, comparer);
 
             EnsureEmptyShell(type, dest.Count);
@@ -430,7 +441,8 @@ internal static class CloneDelegateFactory
         Type elementType = setBase.GetGenericArguments()[0];
         Type comparerType = comparerGenericDefinition.MakeGenericType(elementType);
         PropertyInfo comparerProp = setBase.GetProperty("Comparer")!;
-        PropertyInfo countProp = setBase.GetProperty("Count")!;
+        Func<object, object?> readComparer = CompilePropertyGetter(setBase, comparerProp);
+        Func<object, int> readCount = CompileCountGetter(setBase);
         CollectionFactory factory = BuildCollectionFactory(type, comparerType);
         Action<object, object?> add = CompileCollectionAdd(setBase, elementType);
         bool shallowElement = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
@@ -473,11 +485,11 @@ internal static class CloneDelegateFactory
 
         return (source, context) =>
         {
-            int count = (int)countProp.GetValue(source)!;
-            object? comparer = comparerProp.GetValue(source);
+            int count = readCount(source);
+            object? comparer = readComparer(source);
             object dest = factory.Create(count, comparer);
 
-            EnsureEmptyShell(type, (int)countProp.GetValue(dest)!);
+            EnsureEmptyShell(type, readCount(dest));
             EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
             context.Register(source, dest);
             context.PopulateOrDefer(source, dest, populate);
@@ -498,38 +510,22 @@ internal static class CloneDelegateFactory
         ConstructorInfo? capacityAndComparer = type.GetConstructor(
             ConstructorFlags, binder: null, [typeof(int), comparerType], modifiers: null);
         if (TakesOnlyCapacityInts(capacityAndComparer))
-        {
-            return new CollectionFactory(
-                (capacity, comparer) => capacityAndComparer!.Invoke([capacity, comparer]),
-                AcceptsComparer: true);
-        }
+            return new CollectionFactory(CompileConstructor(capacityAndComparer!), AcceptsComparer: true);
 
         ConstructorInfo? comparerOnly = type.GetConstructor(
             ConstructorFlags, binder: null, [comparerType], modifiers: null);
         if (comparerOnly is not null)
-        {
-            return new CollectionFactory(
-                (_, comparer) => comparerOnly.Invoke([comparer]),
-                AcceptsComparer: true);
-        }
+            return new CollectionFactory(CompileConstructor(comparerOnly), AcceptsComparer: true);
 
         ConstructorInfo? capacityOnly = type.GetConstructor(
             ConstructorFlags, binder: null, [typeof(int)], modifiers: null);
         if (TakesOnlyCapacityInts(capacityOnly))
-        {
-            return new CollectionFactory(
-                (capacity, _) => capacityOnly!.Invoke([capacity]),
-                AcceptsComparer: false);
-        }
+            return new CollectionFactory(CompileConstructor(capacityOnly!), AcceptsComparer: false);
 
         ConstructorInfo? parameterless = type.GetConstructor(
             ConstructorFlags, binder: null, Type.EmptyTypes, modifiers: null);
         if (parameterless is not null)
-        {
-            return new CollectionFactory(
-                (_, _) => parameterless.Invoke(null),
-                AcceptsComparer: false);
-        }
+            return new CollectionFactory(CompileConstructor(parameterless), AcceptsComparer: false);
 
         throw new NotSupportedException(
             $"Keyed collection type '{type}' has no constructor that can create a valid empty clone.");
@@ -556,6 +552,53 @@ internal static class CloneDelegateFactory
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Builds a delegate that invokes <paramref name="constructor"/> with a capacity and a
+    /// comparer, passing only the arguments it actually declares. Non-public constructors keep
+    /// using reflection, which is not subject to the compiled delegate's visibility rules.
+    /// </summary>
+    private static Func<int, object?, object> CompileConstructor(ConstructorInfo constructor)
+    {
+        ParameterInfo[] parameters = constructor.GetParameters();
+
+        if (!constructor.IsPublic)
+        {
+            return (capacity, comparer) => constructor.Invoke(
+                BuildConstructorArguments(parameters, capacity, comparer));
+        }
+
+        ParameterExpression capacityParam = Expression.Parameter(typeof(int), "capacity");
+        ParameterExpression comparerParam = Expression.Parameter(typeof(object), "comparer");
+
+        var arguments = new Expression[parameters.Length];
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            arguments[i] = parameters[i].ParameterType == typeof(int)
+                ? capacityParam
+                : Expression.Convert(comparerParam, parameters[i].ParameterType);
+        }
+
+        return Expression.Lambda<Func<int, object?, object>>(
+            Expression.Convert(Expression.New(constructor, arguments), typeof(object)),
+            capacityParam,
+            comparerParam).Compile();
+    }
+
+    private static object?[]? BuildConstructorArguments(
+        ParameterInfo[] parameters,
+        int capacity,
+        object? comparer)
+    {
+        if (parameters.Length == 0)
+            return null;
+
+        object?[] arguments = new object?[parameters.Length];
+        for (var i = 0; i < parameters.Length; i++)
+            arguments[i] = parameters[i].ParameterType == typeof(int) ? capacity : comparer;
+
+        return arguments;
     }
 
     /// <summary>
@@ -636,8 +679,8 @@ internal static class CloneDelegateFactory
         bool reverseSourceOrder)
     {
         Type elementType = collectionBase.GetGenericArguments()[0];
-        PropertyInfo countProperty = collectionBase.GetProperty("Count")!;
-        Func<int, object> factory = BuildSequenceFactory(type);
+        Func<object, int> readCount = CompileCountGetter(collectionBase);
+        Func<int, object?, object> factory = BuildSequenceFactory(type);
         Action<object, object?> insert = CompileCollectionInsertion(
             collectionBase,
             elementType,
@@ -672,17 +715,17 @@ internal static class CloneDelegateFactory
 
         return (source, context) =>
         {
-            int count = (int)countProperty.GetValue(source)!;
-            object destination = factory(count);
+            int count = readCount(source);
+            object destination = factory(count, null);
 
-            EnsureEmptyShell(type, (int)countProperty.GetValue(destination)!);
+            EnsureEmptyShell(type, readCount(destination));
             context.Register(source, destination);
             context.PopulateOrDefer(source, destination, populate);
             return destination;
         };
     }
 
-    private static Func<int, object> BuildSequenceFactory(Type type)
+    private static Func<int, object?, object> BuildSequenceFactory(Type type)
     {
         const BindingFlags ConstructorFlags =
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -690,12 +733,12 @@ internal static class CloneDelegateFactory
         ConstructorInfo? capacityConstructor = type.GetConstructor(
             ConstructorFlags, binder: null, [typeof(int)], modifiers: null);
         if (TakesOnlyCapacityInts(capacityConstructor))
-            return capacity => capacityConstructor!.Invoke([capacity]);
+            return CompileConstructor(capacityConstructor!);
 
         ConstructorInfo? parameterlessConstructor = type.GetConstructor(
             ConstructorFlags, binder: null, Type.EmptyTypes, modifiers: null);
         if (parameterlessConstructor is not null)
-            return _ => parameterlessConstructor.Invoke(null);
+            return CompileConstructor(parameterlessConstructor);
 
         throw new NotSupportedException(
             $"Sequential collection type '{type}' has no constructor that can create a valid empty clone.");
@@ -729,7 +772,7 @@ internal static class CloneDelegateFactory
         // Pre-build one copy "step" per field across the entire inheritance chain.
         // Steps are closures that already hold pre-compiled getter/setter delegates,
         // so no per-call FieldInfo lookup occurs.
-        FieldCopyStep[] steps = BuildFieldCopySteps(type);
+        FieldCopyStep[] steps = BuildFieldCopySteps(type, destinationIsZeroInitialized: true);
         ClonePopulateDelegate populate = (source, destination, context) =>
         {
             foreach (FieldCopyStep step in steps)
@@ -755,7 +798,19 @@ internal static class CloneDelegateFactory
     // FieldCopyStep: (destination, source, context) → void
     private delegate void FieldCopyStep(object dest, object source, CloneContext context);
 
-    private static FieldCopyStep[] BuildFieldCopySteps(Type type, Type? stopExclusive = null)
+    /// <summary>Builds one copy step per instance field, base class first.</summary>
+    /// <param name="type">The type whose fields are copied.</param>
+    /// <param name="stopExclusive">Base type to stop at, exclusive; <see langword="null"/> walks
+    /// the whole hierarchy.</param>
+    /// <param name="destinationIsZeroInitialized">
+    /// <see langword="true"/> when the clone comes from <see cref="RuntimeHelpers.GetUninitializedObject"/>
+    /// and every field already holds its default, so ignored fields need no reset. Collections are
+    /// built by a constructor that may have assigned them, so they do.
+    /// </param>
+    private static FieldCopyStep[] BuildFieldCopySteps(
+        Type type,
+        Type? stopExclusive = null,
+        bool destinationIsZeroInitialized = false)
     {
         var steps = new List<FieldCopyStep>();
 
@@ -767,6 +822,9 @@ internal static class CloneDelegateFactory
 
             if (behavior == CloneBehavior.Ignore)
             {
+                if (destinationIsZeroInitialized)
+                    continue;
+
                 object? defaultValue = GetDefaultValue(f.FieldType);
                 steps.Add((dest, _, _) => f.SetValue(dest, defaultValue));
                 continue;
