@@ -21,6 +21,7 @@ internal sealed class CloneContext
     private Stack<PendingWork>? _pending;
     private List<PendingInsertion?>? _insertions;
     private HashSet<object>? _awaitingInsertion;
+    private HashSet<object>? _buildingImmutable;
     private int _depth;
     private bool _deferralOccurred;
 
@@ -93,6 +94,21 @@ internal sealed class CloneContext
             _depth--;
         }
     }
+
+    /// <summary>
+    /// Marks <paramref name="source"/> as being rebuilt into an immutable collection. Such a
+    /// collection cannot be registered before its contents exist, so a reference cycle back into
+    /// it would restart the build forever.
+    /// </summary>
+    /// <returns><see langword="false"/> when a build for the same instance is already running.</returns>
+    internal bool BeginImmutableBuild(object source)
+    {
+        _buildingImmutable ??= new HashSet<object>(ReferenceEqualityComparer.Instance);
+        return _buildingImmutable.Add(source);
+    }
+
+    /// <summary>Releases the guard taken by <see cref="BeginImmutableBuild"/>.</summary>
+    internal void EndImmutableBuild(object source) => _buildingImmutable!.Remove(source);
 
     /// <summary>
     /// Queues the entries of a collection that hashes or orders by element state. The insertion

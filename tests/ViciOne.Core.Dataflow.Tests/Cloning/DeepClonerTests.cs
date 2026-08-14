@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -1245,6 +1247,122 @@ public class DeepClonerTests
         }
 
         [Fact]
+        public void DeepClone_ImmutableArray_ClonesMutableElements()
+        {
+            var item = new SimplePoco { X = 13 };
+            ImmutableArray<SimplePoco> original = [item];
+
+            ImmutableArray<SimplePoco> clone = DeepCloner.DeepClone(original);
+
+            clone.Should().HaveCount(1);
+            clone[0].Should().NotBeSameAs(item);
+            clone[0].X.Should().Be(13);
+        }
+
+        // Immutable collections are containers, not values: the container cannot be mutated
+        // through the clone, but its elements can, so they are rebuilt from cloned elements.
+        [Fact]
+        public void DeepClone_ImmutableList_ClonesMutableElements()
+        {
+            ImmutableList<SimplePoco> original = [new SimplePoco { X = 14 }];
+
+            ImmutableList<SimplePoco> clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Should().ContainSingle();
+            clone[0].Should().NotBeSameAs(original[0]);
+            clone[0].X.Should().Be(14);
+        }
+
+        [Fact]
+        public void DeepClone_ImmutableStackAndQueue_PreserveOrder()
+        {
+            ImmutableStack<int> stack = ImmutableStack.CreateRange([1, 2, 3]);
+            ImmutableQueue<int> queue = ImmutableQueue.CreateRange([1, 2, 3]);
+
+            DeepCloner.DeepClone(stack).Should().Equal(stack);
+            DeepCloner.DeepClone(queue).Should().Equal(queue);
+        }
+
+        [Fact]
+        public void DeepClone_ImmutableDictionary_ClonesValuesAndPreservesComparer()
+        {
+            ImmutableDictionary<string, SimplePoco> original = ImmutableDictionary
+                .CreateRange(
+                    StringComparer.OrdinalIgnoreCase,
+                    [KeyValuePair.Create("a", new SimplePoco { X = 15 })]);
+
+            ImmutableDictionary<string, SimplePoco> clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.KeyComparer.Should().BeSameAs(StringComparer.OrdinalIgnoreCase);
+            clone["A"].Should().NotBeSameAs(original["a"]);
+            clone["A"].X.Should().Be(15);
+        }
+
+        [Fact]
+        public void DeepClone_ImmutableHashSet_RehashesClonedElements()
+        {
+            var element = new IdentityHashKey { Value = 16 };
+            ImmutableHashSet<IdentityHashKey> original = [element];
+
+            ImmutableHashSet<IdentityHashKey> clone = DeepCloner.DeepClone(original)!;
+
+            IdentityHashKey clonedElement = clone.Single();
+            clonedElement.Should().NotBeSameAs(element);
+            clone.Contains(clonedElement).Should().BeTrue();
+        }
+
+        [Fact]
+        public void DeepClone_FrozenCollections_ClonesEntriesAndPreservesComparer()
+        {
+            FrozenDictionary<string, SimplePoco> dictionary =
+                new Dictionary<string, SimplePoco> { ["a"] = new() { X = 17 } }
+                    .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+            FrozenSet<SimplePoco> set = new[] { new SimplePoco { X = 18 } }.ToFrozenSet();
+
+            FrozenDictionary<string, SimplePoco> dictionaryClone = DeepCloner.DeepClone(dictionary)!;
+            FrozenSet<SimplePoco> setClone = DeepCloner.DeepClone(set)!;
+
+            dictionaryClone.Should().NotBeSameAs(dictionary);
+            dictionaryClone.Comparer.Should().BeSameAs(StringComparer.OrdinalIgnoreCase);
+            dictionaryClone["A"].Should().NotBeSameAs(dictionary["a"]);
+            dictionaryClone["A"].X.Should().Be(17);
+
+            setClone.Should().NotBeSameAs(set);
+            setClone.Single().Should().NotBeSameAs(set.Single());
+            setClone.Single().X.Should().Be(18);
+        }
+
+        // A back-edge that passes through an already-registered object is fine: the holder is
+        // registered before its field is cloned, so the immutable list can close the cycle.
+        [Fact]
+        public void DeepClone_CycleEnteredThroughHolder_PreservesCycle()
+        {
+            var original = new ImmutableListHolder();
+            original.Items = [original];
+
+            ImmutableListHolder clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Items.Should().NotBeSameAs(original.Items);
+            clone.Items.Single().Should().BeSameAs(clone);
+        }
+
+        // Entered from the collection itself there is nothing to register first: the instance
+        // cannot exist before its contents do.
+        [Fact]
+        public void DeepClone_CycleEnteredThroughImmutableList_FailsFast()
+        {
+            var holder = new ImmutableListHolder();
+            holder.Items = [holder];
+
+            Action act = () => DeepCloner.DeepClone(holder.Items);
+
+            act.Should().Throw<NotSupportedException>().WithMessage("*cycle*");
+        }
+
+        [Fact]
         public void DeepClone_LinkedListAndExternalNode_PreservesNodeOwnershipAlias()
         {
             var item = new SimplePoco { X = 16 };
@@ -2399,6 +2517,11 @@ public class DeepClonerTests
         }
 
         public int Tag { get; set; }
+    }
+
+    public sealed class ImmutableListHolder
+    {
+        public ImmutableList<object> Items { get; set; } = [];
     }
 
     // Deep-graph payloads whose keys and elements hash or order by field state, so an

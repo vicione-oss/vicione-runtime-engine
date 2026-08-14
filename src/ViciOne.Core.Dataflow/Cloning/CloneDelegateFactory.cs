@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -70,6 +72,10 @@ internal static class CloneDelegateFactory
         if (type.IsArray)
             return BuildArrayDelegate(type);
 
+        CloneDelegate? immutableDelegate = TryBuildImmutableCollectionDelegate(type);
+        if (immutableDelegate is not null)
+            return immutableDelegate;
+
         Type? dictionaryBase = FindConstructedGenericBase(type, typeof(Dictionary<,>));
         if (dictionaryBase is not null)
             return BuildDictionaryDelegate(type, dictionaryBase, typeof(IEqualityComparer<>));
@@ -122,6 +128,210 @@ internal static class CloneDelegateFactory
             return BuildValueTypeDelegate(type);
 
         return BuildReferenceTypeDelegate(type);
+    }
+
+    // -------------------------------------------------------------------------
+    // Immutable and frozen collections — rebuilt from cloned elements. They cannot be
+    // created empty and filled afterwards, so the clone only exists once its contents do.
+    // -------------------------------------------------------------------------
+
+    private readonly record struct ImmutableCollectionKind(
+        Type Definition,
+        Type FactoryHost,
+        string FactoryMethod,
+        string[] ComparerProperties,
+        bool Keyed,
+        bool ReverseSourceOrder);
+
+    // Every factory takes the items plus one parameter per comparer the collection exposes,
+    // which is what ResolveImmutableFactory matches on.
+    private static readonly ImmutableCollectionKind[] s_immutableCollectionKinds =
+    [
+        new(typeof(ImmutableList<>), typeof(ImmutableList), "CreateRange", [], false, false),
+        new(typeof(ImmutableQueue<>), typeof(ImmutableQueue), "CreateRange", [], false, false),
+
+        // ImmutableStack.CreateRange pushes in sequence, so the last item ends up on top.
+        // The source enumerates top to bottom, so it has to be reversed to round-trip.
+        new(typeof(ImmutableStack<>), typeof(ImmutableStack), "CreateRange", [], false, true),
+
+        new(typeof(ImmutableHashSet<>), typeof(ImmutableHashSet), "CreateRange", ["KeyComparer"], false, false),
+        new(typeof(ImmutableSortedSet<>), typeof(ImmutableSortedSet), "CreateRange", ["KeyComparer"], false, false),
+        new(typeof(FrozenSet<>), typeof(FrozenSet), "ToFrozenSet", ["Comparer"], false, false),
+        new(
+            typeof(ImmutableDictionary<,>),
+            typeof(ImmutableDictionary),
+            "CreateRange",
+            ["KeyComparer", "ValueComparer"],
+            true,
+            false),
+        new(
+            typeof(ImmutableSortedDictionary<,>),
+            typeof(ImmutableSortedDictionary),
+            "CreateRange",
+            ["KeyComparer", "ValueComparer"],
+            true,
+            false),
+        new(typeof(FrozenDictionary<,>), typeof(FrozenDictionary), "ToFrozenDictionary", ["Comparer"], true, false),
+    ];
+
+    private static CloneDelegate? TryBuildImmutableCollectionDelegate(Type type)
+    {
+        foreach (ImmutableCollectionKind kind in s_immutableCollectionKinds)
+        {
+            // Frozen collections are abstract; the runtime type is an internal implementation.
+            Type? constructed = FindConstructedGenericBase(type, kind.Definition);
+            if (constructed is not null)
+                return BuildImmutableCollectionDelegate(constructed, kind);
+        }
+
+        return null;
+    }
+
+    private static CloneDelegate BuildImmutableCollectionDelegate(
+        Type constructed,
+        ImmutableCollectionKind kind)
+    {
+        Type[] typeArgs = constructed.GetGenericArguments();
+        Type itemType = kind.Keyed
+            ? typeof(KeyValuePair<,>).MakeGenericType(typeArgs)
+            : typeArgs[0];
+        Type sequenceType = typeof(IEnumerable<>).MakeGenericType(itemType);
+
+        MethodInfo factory = ResolveImmutableFactory(constructed, kind, typeArgs, sequenceType);
+        ParameterInfo[] parameters = factory.GetParameters();
+
+        var comparerProperties = new PropertyInfo[kind.ComparerProperties.Length];
+        for (var i = 0; i < comparerProperties.Length; i++)
+            comparerProperties[i] = constructed.GetProperty(kind.ComparerProperties[i])!;
+
+        // Bind by parameter type: the sequence goes where the factory expects it (last for the
+        // immutable factories, first for the frozen ones) and the comparers fill the rest.
+        var itemsIndex = -1;
+        int[] comparerIndexes = new int[comparerProperties.Length];
+        var nextComparer = 0;
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            if (parameters[i].ParameterType == sequenceType)
+                itemsIndex = i;
+            else
+                comparerIndexes[nextComparer++] = i;
+        }
+
+        Func<object, object?>? keyGetter = kind.Keyed ? CompilePropertyGetter(itemType, "Key") : null;
+        Func<object, object?>? valueGetter = kind.Keyed ? CompilePropertyGetter(itemType, "Value") : null;
+        Func<object?, object?, object>? entryFactory = kind.Keyed
+            ? CompileKeyValuePairFactory(itemType, typeArgs[0], typeArgs[1])
+            : null;
+
+        return (source, context) =>
+        {
+            if (!context.BeginImmutableBuild(source))
+            {
+                throw new NotSupportedException(
+                    $"Type '{constructed}' cannot be cloned because it takes part in a cycle: " +
+                    "an immutable collection has to exist before anything can reference it.");
+            }
+
+            try
+            {
+                var items = new List<object?>();
+                foreach (object? item in (IEnumerable)source)
+                {
+                    if (kind.Keyed)
+                    {
+                        object? key = CloneObject(keyGetter!(item!), context);
+                        object? value = CloneObject(valueGetter!(item!), context);
+                        items.Add(entryFactory!(key, value));
+                    }
+                    else
+                    {
+                        items.Add(CloneObject(item, context));
+                    }
+                }
+
+                if (context.HasDeferredWork)
+                {
+                    throw new NotSupportedException(
+                        $"Type '{constructed}' cannot be cloned inside a graph deep enough to defer " +
+                        "population: its contents have to be complete before the collection is built.");
+                }
+
+                if (kind.ReverseSourceOrder)
+                    items.Reverse();
+
+                Array typedItems = Array.CreateInstance(itemType, items.Count);
+                for (var i = 0; i < items.Count; i++)
+                    typedItems.SetValue(items[i], i);
+
+                object?[] arguments = new object?[parameters.Length];
+                arguments[itemsIndex] = typedItems;
+                for (var i = 0; i < comparerIndexes.Length; i++)
+                    arguments[comparerIndexes[i]] = comparerProperties[i].GetValue(source);
+
+                object clone = factory.Invoke(null, arguments)!;
+                context.Register(source, clone);
+                return clone;
+            }
+            finally
+            {
+                context.EndImmutableBuild(source);
+            }
+        };
+    }
+
+    private static MethodInfo ResolveImmutableFactory(
+        Type constructed,
+        ImmutableCollectionKind kind,
+        Type[] typeArgs,
+        Type sequenceType)
+    {
+        int parameterCount = kind.ComparerProperties.Length + 1;
+
+        foreach (MethodInfo candidate in kind.FactoryHost.GetMethods(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (candidate.Name != kind.FactoryMethod ||
+                !candidate.IsGenericMethodDefinition ||
+                candidate.GetGenericArguments().Length != typeArgs.Length ||
+                candidate.GetParameters().Length != parameterCount)
+            {
+                continue;
+            }
+
+            MethodInfo closed = candidate.MakeGenericMethod(typeArgs);
+            foreach (ParameterInfo parameter in closed.GetParameters())
+            {
+                if (parameter.ParameterType == sequenceType)
+                    return closed;
+            }
+        }
+
+        throw new NotSupportedException(
+            $"Type '{constructed}' cannot be cloned because no factory rebuilds it from its elements.");
+    }
+
+    private static Func<object, object?> CompilePropertyGetter(Type declaringType, string name)
+    {
+        ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
+        MemberExpression property = Expression.Property(Expression.Convert(instance, declaringType), name);
+
+        return Expression.Lambda<Func<object, object?>>(
+            Expression.Convert(property, typeof(object)), instance).Compile();
+    }
+
+    private static Func<object?, object?, object> CompileKeyValuePairFactory(
+        Type pairType,
+        Type keyType,
+        Type valueType)
+    {
+        ParameterExpression key = Expression.Parameter(typeof(object), "key");
+        ParameterExpression value = Expression.Parameter(typeof(object), "value");
+        NewExpression pair = Expression.New(
+            pairType.GetConstructor([keyType, valueType])!,
+            Expression.Convert(key, keyType),
+            Expression.Convert(value, valueType));
+
+        return Expression.Lambda<Func<object?, object?, object>>(
+            Expression.Convert(pair, typeof(object)), key, value).Compile();
     }
 
     // -------------------------------------------------------------------------
