@@ -25,28 +25,47 @@ public static class DeepCloner
     ///   <item><description>Returns <see langword="null"/> when <paramref name="obj"/> is <see langword="null"/>.</description></item>
     ///   <item><description>Returns the value as-is for primitives, <see langword="string"/>, and other known-immutable types.</description></item>
     ///   <item><description>Handles circular and shared references: each visited instance appears exactly once in the clone graph.</description></item>
-    ///   <item><description>Works on any type — no <see cref="ICloneable"/>, attributes, or parameterless constructor required.</description></item>
+    ///   <item><description>Clones supported data types without requiring <see cref="ICloneable"/>, attributes, or a parameterless constructor.</description></item>
     /// </list>
     /// </summary>
     /// <remarks>
-    /// Intended for plain data graphs (settings, poolings, values). Objects that represent
-    /// behavior or identity rather than data are shared by reference instead of cloned:
+    /// <para>
+    /// Intended for plain data graphs (settings, poolings, values), not arbitrary runtime
+    /// or resource-owning objects. Objects that represent behavior or identity rather than
+    /// data are shared by reference instead of cloned:
     /// delegates, <see cref="Type"/>/<see cref="System.Reflection.MemberInfo"/>/
     /// <see cref="System.Reflection.Assembly"/>, runtime-generated proxies (mocks, ORM
     /// lazy-loading proxies, DI interceptors), tasks, threads, wait handles, weak references,
-    /// COM objects, streams and text readers/writers, finalizable types, and critical
-    /// finalizers such as <see cref="System.Runtime.InteropServices.SafeHandle"/> guarding
-    /// native resources. Implementing <see cref="IDisposable"/> is by itself not one of these
-    /// criteria: a data object that merely happens to be disposable is cloned like any other.
+    /// <see cref="Lazy{T}"/>, COM objects, streams and text readers/writers, finalizable types,
+    /// framework comparers such as <see cref="System.Collections.Generic.EqualityComparer{T}.Default"/>
+    /// and the <see cref="StringComparer"/> implementations, and critical finalizers such as
+    /// <see cref="System.Runtime.InteropServices.SafeHandle"/> guarding native resources.
+    /// Implementing <see cref="IDisposable"/> or a comparer interface is by itself not one of these
+    /// criteria: a data object that merely happens to be disposable, or to carry a comparison rule,
+    /// is cloned like any other.
+    /// </para>
+    /// <para>
     /// Constructors, field initializers, property setters, and serialization callbacks are
-    /// not invoked for ordinary objects. Supported collection types may use a constructor to
-    /// create a valid empty shell before their contents are cloned. Linked-list node ownership
-    /// and read-only wrapper/backing-collection aliases are preserved as part of the graph.
-    /// The source graph must not
-    /// be mutated concurrently while it is cloned. Fields marked with
-    /// <see cref="NonSerializedAttribute"/> are left at their default value.
+    /// not invoked for ordinary objects. Mutable collection types use a constructor to create
+    /// an empty shell before their contents are cloned; a constructor that seeds content is
+    /// rejected. Immutable and frozen collections cannot be created empty, so they are rebuilt
+    /// from their cloned elements with their comparers preserved; <c>ImmutableArray&lt;T&gt;</c>
+    /// is cloned through its backing array. Because such a collection only exists once its
+    /// contents do, it is rejected when a reference cycle leads back into it while it is being
+    /// built, and when it sits below the recursion guard described next. Linked-list node
+    /// ownership and read-only wrapper/backing-collection aliases are preserved as part of
+    /// the graph.
+    /// </para>
+    /// <para>
     /// Deep graphs automatically switch to an explicit work stack to avoid exhausting the
-    /// executing thread's call stack.
+    /// executing thread's call stack. A clone handed out under that guard is registered before
+    /// it is populated, so collections that hash or order by element state fill themselves once
+    /// the graph is complete rather than bucketing an empty shell.
+    /// </para>
+    /// <para>
+    /// The source graph must not be mutated concurrently while it is cloned. Fields marked with
+    /// <see cref="NonSerializedAttribute"/> are left at their default value.
+    /// </para>
     /// </remarks>
     public static T? DeepClone<T>(T? obj)
     {
