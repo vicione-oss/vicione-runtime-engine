@@ -1501,6 +1501,161 @@ public class DeepClonerTests
             }
             cloneCursor.Should().NotBeSameAs(originalCursor);
         }
+
+        // Past the recursion guard a clone is handed out before its fields are populated. A
+        // collection that hashes or orders by element state must wait for it, or the entry is
+        // filed under default field values — silently dropping or hiding it.
+        [Theory]
+        [InlineData(20)]  // below the guard — entries are inserted while cloning
+        [InlineData(200)] // above it — entries are inserted after the graph is complete
+        public void DeepClone_DeepChainOfDictionaries_PreservesEveryEntry(int levels)
+        {
+            DictionaryChainNode original = BuildDictionaryChain(levels);
+
+            DictionaryChainNode clone = DeepCloner.DeepClone(original)!;
+
+            var walked = 0;
+            DictionaryChainNode? cursor = clone;
+            while (cursor is not null && cursor.Children.Count > 0)
+            {
+                cursor.Children.Should().HaveCount(2, "no entry may collapse into another");
+                foreach (KeyRecord key in cursor.Children.Keys.ToList())
+                {
+                    cursor.Children.ContainsKey(key).Should()
+                        .BeTrue("every entry must be reachable through its own key");
+                }
+
+                cursor = cursor.Children.Values.Single(child => child is not null);
+                walked++;
+            }
+
+            walked.Should().Be(levels - 1);
+        }
+
+        [Theory]
+        [InlineData(20)]
+        [InlineData(200)]
+        public void DeepClone_DeepChainOfHashSets_PreservesEveryElement(int levels)
+        {
+            HashSetChainNode original = BuildHashSetChain(levels);
+
+            HashSetChainNode clone = DeepCloner.DeepClone(original)!;
+
+            var walked = 0;
+            for (HashSetChainNode? cursor = clone; cursor is not null; cursor = cursor.Next)
+            {
+                cursor.Tags.Should().HaveCount(2, "no element may collapse into another");
+                foreach (KeyRecord tag in cursor.Tags)
+                    cursor.Tags.Contains(tag).Should().BeTrue("the element must hash into its own bucket");
+
+                walked++;
+            }
+
+            walked.Should().Be(levels);
+        }
+
+        [Theory]
+        [InlineData(20)]
+        [InlineData(200)]
+        public void DeepClone_DeepChainOfSortedSets_PreservesEveryElement(int levels)
+        {
+            SortedSetChainNode original = BuildSortedSetChain(levels);
+
+            SortedSetChainNode clone = DeepCloner.DeepClone(original)!;
+
+            var walked = 0;
+            for (SortedSetChainNode? cursor = clone; cursor is not null; cursor = cursor.Next)
+            {
+                cursor.Tags.Should().HaveCount(2, "elements comparing equal would collapse");
+                cursor.Tags.Select(tag => tag.X).Should().BeInAscendingOrder();
+                walked++;
+            }
+
+            walked.Should().Be(levels);
+        }
+
+        // Every level carries a set of sets, so some level is guaranteed to straddle the
+        // recursion guard: its outer set is filled while the inner sets are still queued.
+        [Fact]
+        public void DeepClone_DeepGraphWithNestedHashSets_FillsInnerSetsFirst()
+        {
+            const int Levels = 200;
+            NestedSetChainNode? original = null;
+            for (var i = 0; i < Levels; i++)
+            {
+                var node = new NestedSetChainNode { Next = original };
+                node.Sets.Add([new KeyRecord((2 * i) + 1)]);
+                node.Sets.Add([new KeyRecord((2 * i) + 2)]);
+                original = node;
+            }
+
+            NestedSetChainNode clone = DeepCloner.DeepClone(original)!;
+
+            var walked = 0;
+            for (NestedSetChainNode? cursor = clone; cursor is not null; cursor = cursor.Next)
+            {
+                cursor.Sets.Should().HaveCount(2, "empty inner sets would hash alike and collapse");
+                foreach (HashSet<KeyRecord> inner in cursor.Sets)
+                {
+                    inner.Should().ContainSingle();
+                    cursor.Sets.Contains(inner).Should()
+                        .BeTrue("the outer set must hash the filled inner set");
+                }
+
+                walked++;
+            }
+
+            walked.Should().Be(Levels);
+        }
+
+        private static DictionaryChainNode BuildDictionaryChain(int levels)
+        {
+            var nodes = new List<DictionaryChainNode>();
+            for (var i = 0; i < levels; i++)
+                nodes.Add(new DictionaryChainNode());
+
+            for (var i = 0; i < levels - 1; i++)
+            {
+                nodes[i].Children[new KeyRecord((2 * i) + 1)] = nodes[i + 1];
+                nodes[i].Children[new KeyRecord((2 * i) + 2)] = null;
+            }
+
+            return nodes[0];
+        }
+
+        private static HashSetChainNode BuildHashSetChain(int levels)
+        {
+            var nodes = new List<HashSetChainNode>();
+            for (var i = 0; i < levels; i++)
+            {
+                var node = new HashSetChainNode();
+                node.Tags.Add(new KeyRecord((2 * i) + 1));
+                node.Tags.Add(new KeyRecord((2 * i) + 2));
+                nodes.Add(node);
+            }
+
+            for (var i = 0; i < levels - 1; i++)
+                nodes[i].Next = nodes[i + 1];
+
+            return nodes[0];
+        }
+
+        private static SortedSetChainNode BuildSortedSetChain(int levels)
+        {
+            var nodes = new List<SortedSetChainNode>();
+            for (var i = 0; i < levels; i++)
+            {
+                var node = new SortedSetChainNode();
+                node.Tags.Add(new SimplePoco { X = (2 * i) + 1 });
+                node.Tags.Add(new SimplePoco { X = (2 * i) + 2 });
+                nodes.Add(node);
+            }
+
+            for (var i = 0; i < levels - 1; i++)
+                nodes[i].Next = nodes[i + 1];
+
+            return nodes[0];
+        }
     }
 
     // =========================================================================
@@ -2244,6 +2399,36 @@ public class DeepClonerTests
         }
 
         public int Tag { get; set; }
+    }
+
+    // Deep-graph payloads whose keys and elements hash or order by field state, so an
+    // unpopulated clone would be filed under default values instead of its own.
+    public sealed record KeyRecord(int Id);
+
+    public sealed class DictionaryChainNode
+    {
+        public Dictionary<KeyRecord, DictionaryChainNode?> Children { get; } = [];
+    }
+
+    public sealed class HashSetChainNode
+    {
+        public HashSet<KeyRecord> Tags { get; } = [];
+
+        public HashSetChainNode? Next { get; set; }
+    }
+
+    public sealed class SortedSetChainNode
+    {
+        public SortedSet<SimplePoco> Tags { get; } = new(new PocoValueComparer());
+
+        public SortedSetChainNode? Next { get; set; }
+    }
+
+    public sealed class NestedSetChainNode
+    {
+        public NestedSetChainNode? Next { get; set; }
+
+        public HashSet<HashSet<KeyRecord>> Sets { get; } = new(HashSet<KeyRecord>.CreateSetComparer());
     }
 
     // Derived collections whose constructors seed content — every constructor the clone

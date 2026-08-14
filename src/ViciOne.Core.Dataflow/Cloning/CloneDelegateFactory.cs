@@ -150,6 +150,7 @@ internal static class CloneDelegateFactory
         {
             var srcDict = (IDictionary)source;
             var dest = (IDictionary)destination;
+            List<object?>? queuedEntries = null;
             IDictionaryEnumerator enumerator = srcDict.GetEnumerator();
             try
             {
@@ -160,12 +161,32 @@ internal static class CloneDelegateFactory
                     object? clonedKey = shallowKey ? key : CloneObject(key, context);
                     object? clonedValue = shallowValue ? value : CloneObject(value, context);
 
-                    dest.Add(clonedKey!, clonedValue);
+                    if (!context.HasDeferredWork)
+                    {
+                        dest.Add(clonedKey!, clonedValue);
+                        continue;
+                    }
+
+                    // The cloned key may still be an empty shell; bucketing or ordering it now
+                    // would file the entry under default field values.
+                    queuedEntries ??= [];
+                    queuedEntries.Add(clonedKey);
+                    queuedEntries.Add(clonedValue);
                 }
             }
             finally
             {
                 (enumerator as IDisposable)?.Dispose();
+            }
+
+            if (queuedEntries is not null)
+            {
+                List<object?> entries = queuedEntries;
+                context.QueueInsertion(dest, entries, () =>
+                {
+                    for (int i = 0; i < entries.Count; i += 2)
+                        dest.Add(entries[i]!, entries[i + 1]);
+                });
             }
 
             foreach (FieldCopyStep step in derivedSteps)
@@ -209,8 +230,32 @@ internal static class CloneDelegateFactory
 
         ClonePopulateDelegate populate = (source, destination, context) =>
         {
+            List<object?>? queuedElements = null;
             foreach (object? item in (IEnumerable)source)
-                add(destination, shallowElement ? item : CloneObject(item, context));
+            {
+                object? clonedItem = shallowElement ? item : CloneObject(item, context);
+
+                if (!context.HasDeferredWork)
+                {
+                    add(destination, clonedItem);
+                    continue;
+                }
+
+                // The cloned element may still be an empty shell; bucketing or ordering it now
+                // would file it under default field values.
+                queuedElements ??= [];
+                queuedElements.Add(clonedItem);
+            }
+
+            if (queuedElements is not null)
+            {
+                List<object?> elements = queuedElements;
+                context.QueueInsertion(destination, elements, () =>
+                {
+                    foreach (object? item in elements)
+                        add(destination, item);
+                });
+            }
 
             foreach (FieldCopyStep step in derivedSteps)
                 step(destination, source, context);
