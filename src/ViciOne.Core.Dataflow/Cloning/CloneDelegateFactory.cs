@@ -178,6 +178,7 @@ internal static class CloneDelegateFactory
             object? comparer = comparerProp.GetValue(source);
             var dest = (IDictionary)factory.Create(srcDict.Count, comparer);
 
+            EnsureEmptyShell(type, dest.Count);
             EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
             context.Register(source, dest);
             context.PopulateOrDefer(source, dest, populate);
@@ -221,6 +222,7 @@ internal static class CloneDelegateFactory
             object? comparer = comparerProp.GetValue(source);
             object dest = factory.Create(count, comparer);
 
+            EnsureEmptyShell(type, (int)countProp.GetValue(dest)!);
             EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
             context.Register(source, dest);
             context.PopulateOrDefer(source, dest, populate);
@@ -299,6 +301,19 @@ internal static class CloneDelegateFactory
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Verifies that the constructor chosen for the clone produced an empty collection. A
+    /// constructor that seeds content would leave those elements in front of the cloned ones.
+    /// </summary>
+    private static void EnsureEmptyShell(Type collectionType, int destinationCount)
+    {
+        if (destinationCount != 0)
+        {
+            throw new NotSupportedException(
+                $"Collection type '{collectionType}' cannot be cloned because its constructor seeds content.");
+        }
     }
 
     private static void EnsureComparerPreserved(
@@ -404,6 +419,8 @@ internal static class CloneDelegateFactory
         {
             int count = (int)countProperty.GetValue(source)!;
             object destination = factory(count);
+
+            EnsureEmptyShell(type, (int)countProperty.GetValue(destination)!);
             context.Register(source, destination);
             context.PopulateOrDefer(source, destination, populate);
             return destination;

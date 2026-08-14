@@ -1278,6 +1278,26 @@ public class DeepClonerTests
             clone.View.Should().HaveCount(2,
                 "the cloned wrapper must reference the cloned backing list");
         }
+
+        [Fact] // A seeding constructor leaves its own elements in front of the cloned ones
+        public void DeepClone_DerivedCollectionWithSeedingConstructor_FailsFast()
+        {
+            var list = new SeedingList { 5 };
+            var queue = new SeedingQueue();
+            queue.Enqueue(5);
+            var dictionary = new SeedingDictionary { ["a"] = 5 };
+            var set = new SeedingHashSet { 5 };
+
+            Action cloneList = () => DeepCloner.DeepClone(list);
+            Action cloneQueue = () => DeepCloner.DeepClone(queue);
+            Action cloneDictionary = () => DeepCloner.DeepClone(dictionary);
+            Action cloneSet = () => DeepCloner.DeepClone(set);
+
+            cloneList.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
+            cloneQueue.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
+            cloneDictionary.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
+            cloneSet.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
+        }
     }
 
     // =========================================================================
@@ -2224,6 +2244,36 @@ public class DeepClonerTests
         }
 
         public int Tag { get; set; }
+    }
+
+    // Derived collections whose constructors seed content — every constructor the clone
+    // factories can pick must be covered, otherwise the guard is bypassed.
+    public sealed class SeedingList : List<int>
+    {
+        public SeedingList() => Add(-1);
+        public SeedingList(int capacity) : base(capacity) => Add(-1);
+    }
+
+    public sealed class SeedingQueue : Queue<int>
+    {
+        public SeedingQueue() => Enqueue(-1);
+        public SeedingQueue(int capacity) : base(capacity) => Enqueue(-1);
+    }
+
+    public sealed class SeedingDictionary : Dictionary<string, int>
+    {
+        public SeedingDictionary() => Add("seed", -1);
+
+        public SeedingDictionary(int capacity, IEqualityComparer<string>? comparer)
+            : base(capacity, comparer) => Add("seed", -1);
+    }
+
+    public sealed class SeedingHashSet : HashSet<int>
+    {
+        public SeedingHashSet() => Add(-1);
+
+        public SeedingHashSet(int capacity, IEqualityComparer<int>? comparer)
+            : base(capacity, comparer) => Add(-1);
     }
 
     [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]
