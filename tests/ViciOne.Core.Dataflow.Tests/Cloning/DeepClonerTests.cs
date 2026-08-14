@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
@@ -1218,6 +1219,116 @@ public class DeepClonerTests
     }
 
     // =========================================================================
+    // Runtime-managed and resource-owning objects — shared by reference
+    // =========================================================================
+
+    public class RuntimeManagedTypeTests
+    {
+        [Fact]
+        public void DeepClone_KnownRuntimeManagedObjects_ReturnsSameReferences()
+        {
+            Task<int> task = Task.FromResult(42);
+            var weakReference = new WeakReference<object>(new object());
+            var lazy = new Lazy<SimplePoco>(() => new SimplePoco { X = 1 });
+            using var cancellation = new CancellationTokenSource();
+            using var stream = new MemoryStream([1, 2, 3]);
+
+            DeepCloner.DeepClone(DBNull.Value).Should().BeSameAs(DBNull.Value);
+            DeepCloner.DeepClone(TimeZoneInfo.Utc).Should().BeSameAs(TimeZoneInfo.Utc);
+            DeepCloner.DeepClone(task).Should().BeSameAs(task);
+            DeepCloner.DeepClone(weakReference).Should().BeSameAs(weakReference);
+            DeepCloner.DeepClone(lazy).Should().BeSameAs(lazy);
+            DeepCloner.DeepClone(cancellation).Should().BeSameAs(cancellation);
+            DeepCloner.DeepClone(stream).Should().BeSameAs(stream);
+            DeepCloner.DeepClone(StringComparer.OrdinalIgnoreCase)
+                .Should().BeSameAs(StringComparer.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void DeepClone_FrameworkComparers_ReturnSameReferences()
+        {
+            DeepCloner.DeepClone(EqualityComparer<string>.Default)
+                .Should().BeSameAs(EqualityComparer<string>.Default);
+            DeepCloner.DeepClone(Comparer<string>.Default)
+                .Should().BeSameAs(Comparer<string>.Default);
+            DeepCloner.DeepClone(ReferenceEqualityComparer.Instance)
+                .Should().BeSameAs(ReferenceEqualityComparer.Instance);
+        }
+
+        // Implementing a comparer interface says nothing about immutability. A data object that also
+        // carries a comparison rule is data, and the caller asked for an independent copy.
+        [Fact]
+        public void DeepClone_MutableDataImplementingComparer_IsCloned()
+        {
+            var original = new SortRuleHolder { Rule = new SortRule { Descending = true } };
+
+            SortRuleHolder clone = DeepCloner.DeepClone(original)!;
+
+            clone.Rule.Should().NotBeSameAs(original.Rule);
+            clone.Rule!.Descending.Should().BeTrue();
+
+            clone.Rule.Descending = false;
+            original.Rule!.Descending.Should().BeTrue("the clone must not alias the source");
+        }
+
+        [Fact]
+        public void DeepClone_FinalizableObject_ReturnsSameReference()
+        {
+            var original = new FinalizableResource();
+
+            var clone = DeepCloner.DeepClone(original);
+
+            clone.Should().BeSameAs(original,
+                "duplicating a finalizable owner could execute cleanup twice");
+            GC.KeepAlive(original);
+        }
+
+        [Fact] // Being disposable is not by itself a reason to share — the caller asked for a copy
+        public void DeepClone_PlainDisposable_IsDeepCloned()
+        {
+            using var original = new DisposableData { Payload = new SimplePoco { X = 5 } };
+
+            using DisposableData clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Payload.Should().NotBeSameAs(original.Payload);
+            clone.Payload!.X.Should().Be(5);
+        }
+
+        [Fact] // Mutating the clone must not reach the original
+        public void DeepClone_HolderWithPlainDisposable_ClonesIndependently()
+        {
+            using var state = new DisposableData { Payload = new SimplePoco { X = 1 } };
+            var original = new DisposableHolder { State = state };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.State.Should().NotBeSameAs(state);
+            clone.State!.Payload!.X = 99;
+            state.Payload!.X.Should().Be(1);
+            clone.State.Dispose();
+        }
+
+        [Fact]
+        public void DeepClone_HolderWithRuntimeObject_SharesResourceAndClonesData()
+        {
+            using var stream = new MemoryStream([1, 2, 3]);
+            var original = new RuntimeManagedHolder
+            {
+                RuntimeObject = stream,
+                Data = new SimplePoco { X = 42 }
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.RuntimeObject.Should().BeSameAs(stream);
+            clone.Data.Should().NotBeSameAs(original.Data);
+            clone.Data!.X.Should().Be(42);
+        }
+    }
+
+    // =========================================================================
     // Native resource guards — shared by reference, never duplicated
     // =========================================================================
 
@@ -1499,6 +1610,48 @@ public class DeepClonerTests
     {
         public SimplePoco? First { get; set; }
         public SimplePoco? Second { get; set; }
+    }
+
+    public sealed class RuntimeManagedHolder
+    {
+        public object? RuntimeObject { get; set; }
+        public SimplePoco? Data { get; set; }
+    }
+
+    [SuppressMessage("Performance", "CA1821:Remove empty finalizers",
+        Justification = "Exercises the clone policy for arbitrary finalizable resource owners.")]
+    public sealed class FinalizableResource
+    {
+        ~FinalizableResource()
+        {
+        }
+    }
+
+    // Mutable data that also carries a comparison rule — data, not a stateless framework comparer.
+    public sealed class SortRule : IComparer<string>
+    {
+        public bool Descending { get; set; }
+
+        public int Compare(string? x, string? y)
+            => Descending ? string.CompareOrdinal(y, x) : string.CompareOrdinal(x, y);
+    }
+
+    public sealed class SortRuleHolder
+    {
+        public SortRule? Rule { get; set; }
+    }
+
+    // Disposable, but owns no external resource and has no finalizer — ordinary data.
+    public sealed class DisposableData : IDisposable
+    {
+        public SimplePoco? Payload { get; set; }
+
+        public void Dispose() => GC.SuppressFinalize(this);
+    }
+
+    public sealed class DisposableHolder
+    {
+        public DisposableData? State { get; set; }
     }
 
     public class WithDelegateField

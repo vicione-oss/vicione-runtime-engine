@@ -33,8 +33,11 @@ public static class DeepCloner
     /// behavior or identity rather than data are shared by reference instead of cloned:
     /// delegates, <see cref="Type"/>/<see cref="System.Reflection.MemberInfo"/>/
     /// <see cref="System.Reflection.Assembly"/>, runtime-generated proxies (mocks, ORM
-    /// lazy-loading proxies, DI interceptors), and critical finalizers such as
-    /// <see cref="System.Runtime.InteropServices.SafeHandle"/> guarding native resources.
+    /// lazy-loading proxies, DI interceptors), tasks, threads, wait handles, weak references,
+    /// COM objects, streams and text readers/writers, finalizable types, and critical
+    /// finalizers such as <see cref="System.Runtime.InteropServices.SafeHandle"/> guarding
+    /// native resources. Implementing <see cref="IDisposable"/> is by itself not one of these
+    /// criteria: a data object that merely happens to be disposable is cloned like any other.
     /// Constructors, field initializers, property setters, and serialization callbacks are
     /// not invoked for ordinary objects. Supported collection types may use a constructor to
     /// create a valid empty shell before their contents are cloned. The source graph must not
