@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -12,6 +16,9 @@ namespace ViciOne.Core.Dataflow.Cloning;
 /// (boxed for value types, reference for reference types).
 /// </summary>
 internal delegate object CloneDelegate(object source, CloneContext context);
+
+/// <summary>Populates a previously allocated and registered clone shell.</summary>
+internal delegate void ClonePopulateDelegate(object source, object destination, CloneContext context);
 
 /// <summary>
 /// Builds <see cref="CloneDelegate"/> instances for concrete runtime types.
@@ -38,7 +45,8 @@ internal static class CloneDelegateFactory
 
         Type type = source.GetType();
 
-        if (ImmutableTypes.IsShallowCopyable(type))
+        // Only GetFieldBehavior yields Ignore, so a runtime type is either shared or cloned.
+        if (CloneTypePolicy.GetBehavior(type) == CloneBehavior.Reference)
             return source;
 
         // Return the already-created clone for already-seen references (cycle / sharing).
@@ -54,28 +62,63 @@ internal static class CloneDelegateFactory
 
     internal static CloneDelegate Build(Type type)
     {
-        // Delegates are value types semantically — copy by reference.
-        if (typeof(Delegate).IsAssignableFrom(type))
-            return static (source, _) => source;
-
-        // Runtime type-system objects (Type, MemberInfo subtypes, Assembly) must be shared
-        // by reference — deep-cloning them would corrupt the CLR's internal state.
-        if (typeof(MemberInfo).IsAssignableFrom(type) || typeof(Assembly).IsAssignableFrom(type))
-            return static (source, _) => source;
-
-        // Runtime-generated proxies (mocking frameworks, ORM lazy-loading, DI interceptors)
-        // are behavior objects, not data: traversing them would duplicate framework state
-        // that is shared far beyond the instance (and may be mutated concurrently).
-        if (IsRuntimeProxy(type))
+        if (CloneTypePolicy.GetBehavior(type) == CloneBehavior.Reference)
             return static (source, _) => source;
 
         if (type.IsArray)
             return BuildArrayDelegate(type);
 
-        // Dictionary<K,V> fast-path: reconstruct via KeyValuePair iteration instead of
-        // traversing private backing fields, reducing allocation ~3× and time ~3–6×.
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            return BuildDictionaryDelegate(type);
+        CloneDelegate? immutableDelegate = TryBuildImmutableCollectionDelegate(type);
+        if (immutableDelegate is not null)
+            return immutableDelegate;
+
+        Type? dictionaryBase = FindConstructedGenericBase(type, typeof(Dictionary<,>));
+        if (dictionaryBase is not null)
+            return BuildDictionaryDelegate(type, dictionaryBase, typeof(IEqualityComparer<>));
+
+        Type? concurrentDictionaryBase = FindConstructedGenericBase(type, typeof(ConcurrentDictionary<,>));
+        if (concurrentDictionaryBase is not null)
+            return BuildDictionaryDelegate(type, concurrentDictionaryBase, typeof(IEqualityComparer<>));
+
+        Type? sortedDictionaryBase = FindConstructedGenericBase(type, typeof(SortedDictionary<,>));
+        if (sortedDictionaryBase is not null)
+            return BuildDictionaryDelegate(type, sortedDictionaryBase, typeof(IComparer<>));
+
+        Type? sortedListBase = FindConstructedGenericBase(type, typeof(SortedList<,>));
+        if (sortedListBase is not null)
+            return BuildDictionaryDelegate(type, sortedListBase, typeof(IComparer<>));
+
+        Type? hashSetBase = FindConstructedGenericBase(type, typeof(HashSet<>));
+        if (hashSetBase is not null)
+            return BuildSetDelegate(type, hashSetBase, typeof(IEqualityComparer<>));
+
+        Type? sortedSetBase = FindConstructedGenericBase(type, typeof(SortedSet<>));
+        if (sortedSetBase is not null)
+            return BuildSetDelegate(type, sortedSetBase, typeof(IComparer<>));
+
+        Type? listBase = FindConstructedGenericBase(type, typeof(List<>));
+        if (listBase is not null)
+            return BuildSequenceDelegate(type, listBase, "Add", reverseSourceOrder: false);
+
+        Type? queueBase = FindConstructedGenericBase(type, typeof(Queue<>));
+        if (queueBase is not null)
+            return BuildSequenceDelegate(type, queueBase, "Enqueue", reverseSourceOrder: false);
+
+        Type? stackBase = FindConstructedGenericBase(type, typeof(Stack<>));
+        if (stackBase is not null)
+            return BuildSequenceDelegate(type, stackBase, "Push", reverseSourceOrder: true);
+
+        Type? concurrentQueueBase = FindConstructedGenericBase(type, typeof(ConcurrentQueue<>));
+        if (concurrentQueueBase is not null)
+            return BuildSequenceDelegate(type, concurrentQueueBase, "Enqueue", reverseSourceOrder: false);
+
+        Type? concurrentStackBase = FindConstructedGenericBase(type, typeof(ConcurrentStack<>));
+        if (concurrentStackBase is not null)
+            return BuildSequenceDelegate(type, concurrentStackBase, "Push", reverseSourceOrder: true);
+
+        Type? concurrentBagBase = FindConstructedGenericBase(type, typeof(ConcurrentBag<>));
+        if (concurrentBagBase is not null)
+            return BuildSequenceDelegate(type, concurrentBagBase, "Add", reverseSourceOrder: false);
 
         if (type.IsValueType)
             return BuildValueTypeDelegate(type);
@@ -84,52 +127,388 @@ internal static class CloneDelegateFactory
     }
 
     // -------------------------------------------------------------------------
-    // Dictionary<K,V> cloning — fast-path via KeyValuePair iteration
+    // Immutable and frozen collections — rebuilt from cloned elements. They cannot be
+    // created empty and filled afterwards, so the clone only exists once its contents do.
     // -------------------------------------------------------------------------
 
-    private static CloneDelegate BuildDictionaryDelegate(Type type)
+    /// <summary>
+    /// One rebuildable immutable or frozen collection family. <c>ComparerProperties</c> holds at
+    /// most two names — <see cref="CompileImmutableFactory"/> passes them as fixed arguments rather
+    /// than an array. <c>HashesOrOrdersByElementState</c> tells whether where an entry lands depends
+    /// on its state: a sequence merely stores its elements, so one that is still an empty shell is
+    /// fine there — it fills itself before anyone reads the collection. Neither does a dictionary
+    /// value, so only the keys are checked for the keyed kinds.
+    /// </summary>
+    private readonly record struct ImmutableCollectionKind(
+        Type Definition,
+        Type FactoryHost,
+        string FactoryMethod,
+        string[] ComparerProperties,
+        bool Keyed,
+        bool ReverseSourceOrder,
+        bool HashesOrOrdersByElementState);
+
+    // Every factory takes the items plus one parameter per comparer the collection exposes,
+    // which is what ResolveImmutableFactory matches on.
+    private static readonly ImmutableCollectionKind[] s_immutableCollectionKinds =
+    [
+        new(typeof(ImmutableList<>), typeof(ImmutableList), "CreateRange", [], false, false, false),
+        new(typeof(ImmutableQueue<>), typeof(ImmutableQueue), "CreateRange", [], false, false, false),
+
+        // ImmutableStack.CreateRange pushes in sequence, so the last item ends up on top.
+        // The source enumerates top to bottom, so it has to be reversed to round-trip.
+        new(typeof(ImmutableStack<>), typeof(ImmutableStack), "CreateRange", [], false, true, false),
+
+        new(
+            typeof(ImmutableHashSet<>),
+            typeof(ImmutableHashSet),
+            "CreateRange",
+            ["KeyComparer"],
+            false,
+            false,
+            true),
+        new(
+            typeof(ImmutableSortedSet<>),
+            typeof(ImmutableSortedSet),
+            "CreateRange",
+            ["KeyComparer"],
+            false,
+            false,
+            true),
+        new(typeof(FrozenSet<>), typeof(FrozenSet), "ToFrozenSet", ["Comparer"], false, false, true),
+        new(
+            typeof(ImmutableDictionary<,>),
+            typeof(ImmutableDictionary),
+            "CreateRange",
+            ["KeyComparer", "ValueComparer"],
+            true,
+            false,
+            true),
+        new(
+            typeof(ImmutableSortedDictionary<,>),
+            typeof(ImmutableSortedDictionary),
+            "CreateRange",
+            ["KeyComparer", "ValueComparer"],
+            true,
+            false,
+            true),
+        new(
+            typeof(FrozenDictionary<,>),
+            typeof(FrozenDictionary),
+            "ToFrozenDictionary",
+            ["Comparer"],
+            true,
+            false,
+            true),
+    ];
+
+    private static CloneDelegate? TryBuildImmutableCollectionDelegate(Type type)
     {
-        Type[] typeArgs = type.GetGenericArguments(); // [K, V]
-        Type keyType = typeArgs[0];
-        Type valueType = typeArgs[1];
+        foreach (ImmutableCollectionKind kind in s_immutableCollectionKinds)
+        {
+            // Frozen collections are abstract; the runtime type is an internal implementation.
+            Type? constructed = FindConstructedGenericBase(type, kind.Definition);
+            if (constructed is not null)
+                return BuildImmutableCollectionDelegate(constructed, kind);
+        }
 
-        // Resolve the IEqualityComparer<K> Comparer property and Dictionary(int, IEqualityComparer<K>) ctor.
-        // Comparers are intentionally shared by reference: they define dictionary lookup
-        // semantics and are commonly immutable singleton instances such as StringComparer.
-        // Deep-cloning arbitrary comparer implementations risks changing those semantics.
-        PropertyInfo comparerProp = type.GetProperty("Comparer")!;
-        ConstructorInfo ctorWithCapacityAndComparer = type.GetConstructor(
-            [typeof(int), typeof(IEqualityComparer<>).MakeGenericType(keyType)])!;
+        return null;
+    }
 
-        bool shallowKey = ImmutableTypes.IsShallowCopyable(keyType);
-        bool shallowValue = ImmutableTypes.IsShallowCopyable(valueType);
+    private static CloneDelegate BuildImmutableCollectionDelegate(
+        Type constructed,
+        ImmutableCollectionKind kind)
+    {
+        Type[] typeArgs = constructed.GetGenericArguments();
+        Type itemType = kind.Keyed
+            ? typeof(KeyValuePair<,>).MakeGenericType(typeArgs)
+            : typeArgs[0];
+        Type sequenceType = typeof(IEnumerable<>).MakeGenericType(itemType);
+
+        MethodInfo factory = ResolveImmutableFactory(constructed, kind, typeArgs, sequenceType);
+        ParameterInfo[] parameters = factory.GetParameters();
+
+        // Bind by parameter type: the sequence goes where the factory expects it (last for the
+        // immutable factories, first for the frozen ones) and the comparers fill the rest.
+        var itemsIndex = -1;
+        int[] comparerIndexes = new int[kind.ComparerProperties.Length];
+        var nextComparer = 0;
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            if (parameters[i].ParameterType == sequenceType)
+                itemsIndex = i;
+            else
+                comparerIndexes[nextComparer++] = i;
+        }
+
+        var readComparers = new Func<object, object?>[kind.ComparerProperties.Length];
+        for (var i = 0; i < readComparers.Length; i++)
+            readComparers[i] = CompilePropertyGetter(constructed, kind.ComparerProperties[i]);
+
+        Func<object, object?, object?, object> create =
+            CompileImmutableFactory(factory, parameters, sequenceType, itemsIndex, comparerIndexes);
+
+        // Every factory takes an IEnumerable<TItem>, so the cloned elements are collected into a
+        // typed List<TItem> through compiled accessors rather than a reflected array.
+        Type bufferType = typeof(List<>).MakeGenericType(itemType);
+        Func<int, object?, object> createBuffer =
+            CompileConstructor(bufferType.GetConstructor([typeof(int)])!);
+        Action<object, object?> addToBuffer = CompileCollectionAdd(bufferType, itemType);
+
+        Func<object, object?>? keyGetter = kind.Keyed ? CompilePropertyGetter(itemType, "Key") : null;
+        Func<object, object?>? valueGetter = kind.Keyed ? CompilePropertyGetter(itemType, "Value") : null;
+        Func<object?, object?, object>? entryFactory = kind.Keyed
+            ? CompileKeyValuePairFactory(itemType, typeArgs[0], typeArgs[1])
+            : null;
 
         return (source, context) =>
         {
-            // Dictionary<K,V> implements the non-generic collection interfaces, so the
-            // per-entry loop below runs without any reflection; only resolving the
-            // comparer and constructing the destination invoke reflection (once per
-            // dictionary instance).
-            var srcDict = (System.Collections.IDictionary)source;
-            object? comparer = comparerProp.GetValue(source);
-            var dest = (System.Collections.IDictionary)ctorWithCapacityAndComparer.Invoke([srcDict.Count, comparer]);
+            if (context.IsImmutableBuildDepthExhausted)
+            {
+                throw new NotSupportedException(
+                    $"Type '{constructed}' cannot be cloned because immutable collections nest " +
+                    "deeper here than the recursion guard allows: such a build cannot be deferred, " +
+                    "so continuing would exhaust the call stack.");
+            }
 
-            // Register before iterating so self-referential values resolve correctly.
-            context.Register(source, dest);
+            if (!context.BeginImmutableBuild(source))
+            {
+                throw new NotSupportedException(
+                    $"Type '{constructed}' cannot be cloned because it takes part in a cycle: " +
+                    "an immutable collection has to exist before anything can reference it.");
+            }
 
-            // Enumerate entries without touching private backing fields.
-            System.Collections.IDictionaryEnumerator enumerator = srcDict.GetEnumerator();
+            try
+            {
+                bool checkEntries = kind.HashesOrOrdersByElementState;
+                var items = new List<object?>();
+
+                foreach (object? item in (IEnumerable)source)
+                {
+                    int deferrals = context.DeferralCount;
+
+                    if (kind.Keyed)
+                    {
+                        // Only the key decides where the entry lands, so only the key has to be
+                        // complete; the value is merely stored and may still fill itself later.
+                        object? key = CloneObject(keyGetter!(item!), context);
+                        if (checkEntries)
+                            EnsureEntryComplete(constructed, key, deferrals, context);
+
+                        object? value = CloneObject(valueGetter!(item!), context);
+                        items.Add(entryFactory!(key, value));
+                    }
+                    else
+                    {
+                        object? element = CloneObject(item, context);
+                        if (checkEntries)
+                            EnsureEntryComplete(constructed, element, deferrals, context);
+
+                        items.Add(element);
+                    }
+                }
+
+                if (kind.ReverseSourceOrder)
+                    items.Reverse();
+
+                object buffer = createBuffer(items.Count, null);
+                foreach (object? item in items)
+                    addToBuffer(buffer, item);
+
+                object clone = create(
+                    buffer,
+                    readComparers.Length > 0 ? readComparers[0](source) : null,
+                    readComparers.Length > 1 ? readComparers[1](source) : null);
+
+                context.Register(source, clone);
+                return clone;
+            }
+            finally
+            {
+                context.EndImmutableBuild(source);
+            }
+        };
+    }
+
+    /// <summary>
+    /// Verifies that an entry the collection hashes or orders by is already populated. A mutable
+    /// collection can be created now and filled once the graph is complete; an immutable one cannot,
+    /// so an entry that is still an empty shell would stay filed under default field values.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="deferralsBefore"/> is the context's deferral count from before this entry was
+    /// cloned. A change means something below it is still pending: the entry itself can look
+    /// complete while a clone it hashes by is not.
+    /// </remarks>
+    private static void EnsureEntryComplete(
+        Type collectionType,
+        object? entry,
+        int deferralsBefore,
+        CloneContext context)
+    {
+        if (context.DeferralCount == deferralsBefore &&
+            (entry is null || !context.IsIncomplete(entry)))
+        {
+            return;
+        }
+
+        throw new NotSupportedException(
+            $"Type '{collectionType}' cannot be cloned from contents that are not complete yet: it " +
+            "hashes or orders by their state, and an immutable collection cannot be filled after " +
+            "it exists.");
+    }
+
+    /// <summary>
+    /// Compiles the factory call so that neither the invocation nor an argument array costs anything
+    /// per clone. Every kind declares at most two comparers; unused comparer slots are ignored.
+    /// </summary>
+    private static Func<object, object?, object?, object> CompileImmutableFactory(
+        MethodInfo factory,
+        ParameterInfo[] parameters,
+        Type sequenceType,
+        int itemsIndex,
+        int[] comparerIndexes)
+    {
+        ParameterExpression items = Expression.Parameter(typeof(object), "items");
+        ParameterExpression firstComparer = Expression.Parameter(typeof(object), "firstComparer");
+        ParameterExpression secondComparer = Expression.Parameter(typeof(object), "secondComparer");
+        ParameterExpression[] comparers = [firstComparer, secondComparer];
+
+        var arguments = new Expression[parameters.Length];
+        arguments[itemsIndex] = Expression.Convert(items, sequenceType);
+        for (var i = 0; i < comparerIndexes.Length; i++)
+        {
+            int index = comparerIndexes[i];
+            arguments[index] = Expression.Convert(comparers[i], parameters[index].ParameterType);
+        }
+
+        return Expression.Lambda<Func<object, object?, object?, object>>(
+            Expression.Convert(Expression.Call(factory, arguments), typeof(object)),
+            items,
+            firstComparer,
+            secondComparer).Compile();
+    }
+
+    private static MethodInfo ResolveImmutableFactory(
+        Type constructed,
+        ImmutableCollectionKind kind,
+        Type[] typeArgs,
+        Type sequenceType)
+    {
+        int parameterCount = kind.ComparerProperties.Length + 1;
+
+        foreach (MethodInfo candidate in kind.FactoryHost.GetMethods(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (candidate.Name != kind.FactoryMethod ||
+                !candidate.IsGenericMethodDefinition ||
+                candidate.GetGenericArguments().Length != typeArgs.Length ||
+                candidate.GetParameters().Length != parameterCount)
+            {
+                continue;
+            }
+
+            MethodInfo closed = candidate.MakeGenericMethod(typeArgs);
+            foreach (ParameterInfo parameter in closed.GetParameters())
+            {
+                if (parameter.ParameterType == sequenceType)
+                    return closed;
+            }
+        }
+
+        throw new NotSupportedException(
+            $"Type '{constructed}' cannot be cloned because no factory rebuilds it from its elements.");
+    }
+
+    private static Func<object, object?> CompilePropertyGetter(Type declaringType, string name)
+        => CompilePropertyGetter(declaringType, declaringType.GetProperty(name)!);
+
+    private static Func<object, object?> CompilePropertyGetter(Type declaringType, PropertyInfo property)
+    {
+        ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
+        MemberExpression access = Expression.Property(Expression.Convert(instance, declaringType), property);
+
+        return Expression.Lambda<Func<object, object?>>(
+            Expression.Convert(access, typeof(object)), instance).Compile();
+    }
+
+    /// <summary>Reads <c>Count</c> without boxing; called for every cloned collection.</summary>
+    private static Func<object, int> CompileCountGetter(Type declaringType)
+    {
+        ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
+        MemberExpression count = Expression.Property(
+            Expression.Convert(instance, declaringType),
+            declaringType.GetProperty("Count")!);
+
+        return Expression.Lambda<Func<object, int>>(count, instance).Compile();
+    }
+
+    private static Func<object?, object?, object> CompileKeyValuePairFactory(
+        Type pairType,
+        Type keyType,
+        Type valueType)
+    {
+        ParameterExpression key = Expression.Parameter(typeof(object), "key");
+        ParameterExpression value = Expression.Parameter(typeof(object), "value");
+        NewExpression pair = Expression.New(
+            pairType.GetConstructor([keyType, valueType])!,
+            Expression.Convert(key, keyType),
+            Expression.Convert(value, valueType));
+
+        return Expression.Lambda<Func<object?, object?, object>>(
+            Expression.Convert(pair, typeof(object)), key, value).Compile();
+    }
+
+    // -------------------------------------------------------------------------
+    // Dictionary<K,V> cloning — fast-path via KeyValuePair iteration
+    // -------------------------------------------------------------------------
+
+    private static CloneDelegate BuildDictionaryDelegate(
+        Type type,
+        Type dictionaryBase,
+        Type comparerGenericDefinition)
+    {
+        Type[] typeArgs = dictionaryBase.GetGenericArguments(); // [K, V]
+        Type keyType = typeArgs[0];
+        Type valueType = typeArgs[1];
+        Type comparerType = comparerGenericDefinition.MakeGenericType(keyType);
+        PropertyInfo comparerProp = dictionaryBase.GetProperty("Comparer")!;
+        Func<object, object?> readComparer = CompilePropertyGetter(dictionaryBase, comparerProp);
+        CollectionFactory factory = BuildCollectionFactory(type, comparerType);
+        FieldCopyStep[] derivedSteps = type == dictionaryBase
+            ? []
+            : BuildFieldCopySteps(type, dictionaryBase);
+
+        bool shallowKey = CloneTypePolicy.GetBehavior(keyType) == CloneBehavior.Reference;
+        bool shallowValue = CloneTypePolicy.GetBehavior(valueType) == CloneBehavior.Reference;
+
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            var srcDict = (IDictionary)source;
+            var dest = (IDictionary)destination;
+            List<object?>? queuedKeys = null;
+            List<object?>? queuedValues = null;
+            IDictionaryEnumerator enumerator = srcDict.GetEnumerator();
             try
             {
                 while (enumerator.MoveNext())
                 {
                     object key = enumerator.Key;
                     object? value = enumerator.Value;
-
                     object? clonedKey = shallowKey ? key : CloneObject(key, context);
                     object? clonedValue = shallowValue ? value : CloneObject(value, context);
 
-                    dest.Add(clonedKey!, clonedValue);
+                    if (!context.HasDeferredWork)
+                    {
+                        dest.Add(clonedKey!, clonedValue);
+                        continue;
+                    }
+
+                    // The cloned key may still be an empty shell; bucketing or ordering it now
+                    // would file the entry under default field values.
+                    queuedKeys ??= [];
+                    queuedValues ??= [];
+                    queuedKeys.Add(clonedKey);
+                    queuedValues.Add(clonedValue);
                 }
             }
             finally
@@ -137,8 +516,377 @@ internal static class CloneDelegateFactory
                 (enumerator as IDisposable)?.Dispose();
             }
 
+            if (queuedKeys is not null)
+            {
+                // Only the keys gate the insertion: a value neither hashes nor orders its entry, so
+                // a cycle running purely through values is no cycle for this dictionary.
+                List<object?> keys = queuedKeys;
+                List<object?> values = queuedValues!;
+                context.QueueInsertion(dest, keys, () =>
+                {
+                    for (var i = 0; i < keys.Count; i++)
+                        dest.Add(keys[i]!, values[i]);
+                });
+            }
+
+            foreach (FieldCopyStep step in derivedSteps)
+                step(dest, source, context);
+        };
+
+        return (source, context) =>
+        {
+            var srcDict = (IDictionary)source;
+            object? comparer = readComparer(source);
+            var dest = (IDictionary)factory.Create(srcDict.Count, comparer);
+
+            EnsureEmptyShell(type, dest.Count);
+            EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
+            context.Register(source, dest);
+            context.PopulateOrDefer(source, dest, populate);
+
             return dest;
         };
+    }
+
+    // -------------------------------------------------------------------------
+    // Set cloning — rebuild so cloned elements are re-hashed or re-ordered
+    // -------------------------------------------------------------------------
+
+    private static CloneDelegate BuildSetDelegate(
+        Type type,
+        Type setBase,
+        Type comparerGenericDefinition)
+    {
+        Type elementType = setBase.GetGenericArguments()[0];
+        Type comparerType = comparerGenericDefinition.MakeGenericType(elementType);
+        PropertyInfo comparerProp = setBase.GetProperty("Comparer")!;
+        Func<object, object?> readComparer = CompilePropertyGetter(setBase, comparerProp);
+        Func<object, int> readCount = CompileCountGetter(setBase);
+        CollectionFactory factory = BuildCollectionFactory(type, comparerType);
+        Action<object, object?> add = CompileCollectionAdd(setBase, elementType);
+        bool shallowElement = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
+        FieldCopyStep[] derivedSteps = type == setBase
+            ? []
+            : BuildFieldCopySteps(type, setBase);
+
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            List<object?>? queuedElements = null;
+            foreach (object? item in (IEnumerable)source)
+            {
+                object? clonedItem = shallowElement ? item : CloneObject(item, context);
+
+                if (!context.HasDeferredWork)
+                {
+                    add(destination, clonedItem);
+                    continue;
+                }
+
+                // The cloned element may still be an empty shell; bucketing or ordering it now
+                // would file it under default field values.
+                queuedElements ??= [];
+                queuedElements.Add(clonedItem);
+            }
+
+            if (queuedElements is not null)
+            {
+                List<object?> elements = queuedElements;
+                context.QueueInsertion(destination, elements, () =>
+                {
+                    foreach (object? item in elements)
+                        add(destination, item);
+                });
+            }
+
+            foreach (FieldCopyStep step in derivedSteps)
+                step(destination, source, context);
+        };
+
+        return (source, context) =>
+        {
+            int count = readCount(source);
+            object? comparer = readComparer(source);
+            object dest = factory.Create(count, comparer);
+
+            EnsureEmptyShell(type, readCount(dest));
+            EnsureComparerPreserved(type, comparerProp, comparer, dest, factory.AcceptsComparer);
+            context.Register(source, dest);
+            context.PopulateOrDefer(source, dest, populate);
+
+            return dest;
+        };
+    }
+
+    private sealed record CollectionFactory(
+        Func<int, object?, object> Create,
+        bool AcceptsComparer);
+
+    private static CollectionFactory BuildCollectionFactory(Type type, Type comparerType)
+    {
+        const BindingFlags ConstructorFlags =
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        ConstructorInfo? capacityAndComparer = type.GetConstructor(
+            ConstructorFlags, binder: null, [typeof(int), comparerType], modifiers: null);
+        if (TakesOnlyCapacityInts(capacityAndComparer))
+            return new CollectionFactory(CompileConstructor(capacityAndComparer!), AcceptsComparer: true);
+
+        ConstructorInfo? comparerOnly = type.GetConstructor(
+            ConstructorFlags, binder: null, [comparerType], modifiers: null);
+        if (comparerOnly is not null)
+            return new CollectionFactory(CompileConstructor(comparerOnly), AcceptsComparer: true);
+
+        ConstructorInfo? capacityOnly = type.GetConstructor(
+            ConstructorFlags, binder: null, [typeof(int)], modifiers: null);
+        if (TakesOnlyCapacityInts(capacityOnly))
+            return new CollectionFactory(CompileConstructor(capacityOnly!), AcceptsComparer: false);
+
+        ConstructorInfo? parameterless = type.GetConstructor(
+            ConstructorFlags, binder: null, Type.EmptyTypes, modifiers: null);
+        if (parameterless is not null)
+            return new CollectionFactory(CompileConstructor(parameterless), AcceptsComparer: false);
+
+        throw new NotSupportedException(
+            $"Keyed collection type '{type}' has no constructor that can create a valid empty clone.");
+    }
+
+    /// <summary>
+    /// <see langword="true"/> when every <see langword="int"/> the constructor declares is a capacity.
+    /// The clone factory feeds the source's element count into those parameters, which is only correct
+    /// when they mean capacity: a derived collection may declare an <see langword="int"/> for its own
+    /// domain, and passing the element count would run foreign logic against a fabricated value.
+    /// </summary>
+    private static bool TakesOnlyCapacityInts(ConstructorInfo? constructor)
+    {
+        if (constructor is null)
+            return false;
+
+        foreach (ParameterInfo parameter in constructor.GetParameters())
+        {
+            if (parameter.ParameterType == typeof(int) &&
+                !string.Equals(parameter.Name, "capacity", StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Builds a delegate that invokes <paramref name="constructor"/> with a capacity and a
+    /// comparer, passing only the arguments it actually declares. Non-public constructors keep
+    /// using reflection, which is not subject to the compiled delegate's visibility rules.
+    /// </summary>
+    private static Func<int, object?, object> CompileConstructor(ConstructorInfo constructor)
+    {
+        ParameterInfo[] parameters = constructor.GetParameters();
+
+        if (!constructor.IsPublic)
+        {
+            return (capacity, comparer) => constructor.Invoke(
+                BuildConstructorArguments(parameters, capacity, comparer));
+        }
+
+        ParameterExpression capacityParam = Expression.Parameter(typeof(int), "capacity");
+        ParameterExpression comparerParam = Expression.Parameter(typeof(object), "comparer");
+
+        var arguments = new Expression[parameters.Length];
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            arguments[i] = parameters[i].ParameterType == typeof(int)
+                ? capacityParam
+                : Expression.Convert(comparerParam, parameters[i].ParameterType);
+        }
+
+        return Expression.Lambda<Func<int, object?, object>>(
+            Expression.Convert(Expression.New(constructor, arguments), typeof(object)),
+            capacityParam,
+            comparerParam).Compile();
+    }
+
+    private static object?[]? BuildConstructorArguments(
+        ParameterInfo[] parameters,
+        int capacity,
+        object? comparer)
+    {
+        if (parameters.Length == 0)
+            return null;
+
+        object?[] arguments = new object?[parameters.Length];
+        for (var i = 0; i < parameters.Length; i++)
+            arguments[i] = parameters[i].ParameterType == typeof(int) ? capacity : comparer;
+
+        return arguments;
+    }
+
+    /// <summary>
+    /// Verifies that the constructor chosen for the clone produced an empty collection. A
+    /// constructor that seeds content would leave those elements in front of the cloned ones.
+    /// </summary>
+    private static void EnsureEmptyShell(Type collectionType, int destinationCount)
+    {
+        if (destinationCount != 0)
+        {
+            throw new NotSupportedException(
+                $"Collection type '{collectionType}' cannot be cloned because its constructor seeds content.");
+        }
+    }
+
+    private static void EnsureComparerPreserved(
+        Type collectionType,
+        PropertyInfo comparerProperty,
+        object? sourceComparer,
+        object destination,
+        bool factoryAcceptsComparer)
+    {
+        if (factoryAcceptsComparer)
+            return;
+
+        object? destinationComparer = comparerProperty.GetValue(destination);
+        if (ReferenceEquals(sourceComparer, destinationComparer))
+            return;
+
+        // Constructors are not inherited, so a derived collection never matches the comparer-taking
+        // constructors and is built through its own parameterless one — which supplied a comparer of
+        // its own. A stateless comparer has no configuration to lose, so any instance of that type
+        // behaves identically and the shell is already correct.
+        if (destinationComparer is not null &&
+            sourceComparer is not null &&
+            sourceComparer.GetType() == destinationComparer.GetType() &&
+            IsStateless(sourceComparer.GetType()))
+        {
+            return;
+        }
+
+        throw new NotSupportedException(
+            $"Keyed collection type '{collectionType}' cannot preserve its comparer when cloned.");
+    }
+
+    /// <summary>
+    /// <see langword="true"/> when the type carries no instance state, so every instance of it is
+    /// interchangeable with every other.
+    /// </summary>
+    private static bool IsStateless(Type type)
+    {
+        // Walked rather than asked through GetFields: that does not surface a base class's private
+        // fields, so a comparer keeping its configuration in one would pass as interchangeable.
+        foreach (FieldInfo _ in GetAllInstanceFields(type))
+            return false;
+
+        return true;
+    }
+
+    private static Action<object, object?> CompileCollectionAdd(Type collectionBase, Type elementType)
+    {
+        MethodInfo addMethod = collectionBase.GetMethod("Add", [elementType])!;
+        ParameterExpression collection = Expression.Parameter(typeof(object), "collection");
+        ParameterExpression item = Expression.Parameter(typeof(object), "item");
+        MethodCallExpression call = Expression.Call(
+            Expression.Convert(collection, collectionBase),
+            addMethod,
+            Expression.Convert(item, elementType));
+
+        return Expression.Lambda<Action<object, object?>>(
+            Expression.Block(call, Expression.Empty()),
+            collection,
+            item).Compile();
+    }
+
+    // -------------------------------------------------------------------------
+    // Mutable sequential collections — rebuild through their public APIs so the
+    // implementation's internal arrays, head indices, and version fields remain valid.
+    // -------------------------------------------------------------------------
+
+    private static CloneDelegate BuildSequenceDelegate(
+        Type type,
+        Type collectionBase,
+        string insertionMethodName,
+        bool reverseSourceOrder)
+    {
+        Type elementType = collectionBase.GetGenericArguments()[0];
+        Func<object, int> readCount = CompileCountGetter(collectionBase);
+        Func<int, object?, object> factory = BuildSequenceFactory(type);
+        Action<object, object?> insert = CompileCollectionInsertion(
+            collectionBase,
+            elementType,
+            insertionMethodName);
+        bool shallowElement = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
+        FieldCopyStep[] derivedSteps = type == collectionBase
+            ? []
+            : BuildFieldCopySteps(type, collectionBase);
+
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            if (reverseSourceOrder)
+            {
+                // Stack<T> enumerates from top to bottom. Push the cloned snapshot in
+                // reverse so the destination exposes the same top-to-bottom ordering.
+                var items = new List<object?>();
+                foreach (object? item in (IEnumerable)source)
+                    items.Add(shallowElement ? item : CloneObject(item, context));
+
+                for (int i = items.Count - 1; i >= 0; i--)
+                    insert(destination, items[i]);
+            }
+            else
+            {
+                foreach (object? item in (IEnumerable)source)
+                    insert(destination, shallowElement ? item : CloneObject(item, context));
+            }
+
+            foreach (FieldCopyStep step in derivedSteps)
+                step(destination, source, context);
+        };
+
+        return (source, context) =>
+        {
+            int count = readCount(source);
+            object destination = factory(count, null);
+
+            EnsureEmptyShell(type, readCount(destination));
+            context.Register(source, destination);
+            context.PopulateOrDefer(source, destination, populate);
+            return destination;
+        };
+    }
+
+    private static Func<int, object?, object> BuildSequenceFactory(Type type)
+    {
+        const BindingFlags ConstructorFlags =
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        ConstructorInfo? capacityConstructor = type.GetConstructor(
+            ConstructorFlags, binder: null, [typeof(int)], modifiers: null);
+        if (TakesOnlyCapacityInts(capacityConstructor))
+            return CompileConstructor(capacityConstructor!);
+
+        ConstructorInfo? parameterlessConstructor = type.GetConstructor(
+            ConstructorFlags, binder: null, Type.EmptyTypes, modifiers: null);
+        if (parameterlessConstructor is not null)
+            return CompileConstructor(parameterlessConstructor);
+
+        throw new NotSupportedException(
+            $"Sequential collection type '{type}' has no constructor that can create a valid empty clone.");
+    }
+
+    private static Action<object, object?> CompileCollectionInsertion(
+        Type collectionBase,
+        Type elementType,
+        string methodName)
+    {
+        MethodInfo insertionMethod = collectionBase.GetMethod(methodName, [elementType])!;
+        ParameterExpression collection = Expression.Parameter(typeof(object), "collection");
+        ParameterExpression item = Expression.Parameter(typeof(object), "item");
+        MethodCallExpression call = Expression.Call(
+            Expression.Convert(collection, collectionBase),
+            insertionMethod,
+            Expression.Convert(item, elementType));
+
+        return Expression.Lambda<Action<object, object?>>(
+            Expression.Block(call, Expression.Empty()),
+            collection,
+            item).Compile();
     }
 
     // -------------------------------------------------------------------------
@@ -150,7 +898,12 @@ internal static class CloneDelegateFactory
         // Pre-build one copy "step" per field across the entire inheritance chain.
         // Steps are closures that already hold pre-compiled getter/setter delegates,
         // so no per-call FieldInfo lookup occurs.
-        FieldCopyStep[] steps = BuildFieldCopySteps(type);
+        FieldCopyStep[] steps = BuildFieldCopySteps(type, destinationIsZeroInitialized: true);
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            foreach (FieldCopyStep step in steps)
+                step(destination, source, context);
+        };
 
         return (source, context) =>
         {
@@ -162,9 +915,7 @@ internal static class CloneDelegateFactory
             // Register BEFORE processing fields so that back-edges in the graph
             // resolve to this (not-yet-finished) clone rather than re-entering.
             context.Register(source, dest);
-
-            foreach (FieldCopyStep step in steps)
-                step(dest, source, context);
+            context.PopulateOrDefer(source, dest, populate);
 
             return dest;
         };
@@ -173,16 +924,39 @@ internal static class CloneDelegateFactory
     // FieldCopyStep: (destination, source, context) → void
     private delegate void FieldCopyStep(object dest, object source, CloneContext context);
 
-    private static FieldCopyStep[] BuildFieldCopySteps(Type type)
+    /// <summary>Builds one copy step per instance field, base class first.</summary>
+    /// <param name="type">The type whose fields are copied.</param>
+    /// <param name="stopExclusive">Base type to stop at, exclusive; <see langword="null"/> walks
+    /// the whole hierarchy.</param>
+    /// <param name="destinationIsZeroInitialized">
+    /// <see langword="true"/> when the clone comes from <see cref="RuntimeHelpers.GetUninitializedObject"/>
+    /// and every field already holds its default, so ignored fields need no reset. Collections are
+    /// built by a constructor that may have assigned them, so they do.
+    /// </param>
+    private static FieldCopyStep[] BuildFieldCopySteps(
+        Type type,
+        Type? stopExclusive = null,
+        bool destinationIsZeroInitialized = false)
     {
         var steps = new List<FieldCopyStep>();
 
-        foreach (FieldInfo field in GetAllInstanceFields(type))
+        foreach (FieldInfo field in GetAllInstanceFields(type, stopExclusive))
         {
             // Capture locally for closure correctness.
             FieldInfo f = field;
-            bool shallow = ImmutableTypes.IsShallowCopyable(f.FieldType)
-                           || IsDelegateType(f.FieldType);
+            CloneBehavior behavior = CloneTypePolicy.GetFieldBehavior(f);
+
+            if (behavior == CloneBehavior.Ignore)
+            {
+                if (destinationIsZeroInitialized)
+                    continue;
+
+                object? defaultValue = GetDefaultValue(f.FieldType);
+                steps.Add((dest, _, _) => f.SetValue(dest, defaultValue));
+                continue;
+            }
+
+            bool shallow = behavior == CloneBehavior.Reference;
 
             if (shallow)
             {
@@ -227,8 +1001,7 @@ internal static class CloneDelegateFactory
         FieldInfo[] allFields = [.. GetAllInstanceFields(type)];
         // Pre-classify each field at build time so the clone lambda pays no reflection
         // cost for shallowness decisions (mirrors how BuildFieldCopySteps works).
-        bool[] isShallow = Array.ConvertAll(allFields, f =>
-            ImmutableTypes.IsShallowCopyable(f.FieldType) || IsDelegateType(f.FieldType));
+        CloneBehavior[] behaviors = Array.ConvertAll(allFields, CloneTypePolicy.GetFieldBehavior);
 
         return (source, context) =>
         {
@@ -241,8 +1014,13 @@ internal static class CloneDelegateFactory
 
             for (int i = 0; i < allFields.Length; i++)
             {
+                if (behaviors[i] == CloneBehavior.Ignore)
+                    continue;
+
                 object? value = allFields[i].GetValue(source);
-                allFields[i].SetValue(dest, isShallow[i] ? value : CloneObject(value, context));
+                allFields[i].SetValue(
+                    dest,
+                    behaviors[i] == CloneBehavior.Reference ? value : CloneObject(value, context));
             }
 
             return dest;
@@ -257,7 +1035,38 @@ internal static class CloneDelegateFactory
     {
         Type elementType = type.GetElementType()!;
         int rank = type.GetArrayRank();
-        bool shallowElements = ImmutableTypes.IsShallowCopyable(elementType);
+        bool shallowElements = CloneTypePolicy.GetBehavior(elementType) == CloneBehavior.Reference;
+
+        ClonePopulateDelegate populate = (source, destination, context) =>
+        {
+            var srcArray = (Array)source;
+            var destArray = (Array)destination;
+
+            if (shallowElements)
+            {
+                Array.Copy(srcArray, destArray, srcArray.Length);
+                return;
+            }
+
+            if (rank == 1)
+            {
+                int lowerBound = srcArray.GetLowerBound(0);
+                int length = srcArray.GetLength(0);
+                for (int i = lowerBound; i < lowerBound + length; i++)
+                    destArray.SetValue(CloneObject(srcArray.GetValue(i), context), i);
+                return;
+            }
+
+            int[] lengths = new int[rank];
+            int[] lowerBounds = new int[rank];
+            for (int dimension = 0; dimension < rank; dimension++)
+            {
+                lengths[dimension] = srcArray.GetLength(dimension);
+                lowerBounds[dimension] = srcArray.GetLowerBound(dimension);
+            }
+
+            CopyMultiDimArray(srcArray, destArray, rank, lengths, lowerBounds, context);
+        };
 
         return (source, context) =>
         {
@@ -275,23 +1084,7 @@ internal static class CloneDelegateFactory
 
             // Register before iterating so that arrays containing themselves are handled.
             context.Register(source, destArray);
-
-            if (shallowElements)
-            {
-                // Element type is immutable — a bulk copy is sufficient.
-                Array.Copy(srcArray, destArray, srcArray.Length);
-            }
-            else if (rank == 1)
-            {
-                int lb = lowerBounds[0];
-                int len = lengths[0];
-                for (int i = lb; i < lb + len; i++)
-                    destArray.SetValue(CloneObject(srcArray.GetValue(i), context), i);
-            }
-            else
-            {
-                CopyMultiDimArray(srcArray, destArray, rank, lengths, lowerBounds, context);
-            }
+            context.PopulateOrDefer(source, destArray, populate);
 
             return destArray;
         };
@@ -368,12 +1161,12 @@ internal static class CloneDelegateFactory
     /// Walks the full inheritance chain (excluding <see cref="object"/>) and yields
     /// every declared instance field in declaration order from base to derived.
     /// </summary>
-    private static IEnumerable<FieldInfo> GetAllInstanceFields(Type type)
+    private static IEnumerable<FieldInfo> GetAllInstanceFields(Type type, Type? stopExclusive = null)
     {
         // Build base-first list so fields are processed in hierarchy order.
         var hierarchy = new Stack<Type>();
         Type? t = type;
-        while (t is not null && t != typeof(object))
+        while (t is not null && t != typeof(object) && t != stopExclusive)
         {
             hierarchy.Push(t);
             t = t.BaseType;
@@ -384,40 +1177,18 @@ internal static class CloneDelegateFactory
                 yield return field;
     }
 
-    private static bool IsDelegateType(Type type)
-        => typeof(Delegate).IsAssignableFrom(type);
-
-    // Well-known namespaces of proxy types emitted into persisted (non-dynamic) assemblies.
-    private static readonly string[] s_proxyTypeNamePrefixes =
-    [
-        "Castle.Proxies.",
-        "System.Data.Entity.DynamicProxies.",
-        "NHibernate.Proxy.",
-    ];
-
-    /// <summary>
-    /// Detects runtime-generated proxy types: anything emitted via Reflection.Emit
-    /// (covers Castle DynamicProxy's <c>DynamicProxyGenAssembly2</c> used by NSubstitute,
-    /// Moq, and EF Core lazy-loading proxies) plus well-known proxy namespaces for
-    /// generators that persist their assemblies. Types without a <see cref="Type.FullName"/>
-    /// (open generics, exotic runtime types) are treated as proxies as well — they cannot
-    /// be cloned meaningfully.
-    /// </summary>
-    private static bool IsRuntimeProxy(Type type)
+    private static Type? FindConstructedGenericBase(Type type, Type genericDefinition)
     {
-        if (type.Assembly.IsDynamic)
-            return true;
-
-        string? fullName = type.FullName;
-        if (fullName is null)
-            return true;
-
-        foreach (string prefix in s_proxyTypeNamePrefixes)
+        for (Type? current = type; current is not null; current = current.BaseType)
         {
-            if (fullName.StartsWith(prefix, StringComparison.Ordinal))
-                return true;
+            if (current.IsGenericType && current.GetGenericTypeDefinition() == genericDefinition)
+                return current;
         }
 
-        return false;
+        return null;
     }
+
+    private static object? GetDefaultValue(Type type)
+        => type.IsValueType ? Array.CreateInstance(type, 1).GetValue(0) : null;
+
 }

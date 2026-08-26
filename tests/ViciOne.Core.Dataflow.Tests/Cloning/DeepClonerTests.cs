@@ -1,6 +1,11 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
@@ -405,6 +410,60 @@ public class DeepClonerTests
 
             // The backing delegate field is copied by reference (not cloned).
             clone.GetEventDelegate().Should().BeSameAs(original.GetEventDelegate());
+        }
+    }
+
+    // =========================================================================
+    // Standard member behavior
+    // =========================================================================
+
+    public class MemberBehaviorTests
+    {
+        [Fact]
+        public void DeepClone_NonSerializedFields_AreLeftAtDefaultValues()
+        {
+            var original = new WithNonSerializedFields
+            {
+                Persistent = new SimplePoco { X = 1 },
+                Transient = new SimplePoco { X = 2 },
+                TransientNumber = 3,
+                TransientNullable = 4
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Persistent.Should().NotBeSameAs(original.Persistent);
+            clone.Persistent!.X.Should().Be(1);
+            clone.Transient.Should().BeNull();
+            clone.TransientNumber.Should().Be(0);
+            clone.TransientNullable.Should().BeNull();
+        }
+
+        [Fact]
+        public void DeepClone_NonSerializedStructField_IsLeftAtDefaultValue()
+        {
+            var original = new StructWithNonSerializedField
+            {
+                Persistent = new SimplePoco { X = 1 },
+                Transient = new SimplePoco { X = 2 }
+            };
+
+            var clone = DeepCloner.DeepClone(original);
+
+            clone.Persistent.Should().NotBeSameAs(original.Persistent);
+            clone.Transient.Should().BeNull();
+        }
+
+        [Fact]
+        public void DeepClone_NonSerializedEvent_DoesNotCopyInvocationList()
+        {
+            var original = new WithNonSerializedEvent();
+            original.SomeEvent += static () => { };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            original.GetEventDelegate().Should().NotBeNull();
+            clone.GetEventDelegate().Should().BeNull();
         }
     }
 
@@ -859,6 +918,588 @@ public class DeepClonerTests
             clone[999].X.Should().Be(999);
             clone[999].Y.Should().Be("value-999");
         }
+
+        [Fact]
+        public void DeepClone_HashSetWithIdentityHashedElements_RebuildsValidBuckets()
+        {
+            var element = new IdentityHashKey { Value = 42 };
+            var original = new HashSet<IdentityHashKey> { element };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            IdentityHashKey clonedElement = clone.Single();
+
+            clone.Should().NotBeSameAs(original);
+            clonedElement.Should().NotBeSameAs(element);
+            clone.Contains(clonedElement).Should().BeTrue(
+                "the clone must hash the cloned element rather than retain the source bucket hash");
+        }
+
+        [Fact]
+        public void DeepClone_HashSetContainingItself_PreservesCycleAndLookup()
+        {
+            var original = new HashSet<object>(ReferenceEqualityComparer.Instance);
+            original.Add(original);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Single().Should().BeSameAs(clone);
+            clone.Contains(clone).Should().BeTrue();
+            clone.Comparer.Should().BeSameAs(ReferenceEqualityComparer.Instance);
+        }
+
+        [Fact]
+        public void DeepClone_DerivedDictionary_RehashesKeysAndClonesDerivedState()
+        {
+            var key = new IdentityHashKey { Value = 7 };
+            var original = new DerivedIdentityDictionary(ReferenceEqualityComparer.Instance)
+            {
+                [key] = new SimplePoco { X = 10 },
+                Metadata = new SimplePoco { X = 20 }
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            IdentityHashKey clonedKey = clone.Keys.Single();
+
+            clone.Should().BeOfType<DerivedIdentityDictionary>();
+            clonedKey.Should().NotBeSameAs(key);
+            clone.ContainsKey(clonedKey).Should().BeTrue();
+            clone[clonedKey].Should().NotBeSameAs(original[key]);
+            clone.Metadata.Should().NotBeSameAs(original.Metadata);
+            clone.Metadata!.X.Should().Be(20);
+            clone.Transient.Should().BeNull(
+                "ignored derived state must be reset even though the collection constructor ran");
+            clone.Comparer.Should().BeSameAs(original.Comparer);
+        }
+
+        [Fact]
+        public void DeepClone_DerivedHashSet_RehashesElementsAndClonesDerivedState()
+        {
+            var element = new IdentityHashKey { Value = 9 };
+            var original = new DerivedIdentityHashSet(ReferenceEqualityComparer.Instance)
+            {
+                Metadata = new SimplePoco { X = 30 }
+            };
+            original.Add(element);
+
+            var clone = DeepCloner.DeepClone(original)!;
+            IdentityHashKey clonedElement = clone.Single();
+
+            clone.Should().BeOfType<DerivedIdentityHashSet>();
+            clonedElement.Should().NotBeSameAs(element);
+            clone.Contains(clonedElement).Should().BeTrue();
+            clone.Metadata.Should().NotBeSameAs(original.Metadata);
+            clone.Metadata!.X.Should().Be(30);
+            clone.Comparer.Should().BeSameAs(original.Comparer);
+        }
+
+        // Constructors are not inherited, so the clone is built through the subclass's own
+        // parameterless constructor — which supplies an equivalent comparer of its own.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithBaseSuppliedComparer_PreservesLookup()
+        {
+            var original = new CaseInsensitiveDictionary { ["Alpha"] = 1 };
+
+            CaseInsensitiveDictionary clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone["ALPHA"].Should().Be(1);
+        }
+
+        // A comparer that carries configuration cannot be assumed equivalent just because the type
+        // matches, so the clone is rejected instead of silently changing lookup semantics.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithStatefulComparer_FailsFast()
+        {
+            var original = new TrimmingDictionary { ["a"] = 1 };
+
+            Action act = () => DeepCloner.DeepClone(original);
+
+            act.Should().Throw<NotSupportedException>().WithMessage("*cannot preserve its comparer*");
+        }
+
+        // An int parameter is only a capacity when the constructor names it one. A domain int must
+        // not be fed the element count, so the parameterless constructor is used instead.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithDomainIntConstructor_UsesParameterlessConstructor()
+        {
+            var original = new TaggedDictionary(42) { ["a"] = 1 };
+
+            TaggedDictionary clone = DeepCloner.DeepClone(original)!;
+
+            clone.Tag.Should().Be(42);
+            clone["a"].Should().Be(1);
+        }
+
+        // With no parameterless constructor there is no way to build a valid empty shell without
+        // running domain logic against a fabricated argument, so the clone is rejected by name.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithOnlyADomainIntConstructor_FailsFast()
+        {
+            var original = new TagOnlyDictionary(42) { ["a"] = 1 };
+
+            Action act = () => DeepCloner.DeepClone(original);
+
+            act.Should().Throw<NotSupportedException>()
+                .WithMessage("*TagOnlyDictionary*no constructor that can create a valid empty clone*");
+        }
+
+        [Fact]
+        public void DeepClone_Queue_PreservesOrderAndClonesElements()
+        {
+            var first = new SimplePoco { X = 1 };
+            var second = new SimplePoco { X = 2 };
+            var original = new Queue<SimplePoco>([first, second]);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Select(item => item.X).Should().Equal(1, 2);
+            clone.ElementAt(0).Should().NotBeSameAs(first);
+            clone.ElementAt(1).Should().NotBeSameAs(second);
+        }
+
+        [Fact]
+        public void DeepClone_QueueContainingItself_PreservesCycle()
+        {
+            var original = new Queue<object>();
+            original.Enqueue(original);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Single().Should().BeSameAs(clone);
+        }
+
+        [Fact]
+        public void DeepClone_Stack_PreservesTopToBottomOrderAndCycle()
+        {
+            var item = new SimplePoco { X = 1 };
+            var original = new Stack<object>();
+            original.Push(item);
+            original.Push(original);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Pop().Should().BeSameAs(clone);
+            var clonedItem = clone.Pop().Should().BeOfType<SimplePoco>().Subject;
+            clonedItem.Should().NotBeSameAs(item);
+            clonedItem.X.Should().Be(1);
+        }
+
+        [Fact]
+        public void DeepClone_DerivedList_PreservesRuntimeTypeAndDerivedState()
+        {
+            var item = new SimplePoco { X = 1 };
+            var original = new DerivedPocoList(4)
+            {
+                Metadata = new SimplePoco { X = 2 }
+            };
+            original.Add(item);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().BeOfType<DerivedPocoList>();
+            clone.Single().Should().NotBeSameAs(item);
+            clone.Single().X.Should().Be(1);
+            clone.Metadata.Should().NotBeSameAs(original.Metadata);
+            clone.Metadata!.X.Should().Be(2);
+        }
+
+        // An int parameter is only a capacity when the constructor names it one. A domain int must
+        // not be fed the element count, so the parameterless constructor is used instead.
+        [Fact]
+        public void DeepClone_ListSubclassWithDomainIntConstructor_UsesParameterlessConstructor()
+        {
+            var original = new TaggedList(42) { 1, 2, 3 };
+
+            TaggedList clone = DeepCloner.DeepClone(original)!;
+
+            clone.Tag.Should().Be(42);
+            clone.Should().Equal(1, 2, 3);
+        }
+
+        // With no parameterless constructor there is no way to build a valid empty shell without
+        // running domain logic against a fabricated argument, so the clone is rejected by name.
+        [Fact]
+        public void DeepClone_ListSubclassWithOnlyADomainIntConstructor_FailsFast()
+        {
+            var original = new TagOnlyList(42) { 1 };
+
+            Action act = () => DeepCloner.DeepClone(original);
+
+            act.Should().Throw<NotSupportedException>()
+                .WithMessage("*TagOnlyList*no constructor that can create a valid empty clone*");
+        }
+
+        [Fact]
+        public void DeepClone_ConcurrentDictionary_RehashesKeysAndPreservesComparer()
+        {
+            var key = new IdentityHashKey { Value = 11 };
+            var original = new ConcurrentDictionary<IdentityHashKey, SimplePoco>(
+                ReferenceEqualityComparer.Instance);
+            original[key] = new SimplePoco { X = 12 };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            IdentityHashKey clonedKey = clone.Keys.Single();
+
+            clone.Should().NotBeSameAs(original);
+            clonedKey.Should().NotBeSameAs(key);
+            clone.ContainsKey(clonedKey).Should().BeTrue();
+            clone[clonedKey].Should().NotBeSameAs(original[key]);
+            clone.Comparer.Should().BeSameAs(ReferenceEqualityComparer.Instance);
+        }
+
+        [Fact]
+        public void DeepClone_ConcurrentQueueContainingItself_PreservesCycle()
+        {
+            var original = new ConcurrentQueue<object>();
+            original.Enqueue(original);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Single().Should().BeSameAs(clone);
+        }
+
+        [Fact]
+        public void DeepClone_ConcurrentStack_PreservesOrderAndClonesElements()
+        {
+            var first = new SimplePoco { X = 1 };
+            var second = new SimplePoco { X = 2 };
+            var original = new ConcurrentStack<SimplePoco>();
+            original.Push(first);
+            original.Push(second);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Select(item => item.X).Should().Equal(2, 1);
+            clone.ElementAt(0).Should().NotBeSameAs(second);
+            clone.ElementAt(1).Should().NotBeSameAs(first);
+        }
+
+        [Fact]
+        public void DeepClone_ConcurrentBag_ClonesSnapshotElements()
+        {
+            var item = new SimplePoco { X = 5 };
+            var original = new ConcurrentBag<SimplePoco> { item };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Should().ContainSingle();
+            clone.Single().Should().NotBeSameAs(item);
+            clone.Single().X.Should().Be(5);
+        }
+
+        [Fact]
+        public void DeepClone_SortedDictionary_RebuildsKeysAndPreservesComparer()
+        {
+            var comparer = new PocoValueComparer();
+            var key = new SimplePoco { X = 3 };
+            var original = new SortedDictionary<SimplePoco, SimplePoco>(comparer)
+            {
+                [key] = new SimplePoco { X = 4 }
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            SimplePoco clonedKey = clone.Keys.Single();
+
+            clonedKey.Should().NotBeSameAs(key);
+            clone.ContainsKey(clonedKey).Should().BeTrue();
+            clone[clonedKey].Should().NotBeSameAs(original[key]);
+            clone.Comparer.Should().BeSameAs(comparer);
+        }
+
+        [Fact]
+        public void DeepClone_SortedList_RebuildsKeysAndValues()
+        {
+            var comparer = new PocoValueComparer();
+            var key = new SimplePoco { X = 7 };
+            var original = new SortedList<SimplePoco, SimplePoco>(comparer)
+            {
+                [key] = new SimplePoco { X = 8 }
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            SimplePoco clonedKey = clone.Keys.Single();
+
+            clonedKey.Should().NotBeSameAs(key);
+            clone.ContainsKey(clonedKey).Should().BeTrue();
+            clone.Values.Single().Should().NotBeSameAs(original.Values.Single());
+            clone.Comparer.Should().BeSameAs(comparer);
+        }
+
+        [Fact]
+        public void DeepClone_SortedSet_RebuildsElementsAndPreservesComparer()
+        {
+            var comparer = new PocoValueComparer();
+            var item = new SimplePoco { X = 9 };
+            var original = new SortedSet<SimplePoco>(comparer) { item };
+
+            var clone = DeepCloner.DeepClone(original)!;
+            SimplePoco clonedItem = clone.Single();
+
+            clonedItem.Should().NotBeSameAs(item);
+            clone.Contains(clonedItem).Should().BeTrue();
+            clone.Comparer.Should().BeSameAs(comparer);
+        }
+
+        [Fact]
+        public void DeepClone_ImmutableArray_ClonesMutableElements()
+        {
+            var item = new SimplePoco { X = 13 };
+            ImmutableArray<SimplePoco> original = [item];
+
+            ImmutableArray<SimplePoco> clone = DeepCloner.DeepClone(original);
+
+            clone.Should().HaveCount(1);
+            clone[0].Should().NotBeSameAs(item);
+            clone[0].X.Should().Be(13);
+        }
+
+        // Immutable collections are containers, not values: the container cannot be mutated
+        // through the clone, but its elements can, so they are rebuilt from cloned elements.
+        [Fact]
+        public void DeepClone_ImmutableList_ClonesMutableElements()
+        {
+            ImmutableList<SimplePoco> original = [new SimplePoco { X = 14 }];
+
+            ImmutableList<SimplePoco> clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Should().ContainSingle();
+            clone[0].Should().NotBeSameAs(original[0]);
+            clone[0].X.Should().Be(14);
+        }
+
+        [Fact]
+        public void DeepClone_ImmutableStackAndQueue_PreserveOrder()
+        {
+            ImmutableStack<int> stack = ImmutableStack.CreateRange([1, 2, 3]);
+            ImmutableQueue<int> queue = ImmutableQueue.CreateRange([1, 2, 3]);
+
+            DeepCloner.DeepClone(stack).Should().Equal(stack);
+            DeepCloner.DeepClone(queue).Should().Equal(queue);
+        }
+
+        [Fact]
+        public void DeepClone_ImmutableDictionary_ClonesValuesAndPreservesComparer()
+        {
+            ImmutableDictionary<string, SimplePoco> original = ImmutableDictionary
+                .CreateRange(
+                    StringComparer.OrdinalIgnoreCase,
+                    [KeyValuePair.Create("a", new SimplePoco { X = 15 })]);
+
+            ImmutableDictionary<string, SimplePoco> clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.KeyComparer.Should().BeSameAs(StringComparer.OrdinalIgnoreCase);
+            clone["A"].Should().NotBeSameAs(original["a"]);
+            clone["A"].X.Should().Be(15);
+        }
+
+        [Fact]
+        public void DeepClone_ImmutableHashSet_RehashesClonedElements()
+        {
+            var element = new IdentityHashKey { Value = 16 };
+            ImmutableHashSet<IdentityHashKey> original = [element];
+
+            ImmutableHashSet<IdentityHashKey> clone = DeepCloner.DeepClone(original)!;
+
+            IdentityHashKey clonedElement = clone.Single();
+            clonedElement.Should().NotBeSameAs(element);
+            clone.Contains(clonedElement).Should().BeTrue();
+        }
+
+        [Fact]
+        public void DeepClone_FrozenCollections_ClonesEntriesAndPreservesComparer()
+        {
+            FrozenDictionary<string, SimplePoco> dictionary =
+                new Dictionary<string, SimplePoco> { ["a"] = new() { X = 17 } }
+                    .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+            FrozenSet<SimplePoco> set = new[] { new SimplePoco { X = 18 } }.ToFrozenSet();
+
+            FrozenDictionary<string, SimplePoco> dictionaryClone = DeepCloner.DeepClone(dictionary)!;
+            FrozenSet<SimplePoco> setClone = DeepCloner.DeepClone(set)!;
+
+            dictionaryClone.Should().NotBeSameAs(dictionary);
+            dictionaryClone.Comparer.Should().BeSameAs(StringComparer.OrdinalIgnoreCase);
+            dictionaryClone["A"].Should().NotBeSameAs(dictionary["a"]);
+            dictionaryClone["A"].X.Should().Be(17);
+
+            setClone.Should().NotBeSameAs(set);
+            setClone.Single().Should().NotBeSameAs(set.Single());
+            setClone.Single().X.Should().Be(18);
+        }
+
+        // A back-edge that passes through an already-registered object is fine: the holder is
+        // registered before its field is cloned, so the immutable list can close the cycle.
+        [Fact]
+        public void DeepClone_CycleEnteredThroughHolder_PreservesCycle()
+        {
+            var original = new ImmutableListHolder();
+            original.Items = [original];
+
+            ImmutableListHolder clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Items.Should().NotBeSameAs(original.Items);
+            clone.Items.Single().Should().BeSameAs(clone);
+        }
+
+        // Entered from the collection itself there is nothing to register first: the instance
+        // cannot exist before its contents do.
+        [Fact]
+        public void DeepClone_CycleEnteredThroughImmutableList_FailsFast()
+        {
+            var holder = new ImmutableListHolder();
+            holder.Items = [holder];
+
+            Action act = () => DeepCloner.DeepClone(holder.Items);
+
+            act.Should().Throw<NotSupportedException>().WithMessage("*cycle*");
+        }
+
+        [Fact]
+        public void DeepClone_LinkedListAndExternalNode_PreservesNodeOwnershipAlias()
+        {
+            var item = new SimplePoco { X = 16 };
+            var list = new LinkedList<SimplePoco>();
+            LinkedListNode<SimplePoco> node = list.AddLast(item);
+            var original = new LinkedListHolder(list, node);
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.List.Should().NotBeSameAs(list);
+            clone.Node.Should().NotBeSameAs(node);
+            clone.Node.Should().BeSameAs(clone.List!.First);
+            clone.Node!.List.Should().BeSameAs(clone.List);
+            clone.Node.Value.Should().NotBeSameAs(item);
+        }
+
+        [Fact]
+        public void DeepClone_ReadOnlyCollection_PreservesBackingListAlias()
+        {
+            var list = new List<SimplePoco> { new() { X = 17 } };
+            var original = new ReadOnlyCollectionHolder(
+                list,
+                new ReadOnlyCollection<SimplePoco>(list));
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.List.Should().NotBeSameAs(list);
+            clone.View.Should().NotBeSameAs(original.View);
+            clone.View![0].Should().BeSameAs(clone.List![0]);
+            clone.List.Add(new SimplePoco { X = 18 });
+            clone.View.Should().HaveCount(2,
+                "the cloned wrapper must reference the cloned backing list");
+        }
+
+        [Fact] // A seeding constructor leaves its own elements in front of the cloned ones
+        public void DeepClone_DerivedCollectionWithSeedingConstructor_FailsFast()
+        {
+            var list = new SeedingList { 5 };
+            var queue = new SeedingQueue();
+            queue.Enqueue(5);
+            var dictionary = new SeedingDictionary { ["a"] = 5 };
+            var set = new SeedingHashSet { 5 };
+
+            Action cloneList = () => DeepCloner.DeepClone(list);
+            Action cloneQueue = () => DeepCloner.DeepClone(queue);
+            Action cloneDictionary = () => DeepCloner.DeepClone(dictionary);
+            Action cloneSet = () => DeepCloner.DeepClone(set);
+
+            cloneList.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
+            cloneQueue.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
+            cloneDictionary.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
+            cloneSet.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
+        }
+
+        // Whether an immutable collection can be rebuilt depends on its own contents. A deferral
+        // somewhere else in the graph must not decide it, or field declaration order does.
+        [Fact]
+        public void DeepClone_ImmutableCollectionAfterDeepChain_DoesNotDependOnFieldOrder()
+        {
+            const int Depth = 300;
+            var immutableFirst = new ImmutableFirstHolder
+            {
+                List = [1, 2, 3],
+                Set = [1, 2, 3],
+                Deep = BuildNodeChain(Depth),
+            };
+            var deepFirst = new DeepFirstHolder
+            {
+                Deep = BuildNodeChain(Depth),
+                List = [1, 2, 3],
+                Set = [1, 2, 3],
+            };
+
+            ImmutableFirstHolder immutableFirstClone = DeepCloner.DeepClone(immutableFirst)!;
+            DeepFirstHolder deepFirstClone = DeepCloner.DeepClone(deepFirst)!;
+
+            immutableFirstClone.List.Should().Equal(1, 2, 3);
+            immutableFirstClone.Set.Should().BeEquivalentTo(new[] { 1, 2, 3 });
+            deepFirstClone.List.Should().Equal(1, 2, 3);
+            deepFirstClone.Set.Should().BeEquivalentTo(new[] { 1, 2, 3 });
+        }
+
+        // A value neither hashes nor orders its entry, so a value deep enough to be populated later
+        // is no reason to reject the dictionary it sits in.
+        [Fact]
+        public void DeepClone_ImmutableDictionaryWithDeepValues_ClonesEveryEntry()
+        {
+            const int Depth = 300;
+            ImmutableDictionary<string, Node> original = ImmutableDictionary.CreateRange(
+                new Dictionary<string, Node>
+                {
+                    ["a"] = BuildNodeChain(Depth),
+                    ["b"] = BuildNodeChain(Depth),
+                });
+
+            ImmutableDictionary<string, Node> clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().HaveCount(2);
+            foreach (string key in new[] { "a", "b" })
+            {
+                clone[key].Should().NotBeSameAs(original[key]);
+
+                var walked = 0;
+                for (Node? cursor = clone[key]; cursor is not null; cursor = cursor.Next)
+                {
+                    cursor.Value.Should().Be(walked);
+                    walked++;
+                }
+
+                walked.Should().Be(Depth, "every node behind the recursion guard must be populated");
+            }
+        }
+
+        // A comparer that keeps its configuration in a base class is configured all the same:
+        // GetFields does not surface an inherited private field, so the hierarchy has to be walked.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithInheritedComparerState_FailsFast()
+        {
+            var original = new InheritedTrimmingDictionary { ["a"] = 1 };
+
+            Action act = () => DeepCloner.DeepClone(original);
+
+            act.Should().Throw<NotSupportedException>().WithMessage("*cannot preserve its comparer*");
+        }
+
+        private static Node BuildNodeChain(int depth)
+        {
+            var head = new Node();
+            Node current = head;
+            for (var i = 1; i < depth; i++)
+            {
+                current.Next = new Node { Value = i };
+                current = current.Next;
+            }
+
+            return head;
+        }
     }
 
     // =========================================================================
@@ -1008,14 +1649,10 @@ public class DeepClonerTests
 
     public class DeepGraphTests
     {
-        // NOTE: the current implementation is recursive (CloneObject → delegate → CloneObject).
-        // At ~6 stack frames per node level, 200 nodes fits safely in a 4 MB thread stack even
-        // in a test-runner environment that already has substantial stack usage.
-        // If the implementation is changed to an iterative approach this limit can be raised.
-        [Fact] // Moderately deep linked list must not cause a StackOverflowException
+        [Fact]
         public void DeepClone_DeepLinkedList_DoesNotOverflowStack()
         {
-            const int Depth = 200;
+            const int Depth = 20_000;
             var head = new Node { Value = 0 };
             var current = head;
             for (var i = 1; i < Depth; i++)
@@ -1039,6 +1676,231 @@ public class DeepClonerTests
                 count++;
             }
             count.Should().Be(Depth);
+        }
+
+        [Fact]
+        public void DeepClone_DeepArrayChain_DoesNotOverflowStack()
+        {
+            const int Depth = 5_000;
+            var root = new object[1];
+            object[] current = root;
+            for (var i = 1; i < Depth; i++)
+            {
+                var next = new object[1];
+                current[0] = next;
+                current = next;
+            }
+
+            object[] clone = DeepCloner.DeepClone(root)!;
+
+            object[] originalCursor = root;
+            object[] cloneCursor = clone;
+            for (var i = 1; i < Depth; i++)
+            {
+                cloneCursor.Should().NotBeSameAs(originalCursor);
+                originalCursor = (object[])originalCursor[0];
+                cloneCursor = (object[])cloneCursor[0];
+            }
+            cloneCursor.Should().NotBeSameAs(originalCursor);
+        }
+
+        // Past the recursion guard a clone is handed out before its fields are populated. A
+        // collection that hashes or orders by element state must wait for it, or the entry is
+        // filed under default field values — silently dropping or hiding it.
+        [Theory]
+        [InlineData(20)]  // below the guard — entries are inserted while cloning
+        [InlineData(200)] // above it — entries are inserted after the graph is complete
+        public void DeepClone_DeepChainOfDictionaries_PreservesEveryEntry(int levels)
+        {
+            DictionaryChainNode original = BuildDictionaryChain(levels);
+
+            DictionaryChainNode clone = DeepCloner.DeepClone(original)!;
+
+            var walked = 0;
+            DictionaryChainNode? cursor = clone;
+            while (cursor is not null && cursor.Children.Count > 0)
+            {
+                cursor.Children.Should().HaveCount(2, "no entry may collapse into another");
+                foreach (KeyRecord key in cursor.Children.Keys.ToList())
+                {
+                    cursor.Children.ContainsKey(key).Should()
+                        .BeTrue("every entry must be reachable through its own key");
+                }
+
+                cursor = cursor.Children.Values.Single(child => child is not null);
+                walked++;
+            }
+
+            walked.Should().Be(levels - 1);
+        }
+
+        [Theory]
+        [InlineData(20)]
+        [InlineData(200)]
+        public void DeepClone_DeepChainOfHashSets_PreservesEveryElement(int levels)
+        {
+            HashSetChainNode original = BuildHashSetChain(levels);
+
+            HashSetChainNode clone = DeepCloner.DeepClone(original)!;
+
+            var walked = 0;
+            for (HashSetChainNode? cursor = clone; cursor is not null; cursor = cursor.Next)
+            {
+                cursor.Tags.Should().HaveCount(2, "no element may collapse into another");
+                foreach (KeyRecord tag in cursor.Tags)
+                    cursor.Tags.Contains(tag).Should().BeTrue("the element must hash into its own bucket");
+
+                walked++;
+            }
+
+            walked.Should().Be(levels);
+        }
+
+        [Theory]
+        [InlineData(20)]
+        [InlineData(200)]
+        public void DeepClone_DeepChainOfSortedSets_PreservesEveryElement(int levels)
+        {
+            SortedSetChainNode original = BuildSortedSetChain(levels);
+
+            SortedSetChainNode clone = DeepCloner.DeepClone(original)!;
+
+            var walked = 0;
+            for (SortedSetChainNode? cursor = clone; cursor is not null; cursor = cursor.Next)
+            {
+                cursor.Tags.Should().HaveCount(2, "elements comparing equal would collapse");
+                cursor.Tags.Select(tag => tag.X).Should().BeInAscendingOrder();
+                walked++;
+            }
+
+            walked.Should().Be(levels);
+        }
+
+        // Every level carries a set of sets, so some level is guaranteed to straddle the
+        // recursion guard: its outer set is filled while the inner sets are still queued.
+        [Fact]
+        public void DeepClone_DeepGraphWithNestedHashSets_FillsInnerSetsFirst()
+        {
+            const int Levels = 200;
+            NestedSetChainNode? original = null;
+            for (var i = 0; i < Levels; i++)
+            {
+                var node = new NestedSetChainNode { Next = original };
+                node.Sets.Add([new KeyRecord((2 * i) + 1)]);
+                node.Sets.Add([new KeyRecord((2 * i) + 2)]);
+                original = node;
+            }
+
+            NestedSetChainNode clone = DeepCloner.DeepClone(original)!;
+
+            var walked = 0;
+            for (NestedSetChainNode? cursor = clone; cursor is not null; cursor = cursor.Next)
+            {
+                cursor.Sets.Should().HaveCount(2, "empty inner sets would hash alike and collapse");
+                foreach (HashSet<KeyRecord> inner in cursor.Sets)
+                {
+                    inner.Should().ContainSingle();
+                    cursor.Sets.Contains(inner).Should()
+                        .BeTrue("the outer set must hash the filled inner set");
+                }
+
+                walked++;
+            }
+
+            walked.Should().Be(Levels);
+        }
+
+        // An immutable collection cannot be deferred — it has to exist complete — so nesting is
+        // bounded by rejecting it. Without that bound this recursion takes the process down.
+        [Fact]
+        public void DeepClone_DeeplyNestedImmutableLists_FailsFastInsteadOfOverflowing()
+        {
+            object nested = ImmutableList.Create<object>(1);
+            for (var i = 0; i < 20_000; i++)
+                nested = ImmutableList.Create(nested);
+
+            Action act = () => DeepCloner.DeepClone(nested);
+
+            act.Should().Throw<NotSupportedException>().WithMessage("*nest deeper*");
+        }
+
+        // The cycle runs purely through the values. Values neither hash nor order their entry, so
+        // there is nothing here for the two queued insertions to wait for.
+        [Fact]
+        public void DeepClone_DictionariesCyclingThroughValues_PreservesCycle()
+        {
+            const int Depth = 300;
+            var first = new Dictionary<string, object>();
+            var second = new Dictionary<string, object>();
+            first["a"] = second;
+            second["a"] = first;
+
+            var head = new Node();
+            Node current = head;
+            for (var i = 1; i < Depth; i++)
+            {
+                current.Next = new Node { Value = i };
+                current = current.Next;
+            }
+
+            var original = new DeferredDictionaryHolder(first) { Deep = head };
+
+            DeferredDictionaryHolder clone = DeepCloner.DeepClone(original)!;
+
+            Dictionary<string, object> clonedFirst = clone.Cycle;
+            var clonedSecond = (Dictionary<string, object>)clonedFirst["a"];
+            clonedFirst.Should().NotBeSameAs(first);
+            clonedSecond.Should().NotBeSameAs(second);
+            clonedSecond["a"].Should().BeSameAs(clonedFirst);
+        }
+
+        private static DictionaryChainNode BuildDictionaryChain(int levels)
+        {
+            var nodes = new List<DictionaryChainNode>();
+            for (var i = 0; i < levels; i++)
+                nodes.Add(new DictionaryChainNode());
+
+            for (var i = 0; i < levels - 1; i++)
+            {
+                nodes[i].Children[new KeyRecord((2 * i) + 1)] = nodes[i + 1];
+                nodes[i].Children[new KeyRecord((2 * i) + 2)] = null;
+            }
+
+            return nodes[0];
+        }
+
+        private static HashSetChainNode BuildHashSetChain(int levels)
+        {
+            var nodes = new List<HashSetChainNode>();
+            for (var i = 0; i < levels; i++)
+            {
+                var node = new HashSetChainNode();
+                node.Tags.Add(new KeyRecord((2 * i) + 1));
+                node.Tags.Add(new KeyRecord((2 * i) + 2));
+                nodes.Add(node);
+            }
+
+            for (var i = 0; i < levels - 1; i++)
+                nodes[i].Next = nodes[i + 1];
+
+            return nodes[0];
+        }
+
+        private static SortedSetChainNode BuildSortedSetChain(int levels)
+        {
+            var nodes = new List<SortedSetChainNode>();
+            for (var i = 0; i < levels; i++)
+            {
+                var node = new SortedSetChainNode();
+                node.Tags.Add(new SimplePoco { X = (2 * i) + 1 });
+                node.Tags.Add(new SimplePoco { X = (2 * i) + 2 });
+                nodes.Add(node);
+            }
+
+            for (var i = 0; i < levels - 1; i++)
+                nodes[i].Next = nodes[i + 1];
+
+            return nodes[0];
         }
     }
 
@@ -1091,6 +1953,116 @@ public class DeepClonerTests
         {
             public IAggregatingPooling<object>? Pooling { get; set; }
             public SimplePoco? Poco { get; set; }
+        }
+    }
+
+    // =========================================================================
+    // Runtime-managed and resource-owning objects — shared by reference
+    // =========================================================================
+
+    public class RuntimeManagedTypeTests
+    {
+        [Fact]
+        public void DeepClone_KnownRuntimeManagedObjects_ReturnsSameReferences()
+        {
+            Task<int> task = Task.FromResult(42);
+            var weakReference = new WeakReference<object>(new object());
+            var lazy = new Lazy<SimplePoco>(() => new SimplePoco { X = 1 });
+            using var cancellation = new CancellationTokenSource();
+            using var stream = new MemoryStream([1, 2, 3]);
+
+            DeepCloner.DeepClone(DBNull.Value).Should().BeSameAs(DBNull.Value);
+            DeepCloner.DeepClone(TimeZoneInfo.Utc).Should().BeSameAs(TimeZoneInfo.Utc);
+            DeepCloner.DeepClone(task).Should().BeSameAs(task);
+            DeepCloner.DeepClone(weakReference).Should().BeSameAs(weakReference);
+            DeepCloner.DeepClone(lazy).Should().BeSameAs(lazy);
+            DeepCloner.DeepClone(cancellation).Should().BeSameAs(cancellation);
+            DeepCloner.DeepClone(stream).Should().BeSameAs(stream);
+            DeepCloner.DeepClone(StringComparer.OrdinalIgnoreCase)
+                .Should().BeSameAs(StringComparer.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void DeepClone_FrameworkComparers_ReturnSameReferences()
+        {
+            DeepCloner.DeepClone(EqualityComparer<string>.Default)
+                .Should().BeSameAs(EqualityComparer<string>.Default);
+            DeepCloner.DeepClone(Comparer<string>.Default)
+                .Should().BeSameAs(Comparer<string>.Default);
+            DeepCloner.DeepClone(ReferenceEqualityComparer.Instance)
+                .Should().BeSameAs(ReferenceEqualityComparer.Instance);
+        }
+
+        // Implementing a comparer interface says nothing about immutability. A data object that also
+        // carries a comparison rule is data, and the caller asked for an independent copy.
+        [Fact]
+        public void DeepClone_MutableDataImplementingComparer_IsCloned()
+        {
+            var original = new SortRuleHolder { Rule = new SortRule { Descending = true } };
+
+            SortRuleHolder clone = DeepCloner.DeepClone(original)!;
+
+            clone.Rule.Should().NotBeSameAs(original.Rule);
+            clone.Rule!.Descending.Should().BeTrue();
+
+            clone.Rule.Descending = false;
+            original.Rule!.Descending.Should().BeTrue("the clone must not alias the source");
+        }
+
+        [Fact]
+        public void DeepClone_FinalizableObject_ReturnsSameReference()
+        {
+            var original = new FinalizableResource();
+
+            var clone = DeepCloner.DeepClone(original);
+
+            clone.Should().BeSameAs(original,
+                "duplicating a finalizable owner could execute cleanup twice");
+            GC.KeepAlive(original);
+        }
+
+        [Fact] // Being disposable is not by itself a reason to share — the caller asked for a copy
+        public void DeepClone_PlainDisposable_IsDeepCloned()
+        {
+            using var original = new DisposableData { Payload = new SimplePoco { X = 5 } };
+
+            using DisposableData clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.Payload.Should().NotBeSameAs(original.Payload);
+            clone.Payload!.X.Should().Be(5);
+        }
+
+        [Fact] // Mutating the clone must not reach the original
+        public void DeepClone_HolderWithPlainDisposable_ClonesIndependently()
+        {
+            using var state = new DisposableData { Payload = new SimplePoco { X = 1 } };
+            var original = new DisposableHolder { State = state };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.State.Should().NotBeSameAs(state);
+            clone.State!.Payload!.X = 99;
+            state.Payload!.X.Should().Be(1);
+            clone.State.Dispose();
+        }
+
+        [Fact]
+        public void DeepClone_HolderWithRuntimeObject_SharesResourceAndClonesData()
+        {
+            using var stream = new MemoryStream([1, 2, 3]);
+            var original = new RuntimeManagedHolder
+            {
+                RuntimeObject = stream,
+                Data = new SimplePoco { X = 42 }
+            };
+
+            var clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().NotBeSameAs(original);
+            clone.RuntimeObject.Should().BeSameAs(stream);
+            clone.Data.Should().NotBeSameAs(original.Data);
+            clone.Data!.X.Should().Be(42);
         }
     }
 
@@ -1378,6 +2350,70 @@ public class DeepClonerTests
         public SimplePoco? Second { get; set; }
     }
 
+    public sealed class RuntimeManagedHolder
+    {
+        public object? RuntimeObject { get; set; }
+        public SimplePoco? Data { get; set; }
+    }
+
+    public sealed class LinkedListHolder(
+        LinkedList<SimplePoco> list,
+        LinkedListNode<SimplePoco> node)
+    {
+        private readonly LinkedList<SimplePoco> _list = list;
+        private readonly LinkedListNode<SimplePoco> _node = node;
+
+        public LinkedList<SimplePoco> List => _list;
+        public LinkedListNode<SimplePoco> Node => _node;
+    }
+
+    public sealed class ReadOnlyCollectionHolder(
+        List<SimplePoco> list,
+        ReadOnlyCollection<SimplePoco> view)
+    {
+        private readonly List<SimplePoco> _list = list;
+        private readonly ReadOnlyCollection<SimplePoco> _view = view;
+
+        public List<SimplePoco> List => _list;
+        public ReadOnlyCollection<SimplePoco> View => _view;
+    }
+
+    [SuppressMessage("Performance", "CA1821:Remove empty finalizers",
+        Justification = "Exercises the clone policy for arbitrary finalizable resource owners.")]
+    public sealed class FinalizableResource
+    {
+        ~FinalizableResource()
+        {
+        }
+    }
+
+    // Mutable data that also carries a comparison rule — data, not a stateless framework comparer.
+    public sealed class SortRule : IComparer<string>
+    {
+        public bool Descending { get; set; }
+
+        public int Compare(string? x, string? y)
+            => Descending ? string.CompareOrdinal(y, x) : string.CompareOrdinal(x, y);
+    }
+
+    public sealed class SortRuleHolder
+    {
+        public SortRule? Rule { get; set; }
+    }
+
+    // Disposable, but owns no external resource and has no finalizer — ordinary data.
+    public sealed class DisposableData : IDisposable
+    {
+        public SimplePoco? Payload { get; set; }
+
+        public void Dispose() => GC.SuppressFinalize(this);
+    }
+
+    public sealed class DisposableHolder
+    {
+        public DisposableData? State { get; set; }
+    }
+
     public class WithDelegateField
     {
         public Action? Handler { get; set; }
@@ -1394,6 +2430,37 @@ public class DeepClonerTests
         }
 
         public Delegate? GetEventDelegate() => _someEvent;
+    }
+
+    public sealed class WithNonSerializedFields
+    {
+        public SimplePoco? Persistent { get; set; }
+
+        [field: NonSerialized]
+        public SimplePoco? Transient { get; set; }
+
+        [field: NonSerialized]
+        public int TransientNumber { get; set; }
+
+        [field: NonSerialized]
+        public int? TransientNullable { get; set; }
+    }
+
+    [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]
+    public struct StructWithNonSerializedField
+    {
+        public SimplePoco? Persistent { get; set; }
+
+        [field: NonSerialized]
+        public SimplePoco? Transient { get; set; }
+    }
+
+    public sealed class WithNonSerializedEvent
+    {
+        [field: NonSerialized]
+        public event Action? SomeEvent;
+
+        public Delegate? GetEventDelegate() => SomeEvent;
     }
 
     public class WithTypeField
@@ -1456,6 +2523,244 @@ public class DeepClonerTests
         public int Modulo { get; set; } = 10;
         public bool Equals(int x, int y) => x % Modulo == y % Modulo;
         public int GetHashCode(int obj) => obj % Modulo;
+    }
+
+    private sealed class PocoValueComparer : IComparer<SimplePoco>
+    {
+        public int Compare(SimplePoco? x, SimplePoco? y)
+            => Nullable.Compare(x?.X, y?.X);
+    }
+
+    public sealed class IdentityHashKey
+    {
+        public int Value { get; set; }
+        public override int GetHashCode() => RuntimeHelpers.GetHashCode(this);
+    }
+
+    public sealed class DerivedIdentityDictionary(IEqualityComparer<IdentityHashKey> comparer)
+        : Dictionary<IdentityHashKey, SimplePoco>(comparer)
+    {
+        public SimplePoco? Metadata { get; set; }
+
+        [field: NonSerialized]
+        public SimplePoco? Transient { get; set; } = new() { X = -1 };
+    }
+
+    public sealed class DerivedIdentityHashSet(IEqualityComparer<IdentityHashKey> comparer)
+        : HashSet<IdentityHashKey>(comparer)
+    {
+        public SimplePoco? Metadata { get; set; }
+    }
+
+    // Stateless, so any instance behaves exactly like any other.
+    public sealed class OrdinalIgnoreCaseKeys : IEqualityComparer<string>
+    {
+        public bool Equals(string? x, string? y) => StringComparer.OrdinalIgnoreCase.Equals(x, y);
+
+        public int GetHashCode(string obj) => StringComparer.OrdinalIgnoreCase.GetHashCode(obj);
+    }
+
+    // Carries configuration, so two instances of it are not interchangeable.
+    public sealed class TrimmingKeys(bool trim) : IEqualityComparer<string>
+    {
+        private readonly bool _trim = trim;
+
+        public bool Equals(string? x, string? y)
+            => string.Equals(Normalize(x), Normalize(y), StringComparison.Ordinal);
+
+        public int GetHashCode(string obj) => Normalize(obj)?.GetHashCode(StringComparison.Ordinal) ?? 0;
+
+        private string? Normalize(string? value) => _trim ? value?.Trim() : value;
+    }
+
+    public sealed class CaseInsensitiveDictionary : Dictionary<string, int>
+    {
+        public CaseInsensitiveDictionary() : base(new OrdinalIgnoreCaseKeys())
+        {
+        }
+    }
+
+    public sealed class TrimmingDictionary : Dictionary<string, int>
+    {
+        public TrimmingDictionary() : base(new TrimmingKeys(trim: true))
+        {
+        }
+    }
+
+    // The int is a domain value, not a capacity — feeding it the element count would run this
+    // validation against a fabricated argument.
+    public sealed class TaggedDictionary : Dictionary<string, int>
+    {
+        public TaggedDictionary()
+        {
+        }
+
+        public TaggedDictionary(int tag)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
+            Tag = tag;
+        }
+
+        public int Tag { get; set; }
+    }
+
+    public sealed class TagOnlyDictionary : Dictionary<string, int>
+    {
+        public TagOnlyDictionary(int tag)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
+            Tag = tag;
+        }
+
+        public int Tag { get; set; }
+    }
+
+    public sealed class DerivedPocoList(int capacity) : List<SimplePoco>(capacity)
+    {
+        public SimplePoco? Metadata { get; set; }
+    }
+
+    // The int is a domain value, not a capacity.
+    public sealed class TaggedList : List<int>
+    {
+        public TaggedList()
+        {
+        }
+
+        public TaggedList(int tag)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
+            Tag = tag;
+        }
+
+        public int Tag { get; set; }
+    }
+
+    public sealed class TagOnlyList : List<int>
+    {
+        public TagOnlyList(int tag)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tag);
+            Tag = tag;
+        }
+
+        public int Tag { get; set; }
+    }
+
+    public sealed class ImmutableListHolder
+    {
+        public ImmutableList<object> Items { get; set; } = [];
+    }
+
+    // The same members in both orders: only the order in which their fields are cloned differs.
+    public sealed class ImmutableFirstHolder
+    {
+        public ImmutableList<int> List { get; set; } = [];
+
+        public ImmutableHashSet<int> Set { get; set; } = [];
+
+        public Node? Deep { get; set; }
+    }
+
+    public sealed class DeepFirstHolder
+    {
+        public Node? Deep { get; set; }
+
+        public ImmutableList<int> List { get; set; } = [];
+
+        public ImmutableHashSet<int> Set { get; set; } = [];
+    }
+
+    // The chain is deep enough to defer, so the dictionary behind it is filled after the fact.
+    public sealed class DeferredDictionaryHolder(Dictionary<string, object> cycle)
+    {
+        public Node? Deep { get; set; }
+
+        public Dictionary<string, object> Cycle { get; } = cycle;
+    }
+
+    // Carries its configuration in a private field on the base class, where Type.GetFields on the
+    // derived type does not surface it.
+    public abstract class ConfiguredKeysBase(bool trim)
+    {
+        private readonly bool _trim = trim;
+
+        protected string? Normalize(string? value) => _trim ? value?.Trim() : value;
+    }
+
+    public sealed class InheritedTrimmingKeys() : ConfiguredKeysBase(trim: true), IEqualityComparer<string>
+    {
+        public bool Equals(string? x, string? y)
+            => string.Equals(Normalize(x), Normalize(y), StringComparison.Ordinal);
+
+        public int GetHashCode(string obj) => Normalize(obj)?.GetHashCode(StringComparison.Ordinal) ?? 0;
+    }
+
+    public sealed class InheritedTrimmingDictionary : Dictionary<string, int>
+    {
+        public InheritedTrimmingDictionary() : base(new InheritedTrimmingKeys())
+        {
+        }
+    }
+
+    // Deep-graph payloads whose keys and elements hash or order by field state, so an
+    // unpopulated clone would be filed under default values instead of its own.
+    public sealed record KeyRecord(int Id);
+
+    public sealed class DictionaryChainNode
+    {
+        public Dictionary<KeyRecord, DictionaryChainNode?> Children { get; } = [];
+    }
+
+    public sealed class HashSetChainNode
+    {
+        public HashSet<KeyRecord> Tags { get; } = [];
+
+        public HashSetChainNode? Next { get; set; }
+    }
+
+    public sealed class SortedSetChainNode
+    {
+        public SortedSet<SimplePoco> Tags { get; } = new(new PocoValueComparer());
+
+        public SortedSetChainNode? Next { get; set; }
+    }
+
+    public sealed class NestedSetChainNode
+    {
+        public NestedSetChainNode? Next { get; set; }
+
+        public HashSet<HashSet<KeyRecord>> Sets { get; } = new(HashSet<KeyRecord>.CreateSetComparer());
+    }
+
+    // Derived collections whose constructors seed content — every constructor the clone
+    // factories can pick must be covered, otherwise the guard is bypassed.
+    public sealed class SeedingList : List<int>
+    {
+        public SeedingList() => Add(-1);
+        public SeedingList(int capacity) : base(capacity) => Add(-1);
+    }
+
+    public sealed class SeedingQueue : Queue<int>
+    {
+        public SeedingQueue() => Enqueue(-1);
+        public SeedingQueue(int capacity) : base(capacity) => Enqueue(-1);
+    }
+
+    public sealed class SeedingDictionary : Dictionary<string, int>
+    {
+        public SeedingDictionary() => Add("seed", -1);
+
+        public SeedingDictionary(int capacity, IEqualityComparer<string>? comparer)
+            : base(capacity, comparer) => Add("seed", -1);
+    }
+
+    public sealed class SeedingHashSet : HashSet<int>
+    {
+        public SeedingHashSet() => Add(-1);
+
+        public SeedingHashSet(int capacity, IEqualityComparer<int>? comparer)
+            : base(capacity, comparer) => Add(-1);
     }
 
     [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]
