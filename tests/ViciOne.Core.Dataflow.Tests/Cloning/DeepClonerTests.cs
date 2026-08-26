@@ -1416,6 +1416,90 @@ public class DeepClonerTests
             cloneDictionary.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
             cloneSet.Should().Throw<NotSupportedException>().WithMessage("*seeds content*");
         }
+
+        // Whether an immutable collection can be rebuilt depends on its own contents. A deferral
+        // somewhere else in the graph must not decide it, or field declaration order does.
+        [Fact]
+        public void DeepClone_ImmutableCollectionAfterDeepChain_DoesNotDependOnFieldOrder()
+        {
+            const int Depth = 300;
+            var immutableFirst = new ImmutableFirstHolder
+            {
+                List = [1, 2, 3],
+                Set = [1, 2, 3],
+                Deep = BuildNodeChain(Depth),
+            };
+            var deepFirst = new DeepFirstHolder
+            {
+                Deep = BuildNodeChain(Depth),
+                List = [1, 2, 3],
+                Set = [1, 2, 3],
+            };
+
+            ImmutableFirstHolder immutableFirstClone = DeepCloner.DeepClone(immutableFirst)!;
+            DeepFirstHolder deepFirstClone = DeepCloner.DeepClone(deepFirst)!;
+
+            immutableFirstClone.List.Should().Equal(1, 2, 3);
+            immutableFirstClone.Set.Should().BeEquivalentTo(new[] { 1, 2, 3 });
+            deepFirstClone.List.Should().Equal(1, 2, 3);
+            deepFirstClone.Set.Should().BeEquivalentTo(new[] { 1, 2, 3 });
+        }
+
+        // A value neither hashes nor orders its entry, so a value deep enough to be populated later
+        // is no reason to reject the dictionary it sits in.
+        [Fact]
+        public void DeepClone_ImmutableDictionaryWithDeepValues_ClonesEveryEntry()
+        {
+            const int Depth = 300;
+            ImmutableDictionary<string, Node> original = ImmutableDictionary.CreateRange(
+                new Dictionary<string, Node>
+                {
+                    ["a"] = BuildNodeChain(Depth),
+                    ["b"] = BuildNodeChain(Depth),
+                });
+
+            ImmutableDictionary<string, Node> clone = DeepCloner.DeepClone(original)!;
+
+            clone.Should().HaveCount(2);
+            foreach (string key in new[] { "a", "b" })
+            {
+                clone[key].Should().NotBeSameAs(original[key]);
+
+                var walked = 0;
+                for (Node? cursor = clone[key]; cursor is not null; cursor = cursor.Next)
+                {
+                    cursor.Value.Should().Be(walked);
+                    walked++;
+                }
+
+                walked.Should().Be(Depth, "every node behind the recursion guard must be populated");
+            }
+        }
+
+        // A comparer that keeps its configuration in a base class is configured all the same:
+        // GetFields does not surface an inherited private field, so the hierarchy has to be walked.
+        [Fact]
+        public void DeepClone_DictionarySubclassWithInheritedComparerState_FailsFast()
+        {
+            var original = new InheritedTrimmingDictionary { ["a"] = 1 };
+
+            Action act = () => DeepCloner.DeepClone(original);
+
+            act.Should().Throw<NotSupportedException>().WithMessage("*cannot preserve its comparer*");
+        }
+
+        private static Node BuildNodeChain(int depth)
+        {
+            var head = new Node();
+            Node current = head;
+            for (var i = 1; i < depth; i++)
+            {
+                current.Next = new Node { Value = i };
+                current = current.Next;
+            }
+
+            return head;
+        }
     }
 
     // =========================================================================
@@ -1724,6 +1808,50 @@ public class DeepClonerTests
             }
 
             walked.Should().Be(Levels);
+        }
+
+        // An immutable collection cannot be deferred — it has to exist complete — so nesting is
+        // bounded by rejecting it. Without that bound this recursion takes the process down.
+        [Fact]
+        public void DeepClone_DeeplyNestedImmutableLists_FailsFastInsteadOfOverflowing()
+        {
+            object nested = ImmutableList.Create<object>(1);
+            for (var i = 0; i < 20_000; i++)
+                nested = ImmutableList.Create(nested);
+
+            Action act = () => DeepCloner.DeepClone(nested);
+
+            act.Should().Throw<NotSupportedException>().WithMessage("*nest deeper*");
+        }
+
+        // The cycle runs purely through the values. Values neither hash nor order their entry, so
+        // there is nothing here for the two queued insertions to wait for.
+        [Fact]
+        public void DeepClone_DictionariesCyclingThroughValues_PreservesCycle()
+        {
+            const int Depth = 300;
+            var first = new Dictionary<string, object>();
+            var second = new Dictionary<string, object>();
+            first["a"] = second;
+            second["a"] = first;
+
+            var head = new Node();
+            Node current = head;
+            for (var i = 1; i < Depth; i++)
+            {
+                current.Next = new Node { Value = i };
+                current = current.Next;
+            }
+
+            var original = new DeferredDictionaryHolder(first) { Deep = head };
+
+            DeferredDictionaryHolder clone = DeepCloner.DeepClone(original)!;
+
+            Dictionary<string, object> clonedFirst = clone.Cycle;
+            var clonedSecond = (Dictionary<string, object>)clonedFirst["a"];
+            clonedFirst.Should().NotBeSameAs(first);
+            clonedSecond.Should().NotBeSameAs(second);
+            clonedSecond["a"].Should().BeSameAs(clonedFirst);
         }
 
         private static DictionaryChainNode BuildDictionaryChain(int levels)
@@ -2522,6 +2650,57 @@ public class DeepClonerTests
     public sealed class ImmutableListHolder
     {
         public ImmutableList<object> Items { get; set; } = [];
+    }
+
+    // The same members in both orders: only the order in which their fields are cloned differs.
+    public sealed class ImmutableFirstHolder
+    {
+        public ImmutableList<int> List { get; set; } = [];
+
+        public ImmutableHashSet<int> Set { get; set; } = [];
+
+        public Node? Deep { get; set; }
+    }
+
+    public sealed class DeepFirstHolder
+    {
+        public Node? Deep { get; set; }
+
+        public ImmutableList<int> List { get; set; } = [];
+
+        public ImmutableHashSet<int> Set { get; set; } = [];
+    }
+
+    // The chain is deep enough to defer, so the dictionary behind it is filled after the fact.
+    public sealed class DeferredDictionaryHolder(Dictionary<string, object> cycle)
+    {
+        public Node? Deep { get; set; }
+
+        public Dictionary<string, object> Cycle { get; } = cycle;
+    }
+
+    // Carries its configuration in a private field on the base class, where Type.GetFields on the
+    // derived type does not surface it.
+    public abstract class ConfiguredKeysBase(bool trim)
+    {
+        private readonly bool _trim = trim;
+
+        protected string? Normalize(string? value) => _trim ? value?.Trim() : value;
+    }
+
+    public sealed class InheritedTrimmingKeys() : ConfiguredKeysBase(trim: true), IEqualityComparer<string>
+    {
+        public bool Equals(string? x, string? y)
+            => string.Equals(Normalize(x), Normalize(y), StringComparison.Ordinal);
+
+        public int GetHashCode(string obj) => Normalize(obj)?.GetHashCode(StringComparison.Ordinal) ?? 0;
+    }
+
+    public sealed class InheritedTrimmingDictionary : Dictionary<string, int>
+    {
+        public InheritedTrimmingDictionary() : base(new InheritedTrimmingKeys())
+        {
+        }
     }
 
     // Deep-graph payloads whose keys and elements hash or order by field state, so an

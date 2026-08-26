@@ -51,10 +51,13 @@ public static class DeepCloner
     /// rejected. Immutable and frozen collections cannot be created empty, so they are rebuilt
     /// from their cloned elements with their comparers preserved; <c>ImmutableArray&lt;T&gt;</c>
     /// is cloned through its backing array. Because such a collection only exists once its
-    /// contents do, it is rejected when a reference cycle leads back into it while it is being
-    /// built, and when it sits below the recursion guard described next. Linked-list node
-    /// ownership and read-only wrapper/backing-collection aliases are preserved as part of
-    /// the graph.
+    /// contents do, it is rejected in three cases: when a reference cycle leads back into it while
+    /// it is being built, when such builds nest deeper than the recursion guard described next
+    /// allows, and — for the kinds that hash or order by element state, so not for
+    /// <c>ImmutableList&lt;T&gt;</c>, <c>ImmutableQueue&lt;T&gt;</c> or
+    /// <c>ImmutableStack&lt;T&gt;</c> — when the entries it hashes or orders by are not yet
+    /// complete. Linked-list node ownership and read-only wrapper/backing-collection aliases are
+    /// preserved as part of the graph.
     /// </para>
     /// <para>
     /// Deep graphs automatically switch to an explicit work stack to avoid exhausting the

@@ -131,43 +131,75 @@ internal static class CloneDelegateFactory
     // created empty and filled afterwards, so the clone only exists once its contents do.
     // -------------------------------------------------------------------------
 
+    /// <summary>
+    /// One rebuildable immutable or frozen collection family. <c>ComparerProperties</c> holds at
+    /// most two names — <see cref="CompileImmutableFactory"/> passes them as fixed arguments rather
+    /// than an array. <c>HashesOrOrdersByElementState</c> tells whether where an entry lands depends
+    /// on its state: a sequence merely stores its elements, so one that is still an empty shell is
+    /// fine there — it fills itself before anyone reads the collection. Neither does a dictionary
+    /// value, so only the keys are checked for the keyed kinds.
+    /// </summary>
     private readonly record struct ImmutableCollectionKind(
         Type Definition,
         Type FactoryHost,
         string FactoryMethod,
         string[] ComparerProperties,
         bool Keyed,
-        bool ReverseSourceOrder);
+        bool ReverseSourceOrder,
+        bool HashesOrOrdersByElementState);
 
     // Every factory takes the items plus one parameter per comparer the collection exposes,
     // which is what ResolveImmutableFactory matches on.
     private static readonly ImmutableCollectionKind[] s_immutableCollectionKinds =
     [
-        new(typeof(ImmutableList<>), typeof(ImmutableList), "CreateRange", [], false, false),
-        new(typeof(ImmutableQueue<>), typeof(ImmutableQueue), "CreateRange", [], false, false),
+        new(typeof(ImmutableList<>), typeof(ImmutableList), "CreateRange", [], false, false, false),
+        new(typeof(ImmutableQueue<>), typeof(ImmutableQueue), "CreateRange", [], false, false, false),
 
         // ImmutableStack.CreateRange pushes in sequence, so the last item ends up on top.
         // The source enumerates top to bottom, so it has to be reversed to round-trip.
-        new(typeof(ImmutableStack<>), typeof(ImmutableStack), "CreateRange", [], false, true),
+        new(typeof(ImmutableStack<>), typeof(ImmutableStack), "CreateRange", [], false, true, false),
 
-        new(typeof(ImmutableHashSet<>), typeof(ImmutableHashSet), "CreateRange", ["KeyComparer"], false, false),
-        new(typeof(ImmutableSortedSet<>), typeof(ImmutableSortedSet), "CreateRange", ["KeyComparer"], false, false),
-        new(typeof(FrozenSet<>), typeof(FrozenSet), "ToFrozenSet", ["Comparer"], false, false),
+        new(
+            typeof(ImmutableHashSet<>),
+            typeof(ImmutableHashSet),
+            "CreateRange",
+            ["KeyComparer"],
+            false,
+            false,
+            true),
+        new(
+            typeof(ImmutableSortedSet<>),
+            typeof(ImmutableSortedSet),
+            "CreateRange",
+            ["KeyComparer"],
+            false,
+            false,
+            true),
+        new(typeof(FrozenSet<>), typeof(FrozenSet), "ToFrozenSet", ["Comparer"], false, false, true),
         new(
             typeof(ImmutableDictionary<,>),
             typeof(ImmutableDictionary),
             "CreateRange",
             ["KeyComparer", "ValueComparer"],
             true,
-            false),
+            false,
+            true),
         new(
             typeof(ImmutableSortedDictionary<,>),
             typeof(ImmutableSortedDictionary),
             "CreateRange",
             ["KeyComparer", "ValueComparer"],
             true,
-            false),
-        new(typeof(FrozenDictionary<,>), typeof(FrozenDictionary), "ToFrozenDictionary", ["Comparer"], true, false),
+            false,
+            true),
+        new(
+            typeof(FrozenDictionary<,>),
+            typeof(FrozenDictionary),
+            "ToFrozenDictionary",
+            ["Comparer"],
+            true,
+            false,
+            true),
     ];
 
     private static CloneDelegate? TryBuildImmutableCollectionDelegate(Type type)
@@ -196,14 +228,10 @@ internal static class CloneDelegateFactory
         MethodInfo factory = ResolveImmutableFactory(constructed, kind, typeArgs, sequenceType);
         ParameterInfo[] parameters = factory.GetParameters();
 
-        var comparerProperties = new PropertyInfo[kind.ComparerProperties.Length];
-        for (var i = 0; i < comparerProperties.Length; i++)
-            comparerProperties[i] = constructed.GetProperty(kind.ComparerProperties[i])!;
-
         // Bind by parameter type: the sequence goes where the factory expects it (last for the
         // immutable factories, first for the frozen ones) and the comparers fill the rest.
         var itemsIndex = -1;
-        int[] comparerIndexes = new int[comparerProperties.Length];
+        int[] comparerIndexes = new int[kind.ComparerProperties.Length];
         var nextComparer = 0;
         for (var i = 0; i < parameters.Length; i++)
         {
@@ -213,6 +241,20 @@ internal static class CloneDelegateFactory
                 comparerIndexes[nextComparer++] = i;
         }
 
+        var readComparers = new Func<object, object?>[kind.ComparerProperties.Length];
+        for (var i = 0; i < readComparers.Length; i++)
+            readComparers[i] = CompilePropertyGetter(constructed, kind.ComparerProperties[i]);
+
+        Func<object, object?, object?, object> create =
+            CompileImmutableFactory(factory, parameters, sequenceType, itemsIndex, comparerIndexes);
+
+        // Every factory takes an IEnumerable<TItem>, so the cloned elements are collected into a
+        // typed List<TItem> through compiled accessors rather than a reflected array.
+        Type bufferType = typeof(List<>).MakeGenericType(itemType);
+        Func<int, object?, object> createBuffer =
+            CompileConstructor(bufferType.GetConstructor([typeof(int)])!);
+        Action<object, object?> addToBuffer = CompileCollectionAdd(bufferType, itemType);
+
         Func<object, object?>? keyGetter = kind.Keyed ? CompilePropertyGetter(itemType, "Key") : null;
         Func<object, object?>? valueGetter = kind.Keyed ? CompilePropertyGetter(itemType, "Value") : null;
         Func<object?, object?, object>? entryFactory = kind.Keyed
@@ -221,6 +263,14 @@ internal static class CloneDelegateFactory
 
         return (source, context) =>
         {
+            if (context.IsImmutableBuildDepthExhausted)
+            {
+                throw new NotSupportedException(
+                    $"Type '{constructed}' cannot be cloned because immutable collections nest " +
+                    "deeper here than the recursion guard allows: such a build cannot be deferred, " +
+                    "so continuing would exhaust the call stack.");
+            }
+
             if (!context.BeginImmutableBuild(source))
             {
                 throw new NotSupportedException(
@@ -230,41 +280,46 @@ internal static class CloneDelegateFactory
 
             try
             {
+                bool checkEntries = kind.HashesOrOrdersByElementState;
                 var items = new List<object?>();
+
                 foreach (object? item in (IEnumerable)source)
                 {
+                    int deferrals = context.DeferralCount;
+
                     if (kind.Keyed)
                     {
+                        // Only the key decides where the entry lands, so only the key has to be
+                        // complete; the value is merely stored and may still fill itself later.
                         object? key = CloneObject(keyGetter!(item!), context);
+                        if (checkEntries)
+                            EnsureEntryComplete(constructed, key, deferrals, context);
+
                         object? value = CloneObject(valueGetter!(item!), context);
                         items.Add(entryFactory!(key, value));
                     }
                     else
                     {
-                        items.Add(CloneObject(item, context));
-                    }
-                }
+                        object? element = CloneObject(item, context);
+                        if (checkEntries)
+                            EnsureEntryComplete(constructed, element, deferrals, context);
 
-                if (context.HasDeferredWork)
-                {
-                    throw new NotSupportedException(
-                        $"Type '{constructed}' cannot be cloned inside a graph deep enough to defer " +
-                        "population: its contents have to be complete before the collection is built.");
+                        items.Add(element);
+                    }
                 }
 
                 if (kind.ReverseSourceOrder)
                     items.Reverse();
 
-                Array typedItems = Array.CreateInstance(itemType, items.Count);
-                for (var i = 0; i < items.Count; i++)
-                    typedItems.SetValue(items[i], i);
+                object buffer = createBuffer(items.Count, null);
+                foreach (object? item in items)
+                    addToBuffer(buffer, item);
 
-                object?[] arguments = new object?[parameters.Length];
-                arguments[itemsIndex] = typedItems;
-                for (var i = 0; i < comparerIndexes.Length; i++)
-                    arguments[comparerIndexes[i]] = comparerProperties[i].GetValue(source);
+                object clone = create(
+                    buffer,
+                    readComparers.Length > 0 ? readComparers[0](source) : null,
+                    readComparers.Length > 1 ? readComparers[1](source) : null);
 
-                object clone = factory.Invoke(null, arguments)!;
                 context.Register(source, clone);
                 return clone;
             }
@@ -273,6 +328,65 @@ internal static class CloneDelegateFactory
                 context.EndImmutableBuild(source);
             }
         };
+    }
+
+    /// <summary>
+    /// Verifies that an entry the collection hashes or orders by is already populated. A mutable
+    /// collection can be created now and filled once the graph is complete; an immutable one cannot,
+    /// so an entry that is still an empty shell would stay filed under default field values.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="deferralsBefore"/> is the context's deferral count from before this entry was
+    /// cloned. A change means something below it is still pending: the entry itself can look
+    /// complete while a clone it hashes by is not.
+    /// </remarks>
+    private static void EnsureEntryComplete(
+        Type collectionType,
+        object? entry,
+        int deferralsBefore,
+        CloneContext context)
+    {
+        if (context.DeferralCount == deferralsBefore &&
+            (entry is null || !context.IsIncomplete(entry)))
+        {
+            return;
+        }
+
+        throw new NotSupportedException(
+            $"Type '{collectionType}' cannot be cloned from contents that are not complete yet: it " +
+            "hashes or orders by their state, and an immutable collection cannot be filled after " +
+            "it exists.");
+    }
+
+    /// <summary>
+    /// Compiles the factory call so that neither the invocation nor an argument array costs anything
+    /// per clone. Every kind declares at most two comparers; unused comparer slots are ignored.
+    /// </summary>
+    private static Func<object, object?, object?, object> CompileImmutableFactory(
+        MethodInfo factory,
+        ParameterInfo[] parameters,
+        Type sequenceType,
+        int itemsIndex,
+        int[] comparerIndexes)
+    {
+        ParameterExpression items = Expression.Parameter(typeof(object), "items");
+        ParameterExpression firstComparer = Expression.Parameter(typeof(object), "firstComparer");
+        ParameterExpression secondComparer = Expression.Parameter(typeof(object), "secondComparer");
+        ParameterExpression[] comparers = [firstComparer, secondComparer];
+
+        var arguments = new Expression[parameters.Length];
+        arguments[itemsIndex] = Expression.Convert(items, sequenceType);
+        for (var i = 0; i < comparerIndexes.Length; i++)
+        {
+            int index = comparerIndexes[i];
+            arguments[index] = Expression.Convert(comparers[i], parameters[index].ParameterType);
+        }
+
+        return Expression.Lambda<Func<object, object?, object?, object>>(
+            Expression.Convert(Expression.Call(factory, arguments), typeof(object)),
+            items,
+            firstComparer,
+            secondComparer).Compile();
     }
 
     private static MethodInfo ResolveImmutableFactory(
@@ -371,7 +485,8 @@ internal static class CloneDelegateFactory
         {
             var srcDict = (IDictionary)source;
             var dest = (IDictionary)destination;
-            List<object?>? queuedEntries = null;
+            List<object?>? queuedKeys = null;
+            List<object?>? queuedValues = null;
             IDictionaryEnumerator enumerator = srcDict.GetEnumerator();
             try
             {
@@ -390,9 +505,10 @@ internal static class CloneDelegateFactory
 
                     // The cloned key may still be an empty shell; bucketing or ordering it now
                     // would file the entry under default field values.
-                    queuedEntries ??= [];
-                    queuedEntries.Add(clonedKey);
-                    queuedEntries.Add(clonedValue);
+                    queuedKeys ??= [];
+                    queuedValues ??= [];
+                    queuedKeys.Add(clonedKey);
+                    queuedValues.Add(clonedValue);
                 }
             }
             finally
@@ -400,13 +516,16 @@ internal static class CloneDelegateFactory
                 (enumerator as IDisposable)?.Dispose();
             }
 
-            if (queuedEntries is not null)
+            if (queuedKeys is not null)
             {
-                List<object?> entries = queuedEntries;
-                context.QueueInsertion(dest, entries, () =>
+                // Only the keys gate the insertion: a value neither hashes nor orders its entry, so
+                // a cycle running purely through values is no cycle for this dictionary.
+                List<object?> keys = queuedKeys;
+                List<object?> values = queuedValues!;
+                context.QueueInsertion(dest, keys, () =>
                 {
-                    for (int i = 0; i < entries.Count; i += 2)
-                        dest.Add(entries[i]!, entries[i + 1]);
+                    for (var i = 0; i < keys.Count; i++)
+                        dest.Add(keys[i]!, values[i]);
                 });
             }
 
@@ -649,7 +768,14 @@ internal static class CloneDelegateFactory
     /// interchangeable with every other.
     /// </summary>
     private static bool IsStateless(Type type)
-        => type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Length == 0;
+    {
+        // Walked rather than asked through GetFields: that does not surface a base class's private
+        // fields, so a comparer keeping its configuration in one would pass as interchangeable.
+        foreach (FieldInfo _ in GetAllInstanceFields(type))
+            return false;
+
+        return true;
+    }
 
     private static Action<object, object?> CompileCollectionAdd(Type collectionBase, Type elementType)
     {

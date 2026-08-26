@@ -21,9 +21,10 @@ internal sealed class CloneContext
     private Stack<PendingWork>? _pending;
     private List<PendingInsertion?>? _insertions;
     private HashSet<object>? _awaitingInsertion;
+    private HashSet<object>? _awaitingPopulation;
     private HashSet<object>? _buildingImmutable;
     private int _depth;
-    private bool _deferralOccurred;
+    private int _deferrals;
 
     private readonly record struct PendingWork(
         object Source,
@@ -32,7 +33,7 @@ internal sealed class CloneContext
 
     private sealed record PendingInsertion(
         object Destination,
-        List<object?> Entries,
+        List<object?> Dependencies,
         Action Insert);
 
     /// <summary>
@@ -41,7 +42,22 @@ internal sealed class CloneContext
     /// by element state must not insert it — they queue the entry with
     /// <see cref="QueueInsertion"/> instead and fill themselves once the graph is complete.
     /// </summary>
-    internal bool HasDeferredWork => _deferralOccurred;
+    internal bool HasDeferredWork => _deferrals > 0;
+
+    /// <summary>
+    /// How often population has been deferred so far. A caller that has to know whether anything
+    /// below <em>its own</em> subtree was deferred captures this before descending and compares
+    /// afterwards, rather than asking <see cref="HasDeferredWork"/> about the whole context.
+    /// </summary>
+    internal int DeferralCount => _deferrals;
+
+    /// <summary>
+    /// <see langword="true"/> while <paramref name="clone"/> is still an empty shell: its
+    /// population is queued, or it is a collection waiting to be filled.
+    /// </summary>
+    internal bool IsIncomplete(object clone)
+        => (_awaitingPopulation?.Contains(clone) ?? false) ||
+           (_awaitingInsertion?.Contains(clone) ?? false);
 
     /// <summary>
     /// Returns <see langword="true"/> and sets <paramref name="clone"/> when
@@ -79,8 +95,11 @@ internal sealed class CloneContext
         if (_depth >= MaxRecursiveDepth)
         {
             _pending ??= new Stack<PendingWork>();
+            _awaitingPopulation ??= new HashSet<object>(ReferenceEqualityComparer.Instance);
+
             _pending.Push(new PendingWork(source, destination, populate));
-            _deferralOccurred = true;
+            _awaitingPopulation.Add(destination);
+            _deferrals++;
             return;
         }
 
@@ -111,19 +130,28 @@ internal sealed class CloneContext
     internal void EndImmutableBuild(object source) => _buildingImmutable!.Remove(source);
 
     /// <summary>
+    /// <see langword="true"/> when immutable builds are already nested as deeply as the recursion
+    /// guard allows. Such a build cannot be deferred — the collection has to exist complete — so
+    /// rejecting it is the only bound left. The set holds exactly the builds currently on the
+    /// stack, so its size is the nesting depth.
+    /// </summary>
+    internal bool IsImmutableBuildDepthExhausted
+        => (_buildingImmutable?.Count ?? 0) >= MaxRecursiveDepth;
+
+    /// <summary>
     /// Queues the entries of a collection that hashes or orders by element state. The insertion
     /// runs once every clone it depends on is fully populated.
     /// </summary>
     /// <param name="destination">The collection the entries belong to.</param>
-    /// <param name="entries">The cloned entries, used to detect dependencies on other queued
-    /// collections.</param>
-    /// <param name="insert">Adds <paramref name="entries"/> to <paramref name="destination"/>.</param>
-    internal void QueueInsertion(object destination, List<object?> entries, Action insert)
+    /// <param name="dependencies">The cloned entries whose state decides where they land — keys,
+    /// not values — used to detect dependencies on other queued collections.</param>
+    /// <param name="insert">Fills <paramref name="destination"/>.</param>
+    internal void QueueInsertion(object destination, List<object?> dependencies, Action insert)
     {
         _insertions ??= [];
         _awaitingInsertion ??= new HashSet<object>(ReferenceEqualityComparer.Instance);
 
-        _insertions.Add(new PendingInsertion(destination, entries, insert));
+        _insertions.Add(new PendingInsertion(destination, dependencies, insert));
         _awaitingInsertion.Add(destination);
     }
 
@@ -137,6 +165,9 @@ internal sealed class CloneContext
         while (_pending is { Count: > 0 })
         {
             PendingWork work = _pending.Pop();
+
+            // Clear first: the work may defer again and re-register the same destination.
+            _awaitingPopulation!.Remove(work.Destination);
             PopulateOrDefer(work.Source, work.Destination, work.Populate);
         }
 
@@ -175,17 +206,18 @@ internal sealed class CloneContext
     }
 
     /// <summary>
-    /// A queued insertion may only run once none of its entries is a collection that is itself
-    /// still waiting to be filled — an unfilled collection would hash or compare as empty.
-    /// A collection that contains itself is exempt: it is already the instance being filled.
+    /// A queued insertion may only run once none of the entries it hashes or orders by is a
+    /// collection that is itself still waiting to be filled — an unfilled collection would hash or
+    /// compare as empty. A collection that contains itself is exempt: it is already the instance
+    /// being filled.
     /// </summary>
     private bool IsReady(PendingInsertion insertion)
     {
-        foreach (object? entry in insertion.Entries)
+        foreach (object? dependency in insertion.Dependencies)
         {
-            if (entry is not null &&
-                !ReferenceEquals(entry, insertion.Destination) &&
-                _awaitingInsertion!.Contains(entry))
+            if (dependency is not null &&
+                !ReferenceEquals(dependency, insertion.Destination) &&
+                _awaitingInsertion!.Contains(dependency))
             {
                 return false;
             }
