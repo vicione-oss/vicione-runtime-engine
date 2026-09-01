@@ -1142,7 +1142,7 @@ public class RuntimeFunctionBlockTests
         {
             var design = Substitute.For<IFunctionBlockDesign>();
             if (withDriver)
-                design.RuntimeDriverTypeName.Returns("Zweiungvierzig");
+                design.RuntimeDriverTypeName.Returns("FortyTwo");
             else
                 design.RuntimeDriverTypeName.Returns((string?)null);
 

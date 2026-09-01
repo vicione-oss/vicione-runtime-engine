@@ -54,7 +54,7 @@ public class FunctionBlockDesignExtensionsTests
         [Fact]
         public void GetsCorrectNameIfExplicitNameWasSet()
         {
-            var expectedRuntimeTypeName = $"Zweiungvierzig";
+            var expectedRuntimeTypeName = $"FortyTwo";
             var design = CreateDesign(expectedRuntimeTypeName).Design;
 
             var returned = FunctionBlockDesignExtensions.GetRuntimeTypeName(design);

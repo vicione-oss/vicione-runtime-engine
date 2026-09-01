@@ -51,7 +51,7 @@ public class CreateDataflow1 : CreateDataflow
 
         // create a few containers
         var containerEditor1 = new ContainerEditor();
-        containerEditor1.SetName("Explizit festgelegter Name");
+        containerEditor1.SetName("Explicitly assigned name");
         dataflowEditor.RootContainerEditor.AddContainer(containerEditor1);
 
         var containerEditor2 = new ContainerEditor();

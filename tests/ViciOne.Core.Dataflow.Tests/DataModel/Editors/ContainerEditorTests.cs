@@ -171,8 +171,8 @@ public class ContainerEditorTests
         {
             var containerEditor1 = new ContainerEditor();
             var containerEditor2 = new ContainerEditor();
-            containerEditor1.SetName("zweiundvierzig");
-            containerEditor2.SetName("zweiundvierzig");
+            containerEditor1.SetName("fortytwo");
+            containerEditor2.SetName("fortytwo");
             var editor = new ContainerEditor();
             editor.AddContainer(containerEditor1);
 
@@ -250,8 +250,8 @@ public class ContainerEditorTests
         {
             var blockEditor1 = new FunctionBlockEditor(_functionBlockDesign);
             var blockEditor2 = new FunctionBlockEditor(_functionBlockDesign);
-            blockEditor1.SetName("zweiundvierzig");
-            blockEditor2.SetName("zweiundvierzig");
+            blockEditor1.SetName("fortytwo");
+            blockEditor2.SetName("fortytwo");
             var editor = new ContainerEditor();
             editor.AddFunctionBlock(blockEditor1);
 
@@ -564,7 +564,7 @@ public class ContainerEditorTests
         public void SetsName()
         {
             var editor = new ContainerEditor();
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             editor.SetName(nameToSet);
 
@@ -575,8 +575,8 @@ public class ContainerEditorTests
         public void TrimsName()
         {
             var editor = new ContainerEditor();
-            var nameToSet = "   Zweiundvierzig      ";
-            var expectedName = "Zweiundvierzig";
+            var nameToSet = "   FortyTwo      ";
+            var expectedName = "FortyTwo";
 
             editor.SetName(nameToSet);
 
@@ -590,7 +590,7 @@ public class ContainerEditorTests
             {
                 ParentContainerEditor = new MockContainerEditor()
             };
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             Action action = () => editor.SetName(nameToSet);
 
@@ -615,7 +615,7 @@ public class ContainerEditorTests
         public void DoesNotSetNameIfNullOrWhiteSpaceValidationFails()
         {
             var editor = new ContainerEditor();
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             editor.SetName(nameBefore);
 
             try { editor.SetName("   "); }
@@ -628,11 +628,11 @@ public class ContainerEditorTests
         public void DoesNotSetNameIfNotExistingValidationFails()
         {
             var editor = new ContainerEditor();
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             editor.SetName(nameBefore);
             editor.ParentContainerEditor = new MockContainerEditor();
 
-            try { editor.SetName("Sechshundertsechsundsechzig"); }
+            try { editor.SetName("SixHundredSixtySix"); }
             catch { }
 
             editor.Container.Name.Should().Be(nameBefore);
@@ -642,7 +642,7 @@ public class ContainerEditorTests
         public void DoesNotCallNameNotExistingValidationMethodIfSettingSameName()
         {
             var editor = new ContainerEditor();
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             editor.SetName(nameBefore);
             editor.ParentContainerEditor = new MockContainerEditor();
 

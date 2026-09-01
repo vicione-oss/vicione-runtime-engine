@@ -18,7 +18,7 @@ public class ExceptionFactoryTests
         [Fact]
         public void UsesSpecifiedNameInMessage()
         {
-            var name = "Zwei und vierzig";
+            var name = "Forty two";
 
             var result = ExceptionFactory.CreateNoValidNamespaceOrClassNameException(name);
 

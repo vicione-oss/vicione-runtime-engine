@@ -217,8 +217,8 @@ public class DataflowEditorTests
         private static FunctionBlockDesign CreateDesign()
             => new()
             {
-                Namespace = "Eins",
-                Name = "Zwei",
+                Namespace = "One",
+                Name = "Two",
             };
     }
 
