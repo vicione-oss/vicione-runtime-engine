@@ -38,10 +38,10 @@ public partial class SettingsDemo : RuntimeFunctionBlock<SettingsDemo>
     {
         [SettingDesign("6d374eec-12ed-4ae2-8391-5fd3279dba89", "d9bccf18-fadf-4be6-ae02-9c4c9c65edac", "c909aa0b-b7b4-4009-b385-fbc37c0bed1b")]
         [DefaultValue(true)]
-        public IRuntimeSetting<bool> DummyEinstellung1 { get; internal set; }
+        public IRuntimeSetting<bool> DummySetting1 { get; internal set; }
         [SettingDesign("902dd1a1-997f-4bce-846e-e47c959965f8", "5f1bfa66-fb39-437d-bf04-07f27de4e2f5", "8cf54142-db9e-4bda-9e49-4b3966aea5b1")]
         [EnumValidator<DummyValues>(DummyValues.First)]
         [DefaultValue(DummyValues.First)]
-        public IRuntimeSetting<DummyValues> DummyEinstellung2 { get; internal set; }
+        public IRuntimeSetting<DummyValues> DummySetting2 { get; internal set; }
     }
 }

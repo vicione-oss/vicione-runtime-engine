@@ -31,7 +31,7 @@ internal sealed class Program
         string communicationPath = args[4];
         bool showOutgoingExternalLinkValuesInConsole = args[5] == "1";
 
-        // Engine Aufgaben
+        // engine tasks
         Assembly[] assemblies = [.. Directory.GetFiles(dllDir, "*.dll", SearchOption.AllDirectories).Select(AssemblyLoadContext.Default.LoadFromAssemblyPath)];
         IDataflow dataflow = Load<Dataflow>(dataflowPath);
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options => options.SingleLine = true));

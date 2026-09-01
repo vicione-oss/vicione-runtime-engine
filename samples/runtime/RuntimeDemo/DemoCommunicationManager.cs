@@ -113,15 +113,15 @@ internal sealed class DemoCommunicationManager : ICommunicationManager, IDisposa
     {
         if (connectorInfo.IsSetting)
         {
-            if (connectorInfo.IsInput) return "Einstellungs-Eingang";
-            if (connectorInfo.IsOutput) return "Einstellungs-Ausgang";
+            if (connectorInfo.IsInput) return "Setting input";
+            if (connectorInfo.IsOutput) return "Setting output";
         }
         else
         {
-            if (connectorInfo.IsInput) return "Eingang";
-            if (connectorInfo.IsOutput) return "Ausgang";
+            if (connectorInfo.IsInput) return "Input";
+            if (connectorInfo.IsOutput) return "Output";
         }
-        return "Unbekannter Typ";
+        return "Unknown type";
     }
 
     private HashSet<Guid> GetExternalLinkIds<TLink>() where TLink : IExternalLink

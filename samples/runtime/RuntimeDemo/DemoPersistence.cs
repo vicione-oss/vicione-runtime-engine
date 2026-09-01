@@ -76,7 +76,7 @@ internal sealed class DemoPersistence(string path, ILogger logger) : IPersistenc
         if (persist == false)
             return;
 
-        // TODO: in eigenen Thread auslagern
+        // TODO: move to a separate thread
         try
         {
             using var sw = new StreamWriter(path);

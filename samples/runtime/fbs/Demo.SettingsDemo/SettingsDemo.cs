@@ -6,9 +6,9 @@ public partial class SettingsDemo
 {
     protected override void Dispose(bool disposing)
     {
-        if (Settings.DummyEinstellung1 != null &&
-            SetSettingValueIfNotEqual(Settings.DummyEinstellung1, Settings.DummyEinstellung1.Value == false))
-            Logger.SettingValueChanged(FunctionBlock.Name, nameof(Settings.DummyEinstellung1), Settings.DummyEinstellung1.Value);
+        if (Settings.DummySetting1 != null &&
+            SetSettingValueIfNotEqual(Settings.DummySetting1, Settings.DummySetting1.Value == false))
+            Logger.SettingValueChanged(FunctionBlock.Name, nameof(Settings.DummySetting1), Settings.DummySetting1.Value);
 
         base.Dispose(disposing);
     }
@@ -19,7 +19,7 @@ public partial class SettingsDemo
             return;
 
         if (cycleInfo.CycleNo == 100)
-            SetSettingValueIfNotEqual(Settings.DummyEinstellung1, Settings.DummyEinstellung1.Value == false);
+            SetSettingValueIfNotEqual(Settings.DummySetting1, Settings.DummySetting1.Value == false);
 
         if (ProcessDataInputs.DummyForDefaultPooling2.Changed)
         {
