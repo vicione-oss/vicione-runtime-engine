@@ -14,7 +14,7 @@ public abstract class RuntimePersistableElement<TPersistable, TValue> : IRuntime
     public bool Changed => _changed == 1;
     public DateTime ChangedTime { get; protected set; }
     protected TPersistable Element { get; }
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Schnittstellenmethoden müssen von untergeordneten Typen aufgerufen werden können", Justification = "Die Id kann über die extern sichtbare Eigenschaft 'Element' abgerufen werden.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "The Id can be retrieved via the externally visible property 'Element'.")]
     Guid IIdProvider.Id => Element.Id;
     public TValue? Value { get; protected set; }
 

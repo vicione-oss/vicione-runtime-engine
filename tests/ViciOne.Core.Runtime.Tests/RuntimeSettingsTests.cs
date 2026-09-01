@@ -11,7 +11,7 @@ public class RuntimeSettingsTests
     public class Add
     {
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0028:Initialisierung der Sammlung vereinfachen", Justification = "Es soll explizit die Add-Methode getestet werden.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "The Add method is explicitly the one to be tested.")]
         public void AddsVariable()
         {
             var setting = Substitute.For<IRuntimeSetting<object>>();

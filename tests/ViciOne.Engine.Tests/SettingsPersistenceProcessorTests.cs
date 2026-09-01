@@ -10,7 +10,7 @@ using ViciOne.Core.Contracts.Runtime;
 using ViciOne.Engine;
 using Xunit;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1063:IDisposable richtig implementieren", Justification = "Die Klasse, die die Dispose Methode testet soll Dispose heißen")]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1063:Implement IDisposable correctly", Justification = "The class that tests the Dispose method is meant to be named Dispose")]
 public abstract class SettingsPersistenceProcessorTests : IDisposable
 {
     private protected IEnumerable<IRuntimeFunctionBlock> AllBlocks { get; }
@@ -20,7 +20,7 @@ public abstract class SettingsPersistenceProcessorTests : IDisposable
     private protected MockPersistence Persistence { get; } = Substitute.ForPartsOf<MockPersistence>();
     private protected SettingsPersistenceProcessor PersistenceProcessor { get; }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Die erstellten FBs werden der Eigenschaft AllBlocks zugewiesen und über diese auch disposed.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The created FBs are assigned to the AllBlocks property and are disposed through it as well.")]
     protected SettingsPersistenceProcessorTests()
     {
         IRuntimeFunctionBlock[] fbs =
@@ -41,7 +41,7 @@ public abstract class SettingsPersistenceProcessorTests : IDisposable
         AllSettings = fbs.SelectMany(x => x.Settings);
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Schnittstellenmethoden müssen von untergeordneten Typen aufgerufen werden können", Justification = "Für die Tests nicht relevant")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "Not relevant for the tests")]
     void IDisposable.Dispose()
     {
         foreach (var block in AllBlocks)
@@ -92,7 +92,7 @@ public abstract class SettingsPersistenceProcessorTests : IDisposable
 
     public class ApplyLoaded : SettingsPersistenceProcessorTests
     {
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
         private protected override Action ApplyLoadedValueCallback => () =>
         {
             if (ThrowOnApplyValue)
@@ -185,7 +185,7 @@ public abstract class SettingsPersistenceProcessorTests : IDisposable
     public class Dispose
     {
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Gets called by Should().NotThrow().")]
         public void CanDispose()
         {
             var processor = CreateEmptyProcessor();

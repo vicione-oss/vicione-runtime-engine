@@ -16,7 +16,7 @@ namespace GenerateFBDesigns;
 
 internal static class Program
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0210:Konvertieren in Anweisungen der obersten Ebene", Justification = "Beispielprojekte einheitlich gestalten")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0210:Convert to top-level statements", Justification = "Keep the sample projects consistent")]
     private static void Main(string[] args)
     {
         string dllDir = args[0];

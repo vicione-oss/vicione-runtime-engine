@@ -197,7 +197,7 @@ public class RangeValidatorTests
               MaxValue = maxValue
           };
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1036:Methoden bei vergleichbaren Typen außer Kraft setzen", Justification = "RangeValidator nutzt nur die CompareTo-Methode.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1036:Override methods on comparable types", Justification = "RangeValidator only uses the CompareTo method.")]
         public class UserDefined(int value) : IComparable<UserDefined?>
         {
             public int Value { get; set; } = value;

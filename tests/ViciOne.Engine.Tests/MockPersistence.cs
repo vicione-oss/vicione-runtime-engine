@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using ViciOne.Core.Contracts.Runtime;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1070:Ereignisfelder nicht als virtuell deklarieren", Justification = "Die Klasse dient ausschliesslich als Proxy zur Nutzung von 'AllValuesToPersistRequested' via NSubstitute.")]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1070:Do not declare event fields as virtual", Justification = "The class serves solely as a proxy for using 'AllValuesToPersistRequested' via NSubstitute.")]
 public abstract class MockPersistence : IPersistence
 {
     public virtual event Func<IEnumerable<IPersistenceEntry>>? AllValuesToPersistRequested;

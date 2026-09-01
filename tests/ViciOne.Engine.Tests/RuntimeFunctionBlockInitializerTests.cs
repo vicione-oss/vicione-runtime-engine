@@ -53,7 +53,7 @@ public class RuntimeFunctionBlockInitializerTests
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
     public static TheoryData<IDataflow, IEnumerable<IRuntimeFunctionBlock>, IEnumerable<IRuntimeFunctionBlock>, IEnumerable<IRuntimeFunctionBlock>> ArgumentsFor_CanInitialize()
     {
         var successful1 = Substitute.For<IRuntimeFunctionBlock>();

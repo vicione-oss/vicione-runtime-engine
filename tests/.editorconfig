@@ -20,5 +20,5 @@ dotnet_diagnostic.xUnit1044.severity = none
 dotnet_diagnostic.xUnit1045.severity = none
 
 # CA1515: Consider making public types internal
-# -> Die Basisklassen der Tests, die Hilfsmethoden und -typen enthalten, müssen auch public sein
+# -> The test base classes that contain helper methods and types have to be public as well
 dotnet_diagnostic.CA1515.severity = none

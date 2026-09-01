@@ -26,7 +26,7 @@ public class CreateDataflow1 : CreateDataflow
         Save(dataflow, Path.Combine(WorkingDir, DesignTimeConstants.Dataflow1FileName));
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1506:Übermäßige Klassenkopplungen vermeiden", Justification = "Umgestaltung für Tests nicht notwendig")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1506:Avoid excessive class coupling", Justification = "Restructuring is not necessary for tests")]
     private static Dataflow CreateDataflow(
         FunctionBlockDesign blockDesignAdd,
         FunctionBlockDesign blockDesignAnd,

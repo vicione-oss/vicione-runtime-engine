@@ -8,7 +8,7 @@ public class FunctionBlockCycleInfoTests
     public class CycleNo
     {
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA5394:Keine unsichere Zufälligkeitsstufe verwenden", Justification = "Wird nicht auf sicherheitsrelevante Weise verwendet.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Not used in a security-relevant way.")]
         public void GetsCorrectCycleNo()
         {
             ulong cycleNo = 0;

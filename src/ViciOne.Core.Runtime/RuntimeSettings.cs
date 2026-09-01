@@ -13,8 +13,8 @@ public class RuntimeSettings : IRuntimeSettings
 
     public event Action? Changed;
     public event Action<IRuntimeSetting>? SettingChanged;
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Schnittstellenmethoden müssen von untergeordneten Typen aufgerufen werden können",
-        Justification = $"Das Event ist unter dem Namen '{nameof(SettingChanged)}' extern verfügbar.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types",
+        Justification = $"The event is externally available under the name '{nameof(SettingChanged)}'.")]
     event Action<IRuntimeSetting>? IChangingElementsProvider<IRuntimeSetting>.ElementChanged
     {
         add => SettingChanged += value;

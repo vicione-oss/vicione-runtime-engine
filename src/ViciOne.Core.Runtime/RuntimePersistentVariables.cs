@@ -11,8 +11,8 @@ public class RuntimePersistentVariables : IRuntimePersistentVariables
     private readonly List<IRuntimePersistentVariable> _variables = [];
 
     public event Action<IRuntimePersistentVariable>? VariableChanged;
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Schnittstellenmethoden müssen von untergeordneten Typen aufgerufen werden können",
-        Justification = $"Das Event ist unter dem Namen '{nameof(VariableChanged)}' extern verfügbar.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types",
+        Justification = $"The event is externally available under the name '{nameof(VariableChanged)}'.")]
     event Action<IRuntimePersistentVariable>? IChangingElementsProvider<IRuntimePersistentVariable>.ElementChanged
     {
         add => VariableChanged += value;

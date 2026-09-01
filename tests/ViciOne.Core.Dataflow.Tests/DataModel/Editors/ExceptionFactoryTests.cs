@@ -4,7 +4,7 @@ using Xunit;
 
 public class ExceptionFactoryTests
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1711:Bezeichner dürfen kein falsches Suffix aufweisen", Justification = "Die Klasse stellt den zu testenden Methodennamen dar.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "The class represents the name of the method under test.")]
     public class CreateNoValidNamespaceOrClassNameException
     {
         [Fact]

@@ -15,12 +15,12 @@ using ViciOne.Core.Runtime;
 using ViciOne.Engine;
 using Xunit;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1063:IDisposable richtig implementieren", Justification = "Die Klasse, die die Dispose Methode testet soll Dispose heißen")]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1063:Implement IDisposable correctly", Justification = "The class that tests the Dispose method is meant to be named Dispose")]
 public class RuntimeEngineTests : IDisposable
 {
     private TestLoggerFactory LoggerFactory { get; } = new();
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Schnittstellenmethoden müssen von untergeordneten Typen aufgerufen werden können", Justification = "Für die Tests nicht relevant")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "Not relevant for the tests")]
     void IDisposable.Dispose()
     {
         LoggerFactory.Dispose();
@@ -146,7 +146,7 @@ public class RuntimeEngineTests : IDisposable
     public class Dispose : RuntimeEngineTests
     {
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Gets called by Should().NotThrow().")]
         public void CanDispose()
         {
             var engine = CreateEmptyEngine();

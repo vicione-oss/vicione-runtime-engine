@@ -14,7 +14,7 @@ internal sealed class RuntimeFunctionBlockFactory(IEnumerable<Assembly> assembli
 {
     protected override Type ExpectedUnboundGenericBaseType => typeof(RuntimeFunctionBlock<>);
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0008:Expliziten Typ verwenden", Justification = "Aufgrund des komplexen Tupels ist diese Variante deutlich lesbarer.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0008:Use explicit type", Justification = "Because of the complex tuple this variant is considerably more readable.")]
     public (IEnumerable<((IFunctionBlock Block, IRuntimeDriver? Driver, HashSet<Guid> ConnectedConnectors) BlockAndDriver, IRuntimeFunctionBlock RuntimeBlock)> Instances, IEnumerable<(IFunctionBlockDesign Design, Exception Exception)> FailedDesigns)
         CreateInstances(IEnumerable<(IFunctionBlock Block, IRuntimeDriver? Driver, HashSet<Guid> ConnectedConnectors)> functionBlocks, IUniqueNameProvider uniqueNameProvider, ILoggerFactory loggerFactory, ILogger logger)
     {

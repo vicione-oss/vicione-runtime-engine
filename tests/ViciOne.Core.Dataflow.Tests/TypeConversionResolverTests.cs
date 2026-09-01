@@ -128,7 +128,7 @@ public class TypeConversionResolverTests
     }
 
     [TypeConverter(typeof(MockTypeConverter))]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Nicht instanziierte interne Klassen vermeiden.", Justification = "Der Typ wird als Theory-Argument verwendet.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes.", Justification = "The type is used as a Theory argument.")]
     private sealed class MockType { }
     private sealed class MockTypeConverter : TypeConverter
     {
@@ -137,6 +137,6 @@ public class TypeConversionResolverTests
     }
 
     private class BaseType { }
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Nicht instanziierte interne Klassen vermeiden.", Justification = "Der Typ wird als Theory-Argument verwendet.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes.", Justification = "The type is used as a Theory argument.")]
     private sealed class DerivedType : BaseType { }
 }

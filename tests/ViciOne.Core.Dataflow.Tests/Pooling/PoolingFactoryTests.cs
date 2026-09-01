@@ -25,7 +25,7 @@ public class PoolingFactoryTests
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2263:Generische Überladung bevorzugen, wenn der Typ bekannt ist", Justification = "Hier soll explizit die nicht generische Überladung getestet werden")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2263:Prefer generic overload when type is known", Justification = "The non-generic overload is explicitly the one to be tested here")]
     public class GetAvailablePoolingTypes_NonGeneric
     {
         [Fact]
@@ -76,7 +76,7 @@ public class PoolingFactoryTests
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2263:Generische Überladung bevorzugen, wenn der Typ bekannt ist", Justification = "Hier soll explizit die nicht generische Überladung getestet werden")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2263:Prefer generic overload when type is known", Justification = "The non-generic overload is explicitly the one to be tested here")]
     public class GetNewDefaultPooling_NonGeneric
     {
         [Fact]
