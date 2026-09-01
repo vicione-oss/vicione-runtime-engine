@@ -1,4 +1,4 @@
-﻿using AwesomeAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 using System.Collections.Generic;
 using ViciOne.Core.Contracts.DataModel;
@@ -41,7 +41,7 @@ public class DataflowExtensionsTests
 
             var containers = DataflowExtensions.GetContainers(info.Dataflow);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             containers.Should().ContainAllButNotMore(info.AllContainers);
         }
     }

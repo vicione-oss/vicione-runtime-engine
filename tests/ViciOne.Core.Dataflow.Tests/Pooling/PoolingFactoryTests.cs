@@ -1,4 +1,4 @@
-﻿using AwesomeAssertions;
+using AwesomeAssertions;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -19,7 +19,7 @@ public class PoolingFactoryTests
 
             var availableReturned = factory.GetAvailablePoolingTypes<bool>();
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             availableReturned.Should().ContainAllButNotMore(availableExpected);
 
         }
@@ -36,7 +36,7 @@ public class PoolingFactoryTests
 
             var availableReturned = factory.GetAvailablePoolingTypes(typeof(bool));
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             availableReturned.Should().ContainAllButNotMore(availableExpected);
         }
     }

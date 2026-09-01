@@ -12,7 +12,7 @@ internal abstract class OutgoingLinkGroup<TValue>(IRuntimeConnector<TValue> conn
 
     protected void TransferValueToLinks(IReferenceTypeCloneHandler? cloneHandler, TValue? value)
     {
-        // TODO: Wert-Weitergabe bzw. -umwandlung evtl. parallel durchführen
+        // TODO: possibly perform value forwarding and conversion in parallel
         foreach (IRuntimeLink link in Links)
             link.SetData(cloneHandler is not null ? cloneHandler.CloneIfNecessary(value) : value, Connector.ChangedTime, Connector.Validity);
     }

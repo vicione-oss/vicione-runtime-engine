@@ -141,7 +141,7 @@ internal sealed class Program
 
     private static void FindGuidsForInterceptor(IEnumerable<IFunctionBlock> functionBlocks)
     {
-        // Objekte aus dataflow1
+        // objects from dataflow1
         s_guidForInterceptor1 = FindConnector("Source 0", "Sum", false, functionBlocks)?.Id;
         s_guidForInterceptor2 = FindConnector("Target", "A", true, functionBlocks)?.Id;
         s_guidForInterceptor3 = FindConnector("Incrementor", "Value", false, functionBlocks)?.Id;

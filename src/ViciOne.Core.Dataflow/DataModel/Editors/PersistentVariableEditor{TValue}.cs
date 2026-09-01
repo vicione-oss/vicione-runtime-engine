@@ -15,7 +15,7 @@ public class PersistentVariableEditor<TValue>(PersistentVariable<TValue> variabl
         var variable = (PersistentVariable<TValue>)Activator.CreateInstance(design.PersistentVariableType)!;
         variable.Design = design;
         variable.Id = Guid.NewGuid();
-        // TODO: ist es richtig, dass die ChangedTime auf diese Zeit gesetzt wird?
+        // TODO: is it correct that ChangedTime is set to this time?
         variable.ChangedTime = DateTime.UtcNow;
         variable.Value = variable.Design.DefaultValue;
         return variable;

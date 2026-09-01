@@ -1,4 +1,4 @@
-﻿using AwesomeAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 using System.Collections.Generic;
 using ViciOne.Core.Contracts.DataModel;
@@ -16,7 +16,7 @@ public class FunctionBlockExtensionsTests
 
             var connectors = FunctionBlockExtensions.GetConnectors(info.Block);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             connectors.Should().ContainAllButNotMore(info.Connectors);
         }
     }
@@ -30,7 +30,7 @@ public class FunctionBlockExtensionsTests
 
             var inputs = FunctionBlockExtensions.GetInputs(info.Block);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             inputs.Should().ContainAllButNotMore(info.Inputs);
         }
     }
@@ -44,7 +44,7 @@ public class FunctionBlockExtensionsTests
 
             var outputs = FunctionBlockExtensions.GetOutputs(info.Block);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             outputs.Should().ContainAllButNotMore(info.Outputs);
         }
     }

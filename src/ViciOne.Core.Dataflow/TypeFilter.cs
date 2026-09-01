@@ -11,16 +11,16 @@ internal static class TypeFilter
     {
         IEnumerable<TypeInfo> typesImplementingUnbound = assemblies
             .Where(a => !a.IsDynamic)
-            // nur Assemblies durchsuchen, die auf irgend einer Ebene eine Verweis auf ein ViciOne-Assembly haben
+            // only search assemblies that reference a ViciOne assembly at some level
             .Where(a => a.GetReferencedAssemblies().Any(e => e.FullName.Contains("ViciOne", StringComparison.Ordinal)))
-            // alle Typen zusammensuchen
+            // collect all types
             .SelectMany(a => a.GetExportedTypes())
             .Select(t => t.GetTypeInfo())
-            // auf brauchbares einschränken
+            // narrow down to the usable ones
             .Where(t => (t.IsPublic || t.IsNestedPublic) && t.IsClass && t.IsAbstract == false)
-            // nur Typen raussuchen, die das angegebene-Interface implementieren
-            // -> damit wir auch generische Interface-Implementierungen bekommen, 
-            //    können wir vorerst nur auf den ungebundenen Interface-Typ prüfen
+            // pick only the types that implement the given interface
+            // -> so that we also get generic interface implementations,
+            //    for now we can only check against the unbound interface type
             .Where(t => t.ImplementedInterfaces
                 .Where(ift => ift.IsGenericType && ift.IsGenericTypeDefinition == false)
                 .Select(ift => ift.GetGenericTypeDefinition())
@@ -28,25 +28,25 @@ internal static class TypeFilter
 
         var matchingTypes = new List<Type>();
         Type typeToAdd;
-        // hier muss noch geprüft werden, ob die generischen Typen auch mit den konkreten Typ-Parametern erstellt werden können
+        // it still has to be checked whether the generic types can actually be created with the concrete type parameters
         foreach (Type type in typesImplementingUnbound)
             try
             {
-                // wenn es ein generischer Typ ist, dann wird versucht, einen generischen Typ mit den konkreten Typparametern zu erzeugen
+                // if it is a generic type, we try to create a generic type with the concrete type parameters
                 if (type.IsGenericType)
                     typeToAdd = type.MakeGenericType(interfaceType.GetGenericArguments());
-                // wenn nicht, wird geprüft, ob der Typ auch das gebundene Interface erfüllt
+                // if not, we check whether the type also satisfies the bound interface
                 else if (interfaceType.IsAssignableFrom(type))
                     typeToAdd = type;
                 else
                     continue;
 
-                // es wird versucht eine Instanz zu erzeugen
+                // we try to create an instance
                 Activator.CreateInstance(typeToAdd);
-                // hat geklappt, der Typ passt
+                // that worked, so the type is a match
                 matchingTypes.Add(typeToAdd);
             }
-            // falls etwas schief läuft, dann ist es uns egal
+            // if something goes wrong, we don't care
             catch { }
 
         return matchingTypes;

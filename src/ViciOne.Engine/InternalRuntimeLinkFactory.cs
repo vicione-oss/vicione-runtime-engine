@@ -24,9 +24,9 @@ internal sealed class InternalRuntimeLinkFactory(int queueCapacity, ILogger logg
         bool destinationIsOnThisEngine = connectedConnectors.ContainsKey(link.Destination.Id);
         bool needsQueue = destinationIsOnThisEngine && link.DetermineIfRuntimeLinkNeedsQueue();
 
-        // TODO: wenn sich der Quell-Konnektor auf einer anderen Engine befindet, haben wir keinen Zugriff darauf
-        //       wir können also nur den Konnektor aus dem Dataflow nutzen, um den Link zu initialisieren
-        //       das Problem dabei ist, dass sich der Wert durch einen ggf. vorhandenen Validator an der Quelle vom Wert des Runtime-Konnektors unterscheiden kann
+        // TODO: if the source connector is located on another engine, we have no access to it
+        //       so we can only use the connector from the dataflow to initialize the link
+        //       the problem with that is that a validator possibly present at the source can make the value differ from the runtime connector's value
         object? defaultValue = sourceIsOnThisEngine
             ? sourceRuntimeConnector!.Value
             : link.Source.Value;

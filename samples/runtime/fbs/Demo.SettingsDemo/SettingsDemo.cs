@@ -23,7 +23,7 @@ public partial class SettingsDemo
 
         if (ProcessDataInputs.DummyForDefaultPooling2.Changed)
         {
-            // TODO: Hier werden alle bisher aufgelaufenen Werte aller Eingangs-Links bereitgestellt
+            // TODO: All values accumulated so far from all input links are provided here
         }
     }
 }

@@ -203,7 +203,7 @@ public abstract class RuntimeFunctionBlock<TBlock> : IRuntimeFunctionBlock where
 
     protected virtual void OnSettingChanged(IRuntimeSetting setting) { }
 
-    // TODO: Falls wir hier jemals einen besseren Namen finden, dann können wir die Methode auch umbenennen und müssen sie nicht mehr explizit implementieren.
+    // TODO: If we ever find a better name here, we can rename the method and no longer have to implement it explicitly.
     void IRuntimeFunctionBlock.ProcessCycle(IFunctionBlockCycleInfo cycleInfo)
     {
         if (_functionBlockEnabledInput.Changed &&

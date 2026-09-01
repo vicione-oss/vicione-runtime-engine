@@ -35,7 +35,7 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
     private List<ILinkChangedEntry> GetChangedEntries(IEnumerable<IRuntimeLink> links, IReferenceTypeCloneHandler cloneHandler, Action<IRuntimeLink, Exception> onError)
     {
         var changedEntries = new List<ILinkChangedEntry>();
-        // TODO: evtl. parallelisieren
+        // TODO: possibly parallelize
         foreach (IRuntimeLink link in links)
             try
             {
@@ -61,10 +61,10 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
 
     public void ProcessInputCommunication()
     {
-        // es wird davon ausgegangen, dass 
-        // - wenn das Ziel(-Pooling) nicht puffern kann, pro Zyklus nur ein Wert pro Link reinkommt
-        // - wenn das Ziel(-Pooling) puffern kann, mehrere Werte pro Zyklus pro Link reinkommen können
-        // TODO: das hier beschriebene und im Folgenden implementierte Verhalten ändert sich, sobald die Links jeweils eigene Queues erhalten
+        // it is assumed that
+        // - if the destination (pooling) cannot buffer, only one value per link comes in per cycle
+        // - if the destination (pooling) can buffer, multiple values per link can come in per cycle
+        // TODO: the behavior described here and implemented below will change as soon as the links each get their own queues
 
         IEnumerable<ILinkChangedEntry> receivedChangedEntries = _receivedEntriesObserver.GetAndResetReceivedEntries();
         IDictionary<Guid, IRuntimeLink> externalIncomingLinks = linkCache.GetExternalIncomingLinks();
@@ -80,12 +80,12 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
                 continue;
             }
 
-            // TODO: typsicherer gestalten... Theoretisch könnte ein IRuntimeLink auch Links ohne Ziel abbilden. Hier wissen wir es nur, da _linkCache.GetExternalIncomingLinks() nur Links mit Ziel zurückgibt
+            // TODO: make this more type-safe... In theory an IRuntimeLink could also represent links without a destination. Here we only know it because _linkCache.GetExternalIncomingLinks() returns only links with a destination
             if (sortEntries == false && ((IPoolable)((ILinkWithDestination)link.Link).Destination).CrossSourcePoolingStrategy == PoolingStrategy.Queue)
             {
                 if (queueableEntries.Contains(receivedEntry.Id))
                 {
-                    // die empfangenen Einträge müssen nur sortiert werden, wenn mehrere Werte pro Ziel empfangen wurden
+                    // the received entries only need to be sorted if multiple values were received per destination
                     sortEntries = true;
                     queueableEntries.Clear();
                 }
@@ -110,7 +110,7 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
         List<ILinkChangedEntry> externalLinkEntries = GetExternalOutgoingLinksChangedEntries(cloneHandler);
         if (externalLinkEntries.Count > 0)
             // TODO: try...catch
-            // TODO: evtl. in eigenen Thread auslagern
+            // TODO: possibly move to a separate thread
             communicationManager.HandleChangedOutgoingLinks(externalLinkEntries);
     }
 }

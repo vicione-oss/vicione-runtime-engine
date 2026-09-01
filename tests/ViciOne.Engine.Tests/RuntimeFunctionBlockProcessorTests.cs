@@ -433,7 +433,7 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
-            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            // exclude the first cycle from the check, because all blocks are always processed there
             processor.ProcessBlocks(validator, null, interceptor);
             runtimeBlock1.ClearReceivedCalls();
             runtimeBlock2.ClearReceivedCalls();
@@ -460,7 +460,7 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
-            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            // exclude the first cycle from the check, because all blocks are always processed there
             processor.ProcessBlocks(validator, null, interceptor);
             runtimeBlock.ClearReceivedCalls();
 
@@ -739,7 +739,7 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
-            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            // exclude the first cycle from the check, because all blocks are always processed there
             processor.ProcessBlocks(validator, null, interceptor);
             runtimeBlock.ClearReceivedCalls();
             runtimeLink.ClearReceivedCalls();

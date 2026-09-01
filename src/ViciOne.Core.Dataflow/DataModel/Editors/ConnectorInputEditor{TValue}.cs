@@ -30,7 +30,7 @@ public class ConnectorInputEditor<TValue>(ConnectorInput<TValue> connector) : IC
         connector.MarkAsChangedOnlyIfNotEqual = ConnectorDefaults.MarkAsChangedOnlyIfNotEqual;
         connector.PerSourcePoolingStrategy = design.DefaultPerSourcePoolingStrategy;
         connector.PerSourceAggregatingPooling = ClonePoolingIfNecessary(design.DefaultPerSourceAggregatingPooling);
-        // TODO: muss der Standardwert auch geklont werden?
+        // TODO: does the default value have to be cloned as well?
         connector.Value = design.DefaultValue;
         return connector;
     }
@@ -49,7 +49,7 @@ public class ConnectorInputEditor<TValue>(ConnectorInput<TValue> connector) : IC
         ResetAggregatingPoolings();
         SetCrossSourcePoolingStrategy(Connector.Design.DefaultCrossSourcePoolingStrategy, Connector.CrossSourceAggregatingPooling);
         SetPerSourcePoolingStrategy(Connector.Design.DefaultPerSourcePoolingStrategy, Connector.PerSourceAggregatingPooling);
-        // TODO: muss der Standardwert auch geklont werden?
+        // TODO: does the default value have to be cloned as well?
         SetValue(Connector.Design.DefaultValue);
     }
 
@@ -101,7 +101,7 @@ public class ConnectorInputEditor<TValue>(ConnectorInput<TValue> connector) : IC
 
     protected virtual TValue? ValidateValue(TValue? value)
     {
-        // zweistufige Validierung
+        // two-stage validation
         foreach (IValidator<TValue> validator in Connector.Design.Validators)
             value = validator.Validate(value, true);
         foreach (IValidator<TValue> validator in Connector.Validators)

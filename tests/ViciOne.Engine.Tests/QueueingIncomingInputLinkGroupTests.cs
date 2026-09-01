@@ -120,7 +120,7 @@ public class QueueingIncomingInputLinkGroupTests
         }
     }
 
-    // TODO: ist die Benennung richtig?
+    // TODO: is the naming correct?
     public class LinkChanged
     {
         [Fact]

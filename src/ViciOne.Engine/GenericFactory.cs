@@ -31,7 +31,7 @@ public class GenericFactory : IDisposable
         catch (TargetInvocationException ex)
         {
             ExceptionDispatchInfo.Capture(ex.InnerException!).Throw();
-            throw; // wird nie erreicht, nur zum Befriedigen des Compilers
+            throw; // never reached, only to satisfy the compiler
         }
     }
 

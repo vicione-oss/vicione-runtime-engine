@@ -145,7 +145,7 @@ internal sealed class DemoCommunicationManager : ICommunicationManager, IDisposa
         => GetConnectorInfos(functionBlocks, x => x.SettingsOutputs, false, true, true);
 
     public void HandleChangedOutgoingLinks(IEnumerable<ILinkChangedEntry> externalLinkEntries)
-        // TODO: evtl. in eigenen Thread auslagern
+        // TODO: possibly move to a separate thread
         => HandleChangedOutgoingLinks(externalLinkEntries, GetExternalOutgoingPath,
             (entry, ex) => _logger.OutgoingLinkHandlingErrorOccured(ex, entry.Id));
 

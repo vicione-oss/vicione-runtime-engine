@@ -29,7 +29,7 @@ internal abstract class IncomingInputLinkGroup<TInput, TLinkValue>(IRuntimeConne
         if (createdValue == false)
             value = Connector.Value;
 
-        // TODO: muss hier geprüft werden, ob der Interceptor überhaupt aufgerufen werden muss? (IsInterceptionPending(...))
+        // TODO: does it have to be checked here whether the interceptor needs to be called at all? (IsInterceptionPending(...))
         IConnectorValueTransferInterceptionResult<TInput> result = interceptor.Intercept(Connector.Connector.Id, value);
         if (result.CancelValueTransfer == false)
             Connector.SetValueIfNotEqual(result.Value);

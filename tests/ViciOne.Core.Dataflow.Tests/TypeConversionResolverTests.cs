@@ -76,8 +76,8 @@ public class TypeConversionResolverTests
 
             { typeof(float), typeof(double), typeof(SingleConverter) },
 
-            // TOOD: Soll das erlaubt sein?
-            // TODO: Nein
+            // TOOD: should this be allowed?
+            // TODO: no
             { typeof(double), typeof(bool), typeof(DoubleConverter) },
             { typeof(double), typeof(sbyte), typeof(DoubleConverter) },
             // ...

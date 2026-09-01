@@ -42,7 +42,7 @@ public class ConnectorDesignInputEditor<TValue>(ConnectorDesignInput<TValue> des
             design.DefaultCrossSourcePoolingStrategy = PoolingStrategy.Aggregate;
             design.DefaultPerSourcePoolingStrategy = PoolingStrategy.Aggregate;
             design.DefaultCrossSourceAggregatingPooling = aggregatingPooling;
-            // HACK: es soll nicht die gleiche Instanz genutzt werden, daher wird hier eine neue angefragt
+            // HACK: the same instance must not be reused, so a new one is requested here
             design.DefaultPerSourceAggregatingPooling = poolingFactory.GetNewDefaultPooling<TValue>();
         }
     }

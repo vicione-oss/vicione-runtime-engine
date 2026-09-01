@@ -22,7 +22,7 @@ public class ConnectorOutputEditor<TValue>(ConnectorOutput<TValue> connector) : 
         connector.Design = design;
         connector.Id = Guid.NewGuid();
         connector.MarkAsChangedOnlyIfNotEqual = ConnectorDefaults.MarkAsChangedOnlyIfNotEqual;
-        // TODO: muss der Standardwert geklont werden?
+        // TODO: does the default value have to be cloned?
         connector.Value = design.DefaultValue;
         return connector;
     }
@@ -31,7 +31,7 @@ public class ConnectorOutputEditor<TValue>(ConnectorOutput<TValue> connector) : 
         => Connector.Validators.Remove(validator);
 
     public virtual void ResetToDefaults()
-        // TODO: muss der Standardwert geklont werden?
+        // TODO: does the default value have to be cloned?
         => SetValue(Connector.Design.DefaultValue);
 
     public virtual void SetMarkAsChangedOnlyIfNotEqual(bool markAsChangedOnlyIfNotEqual)
@@ -48,7 +48,7 @@ public class ConnectorOutputEditor<TValue>(ConnectorOutput<TValue> connector) : 
 
     protected virtual TValue? ValidateValue(TValue? value)
     {
-        // zweistufige Validierung
+        // two-stage validation
         foreach (IValidator<TValue> validator in Connector.Design.Validators)
             value = validator.Validate(value, true);
         foreach (IValidator<TValue> validator in Connector.Validators)

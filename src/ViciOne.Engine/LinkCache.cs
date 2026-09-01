@@ -18,7 +18,7 @@ internal sealed class LinkCache : IDisposable
     private readonly Dictionary<IRuntimeFunctionBlock, IOutgoingInputLinkGroup[]> _outgoingInputLinkGroups;
     private readonly Dictionary<IRuntimeFunctionBlock, IOutputLinkGroup[]> _outputLinkGroups;
 
-    // TODO: Diese Eigenschaft ist nur für die Tests nützlich, evtl. kann man die noch eliminieren
+    // TODO: this property is only useful for the tests, maybe it can still be eliminated
     public IRuntimeLink[] Links { get; }
 
     public LinkCache(IRuntimeFunctionBlock[] runtimeFunctionBlocks, IEnumerable<ILink> allLinks, Func<IPoolingValidator> getPoolingValidator,

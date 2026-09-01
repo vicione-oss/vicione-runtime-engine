@@ -13,7 +13,7 @@ public class CreateDataflow1 : CreateDataflow
     [Fact]
     public void CreatesDataflow()
     {
-        // Dataflow erstellen
+        // create the dataflow
         var dataflow = CreateDataflow(
             FBDesigns.AddDesign,
             FBDesigns.AndDesign,
@@ -22,7 +22,7 @@ public class CreateDataflow1 : CreateDataflow
             FBDesigns.SettingsDemoDesign,
             FBDesigns.ComplexTypeDemoDesign);
 
-        // Dataflow als JSON speichern
+        // save the dataflow as JSON
         Save(dataflow, Path.Combine(WorkingDir, DesignTimeConstants.Dataflow1FileName));
     }
 
@@ -35,10 +35,10 @@ public class CreateDataflow1 : CreateDataflow
         FunctionBlockDesign blockDesignSettingsDemo,
         FunctionBlockDesign blockDesignComplexTypeDemo)
     {
-        // Dataflow erzeugen
+        // create the dataflow
         using var dataflowEditor = new DataflowEditor();
 
-        // FB Designs importieren
+        // import the FB designs
         dataflowEditor.AddFunctionBlockDesign(blockDesignAdd);
         dataflowEditor.AddFunctionBlockDesign(blockDesignAnd);
         dataflowEditor.AddFunctionBlockDesign(blockDesignDriverDemo);
@@ -46,10 +46,10 @@ public class CreateDataflow1 : CreateDataflow
         dataflowEditor.AddFunctionBlockDesign(blockDesignSettingsDemo);
         dataflowEditor.AddFunctionBlockDesign(blockDesignComplexTypeDemo);
 
-        // würde Fehler erzeugen, da schon ein FB-Design mit diesem Namen vorhanden ist
+        // would cause an error, because an FB design with this name already exists
         //dataflowEditor.AddFunctionBlockDesign(CreateAddDesign());
 
-        // ein paar Container erzeugen
+        // create a few containers
         var containerEditor1 = new ContainerEditor();
         containerEditor1.SetName("Explizit festgelegter Name");
         dataflowEditor.RootContainerEditor.AddContainer(containerEditor1);
@@ -57,88 +57,88 @@ public class CreateDataflow1 : CreateDataflow
         var containerEditor2 = new ContainerEditor();
         containerEditor1.AddContainer(containerEditor2);
 
-        // Instanzen erzeugen
+        // create the instances
         // - Source 0
         var sourceFb0Editor = new FunctionBlockEditor(blockDesignAdd);
         sourceFb0Editor.SetName("Source 0");
-        // würde Fehler erzeugen, da der RunMode nicht gültig ist
+        // would cause an error, because the RunMode is not valid
         //sourceFb0Editor.SetRunMode(RunMode.Always);
         sourceFb0Editor.SetCycleFrequency(1);
         sourceFb0Editor.SetRunMode(RunMode.Cyclic);
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(sourceFb0Editor);
 
         // - Source 1
         var sourceFb1Editor = new FunctionBlockEditor(blockDesignAnd);
         sourceFb1Editor.SetName("Source 1");
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(sourceFb1Editor);
 
         // - Source 2
         var sourceFb2Editor = new FunctionBlockEditor(blockDesignAnd);
         sourceFb2Editor.SetName("Source 2");
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(sourceFb2Editor);
 
         // - Target
         var targetFbEditor = new FunctionBlockEditor(blockDesignAnd);
         targetFbEditor.SetName("Target");
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(targetFbEditor);
 
-        // - Treiber Demo
+        // - Driver Demo
         var driverDemoFbEditor = new FunctionBlockEditor(blockDesignDriverDemo);
         driverDemoFbEditor.SetRunMode(RunMode.Cyclic);
         driverDemoFbEditor.SetCycleFrequency(50);
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(driverDemoFbEditor);
 
         // - Settings Demo 1
         var settingsDemoFbEditor1 = new FunctionBlockEditor(blockDesignSettingsDemo);
         settingsDemoFbEditor1.SetName("Settings Demo 1");
         settingsDemoFbEditor1.SetRunMode(RunMode.Cyclic);
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(settingsDemoFbEditor1);
 
         // - Settings Demo 2
         var settingsDemoFbEditor2 = new FunctionBlockEditor(blockDesignSettingsDemo);
         settingsDemoFbEditor2.SetName("Settings Demo 2");
         settingsDemoFbEditor2.SetRunMode(RunMode.Cyclic);
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(settingsDemoFbEditor2);
 
         // - Incrementor
         var incrementorFbEditor = new FunctionBlockEditor(blockDesignIncrementor);
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(incrementorFbEditor);
 
         // - Complex Type Demo 1
         var complexTypeDemoFbEditor1 = new FunctionBlockEditor(blockDesignComplexTypeDemo);
         complexTypeDemoFbEditor1.SetName("Complex Type Demo 1");
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(complexTypeDemoFbEditor1);
 
         // - Complex Type Demo 2
         var complexTypeDemoFbEditor2 = new FunctionBlockEditor(blockDesignComplexTypeDemo);
         complexTypeDemoFbEditor2.SetName("Complex Type Demo 2");
-        // dem Container hinzufügen
+        // add it to the container
         dataflowEditor.RootContainerEditor.AddFunctionBlock(complexTypeDemoFbEditor2);
 
-        // hiermit können alle FunktionsBlöcke rekursiv abgefragt werden
+        // this is how all function blocks can be queried recursively
         // IEnumerable<FunctionBlock> allBlocks = dataflowEditor.Dataflow.RootContainer.GetFunctionBlocks(true);
 
-        // hiermit können alle Container eines Dataflows abgefragt werden
+        // this is how all containers of a dataflow can be queried
         // IEnumerable<Container> allContainers = dataflowEditor.Dataflow.GetContainers();
 
-        // hiermit kann der Container eines FunktionBlockes abgefagt werden
+        // this is how the container of a function block can be queried
         // Container containerBlock1 = dataflowEditor.Dataflow.GetContainer(fbEditor.FunctionBlock);
 
-        // Einstellungen, für die Standardwerte gesetzt werden sollen, holen
+        // get the settings whose default values are to be set
         var dummySetting1 = (Setting<bool>)SettingFilter.GetSettingByName(settingsDemoFbEditor1.FunctionBlock.Settings, DesignTimeConstants.SettingDummy1Name)!;
         var dummySetting2 = (Setting<Demo.DummyValues>)SettingFilter.GetSettingByName(settingsDemoFbEditor1.FunctionBlock.Settings, DesignTimeConstants.SettingDummy2Name)!;
         var complexTypeDemoFbEditor2OffsetSetting = (Setting<int>)SettingFilter.GetSettingByName(complexTypeDemoFbEditor2.FunctionBlock.Settings, DesignTimeConstants.SettingComplexTypeDemoNumericValueOffsetName)!;
 
-        // Eingangs-Konnektoren, für die Standardwerte gesetzt werden sollen, holen
+        // get the input connectors whose default values are to be set
         var inputConnector0Addend1 = (ConnectorInput<double>)ConnectorFilter.GetConnectorByName(sourceFb0Editor.FunctionBlock.ProcessDataInputs, DesignTimeConstants.InputDesignAddAddend1Name)!;
         var inputConnector0Addend2 = (ConnectorInput<double>)ConnectorFilter.GetConnectorByName(sourceFb0Editor.FunctionBlock.ProcessDataInputs, DesignTimeConstants.InputDesignAddAddend2Name)!;
         var inputConnector1A = (ConnectorInput<bool>)ConnectorFilter.GetConnectorByName(sourceFb1Editor.FunctionBlock.ProcessDataInputs, DesignTimeConstants.InputDesignAndAName)!;
@@ -149,18 +149,18 @@ public class CreateDataflow1 : CreateDataflow
         var inputConnectorDummyForPooling1_1 = (ConnectorInput<double>)ConnectorFilter.GetConnectorByName(settingsDemoFbEditor1.FunctionBlock.ProcessDataInputs, DesignTimeConstants.InputDesignSettingsDemoDummyForDefaultPooling1Name)!;
         var inputConnectorDummyForPooling1_2 = (ConnectorInput<double[]>)ConnectorFilter.GetConnectorByName(settingsDemoFbEditor1.FunctionBlock.ProcessDataInputs, DesignTimeConstants.InputDesignSettingsDemoDummyForDefaultPooling2Name)!;
 
-        // Standardwerte der o.g. Einstellungen setzen
+        // set the default values of the settings mentioned above
         new SettingEditor<bool>(dummySetting1).SetValue(true);
         new SettingEditor<Demo.DummyValues>(dummySetting2).SetValue(Demo.DummyValues.Second);
         new SettingEditor<int>(complexTypeDemoFbEditor2OffsetSetting).SetValue(52);
-        // Folgender Aufruf würde zu einer Exception führen, da der Wertebereich des Validators überschritten wird (Wert nicht im Enum definiert)
+        // the following call would lead to an exception, because the validator's value range is exceeded (value not defined in the enum)
         //new SettingEditor<Demo.DummyEnum>(dummySetting2).SetValue((Demo.DummyEnum)100);
-        // HACK: sicherstellen, dass der persistierte Wert benutzt wird, falls vorhanden
+        // HACK: make sure the persisted value is used if one exists
         dummySetting1.ChangedTime = DateTime.MinValue.ToUniversalTime();
         dummySetting2.ChangedTime = DateTime.MinValue.ToUniversalTime();
         complexTypeDemoFbEditor2OffsetSetting.ChangedTime = DateTime.MinValue.ToUniversalTime();
 
-        // Standardwerte der o.g. Inputs setzen
+        // set the default values of the inputs mentioned above
         var addend1Editor = new ConnectorInputEditor<double>(inputConnector0Addend1);
         addend1Editor.SetValue(2.5);
         new ConnectorInputEditor<double>(inputConnector0Addend2).SetValue(0.6);
@@ -170,22 +170,22 @@ public class CreateDataflow1 : CreateDataflow
         new ConnectorInputEditor<bool>(inputConnector2B).SetValue(false);
         new ConnectorInputEditor<bool>(inputConnector3B).SetValue(true);
 
-        // MarkAsChangedOnlyIfNotEqual setzen
+        // set MarkAsChangedOnlyIfNotEqual
         addend1Editor.SetMarkAsChangedOnlyIfNotEqual(false);
 
-        // Konnektor-Instanz-Validatoren hinterlegen
+        // register the connector instance validators
         var inputEditorInputConnectorDummyForPooling1_1 = new ConnectorInputEditor<double>(inputConnectorDummyForPooling1_1);
         inputEditorInputConnectorDummyForPooling1_1.AddValidator(new RangeValidator<double>() { MinValue = 50, MaxValue = 75 });
         inputEditorInputConnectorDummyForPooling1_1.AddValidator(new InequalityValidator<double>() { InvalidValue = 66 });
         inputEditorInputConnectorDummyForPooling1_1.SetValue(55);
-        // Folgender Aufruf würde zu einer Exception führen, da der Wertebereich des Validators überschritten wird
+        // the following call would lead to an exception, because the validator's value range is exceeded
         //inputEditorInputConnectorDummyForPooling1_1.SetValue(80);
-        // Folgender Aufruf würde zu einer Exception führen, da der zweite Validator diesen Wert als ungültig markiert
+        // the following call would lead to an exception, because the second validator marks this value as invalid
         //inputEditorInputConnectorDummyForPooling1_1.SetValue(66);
-        // Dieser Validator hätte einen größeren Wertebereich als der, der schon am Design hinterlegt ist. Daher wird er zwar benutzt, hat aber keine Auswirkungen
+        // this validator would have a wider value range than the one already registered on the design. It is therefore used, but has no effect
         //inputEditorInputConnectorDummyForPooling1_1.SetValidator(new RangeValidator<double>() { MinValue = -200, MaxValue = 200 });
 
-        // Ausgangs-Konnektoren für Links oder Logging
+        // output connectors for links or logging
         var outputConnectorAddSum = (ConnectorOutput<double>)ConnectorFilter.GetConnectorByName(sourceFb0Editor.FunctionBlock.ProcessDataOutputs, DesignTimeConstants.OutputDesignAddSumName)!;
         var outputConnectorY1 = (ConnectorOutput<bool>)ConnectorFilter.GetConnectorByName(sourceFb1Editor.FunctionBlock.ProcessDataOutputs, DesignTimeConstants.OutputDesignAndYName)!;
         var outputConnectorY2 = (ConnectorOutput<bool>)ConnectorFilter.GetConnectorByName(sourceFb2Editor.FunctionBlock.ProcessDataOutputs, DesignTimeConstants.OutputDesignAndYName)!;
@@ -200,10 +200,10 @@ public class CreateDataflow1 : CreateDataflow
         var outputConnectorComplexInIsDerived = (ConnectorOutput<bool>)ConnectorFilter.GetConnectorByName(complexTypeDemoFbEditor1.FunctionBlock.ProcessDataOutputs, DesignTimeConstants.OutputDesignComplexTypeDemoInIsDerivedName)!;
         var outputConnectorComplexInStringValue = (ConnectorOutput<string>)ConnectorFilter.GetConnectorByName(complexTypeDemoFbEditor1.FunctionBlock.ProcessDataOutputs, DesignTimeConstants.OutputDesignComplexTypeDemoInStringValueName)!;
 
-        // Ziel-Eingangs-Konnektoren
+        // destination input connectors
         var inputConnector3A = (ConnectorInput<bool>)ConnectorFilter.GetConnectorByName(targetFbEditor.FunctionBlock.ProcessDataInputs, DesignTimeConstants.InputDesignAndAName)!;
         inputConnector3A.CrossSourcePoolingStrategy = PoolingStrategy.Aggregate;
-        // wahlweise eine der folgenden Pooling-Implementierungen
+        // optionally one of the following pooling implementations
         //inputConnector3A.Pooling = new AndPooling();
         inputConnector3A.CrossSourceAggregatingPooling = new OrPooling();
         //inputConnector3A.Pooling = new MaxPooling();
@@ -213,76 +213,76 @@ public class CreateDataflow1 : CreateDataflow
         var inputConnectorComplexGenerateDerived1 = (ConnectorInput<bool>)ConnectorFilter.GetConnectorByName(complexTypeDemoFbEditor1.FunctionBlock.ProcessDataInputs, DesignTimeConstants.InputDesignComplexTypeDemoGenerateDerivedName)!;
         var inputConnectorComplexGenerateDerived2 = (ConnectorInput<bool>)ConnectorFilter.GetConnectorByName(complexTypeDemoFbEditor2.FunctionBlock.ProcessDataInputs, DesignTimeConstants.InputDesignComplexTypeDemoGenerateDerivedName)!;
 
-        // Link von double-Quelle-1 zu bool-Ziel-1
+        // link from double source 1 to bool destination 1
         var linkEditor1 = new InternalLinkEditor<double, bool>(outputConnectorAddSum, inputConnector3A);
         dataflowEditor.AddInternalLink(linkEditor1.Link);
-        // Link von bool-Quelle-1 zu bool-Ziel-1
+        // link from bool source 1 to bool destination 1
         var linkEditor2 = new InternalLinkEditor<bool, bool>(outputConnectorY1, inputConnector3A);
         dataflowEditor.AddInternalLink(linkEditor2.Link);
-        // Link von bool-Quelle-2 zu bool-Ziel-1
+        // link from bool source 2 to bool destination 1
         var linkEditor3 = new InternalLinkEditor<bool, bool>(outputConnectorY2, inputConnector3A);
         dataflowEditor.AddInternalLink(linkEditor3.Link);
-        // Link von Demo-Toggle zu Incrementor-Increment
+        // link from Demo-Toggle to Incrementor-Increment
         var linkEditor4 = new InternalLinkEditor<bool, bool>(outputConnectorToggle, inputConnectorIncrement);
         dataflowEditor.AddInternalLink(linkEditor4.Link);
-        // Link von Complex-Demo-GeneratedDerived 1 zu Complex-Demo-In (1)
+        // link from Complex-Demo-GeneratedDerived 1 to Complex-Demo-In (1)
         var linkEditor5 = new InternalLinkEditor<Demo.Derived, Demo.Base>(outputConnectorComplexGeneratedDerived1, inputConnectorComplexIn);
         dataflowEditor.AddInternalLink(linkEditor5.Link);
-        // Link von Complex-Demo-GeneratedDerived 2 zu Complex-Demo-In (1)
+        // link from Complex-Demo-GeneratedDerived 2 to Complex-Demo-In (1)
         var linkEditor5_2 = new InternalLinkEditor<Demo.Derived, Demo.Base>(outputConnectorComplexGeneratedDerived2, inputConnectorComplexIn);
         dataflowEditor.AddInternalLink(linkEditor5_2.Link);
-        // Link von Demo-Toggle zu Complex-Demo-GenerateDerived 1
+        // link from Demo-Toggle to Complex-Demo-GenerateDerived 1
         var linkEditor6 = new InternalLinkEditor<bool, bool>(outputConnectorToggle, inputConnectorComplexGenerateDerived1);
         dataflowEditor.AddInternalLink(linkEditor6.Link);
-        // Link von Demo-Toggle zu Complex-Demo-GenerateDerived 2
+        // link from Demo-Toggle to Complex-Demo-GenerateDerived 2
         var linkEditor6_2 = new InternalLinkEditor<bool, bool>(outputConnectorToggle, inputConnectorComplexGenerateDerived2);
         dataflowEditor.AddInternalLink(linkEditor6_2.Link);
 
-        // würde Fehler erzeugen, weil schon ein Link mit dieser Quelle und diesem Ziel existiert
+        // would cause an error, because a link with this source and this destination already exists
         //var linkEditor11 = new LinkEditor<double, bool>(sourceConnectorAddSum, targetConnector);
         //dataflowEditor.AddLink(linkEditor11.Link);
 
-        // Link von extern zu einem double-Eingangskonnektor
+        // link from outside to a double input connector
         var externalLinkEditor1 = new ExternalIncomingLinkEditor<double>(inputConnector0Addend1);
         dataflowEditor.AddExternalIncomingLink(externalLinkEditor1.Link);
 
-        // Weiterer Link von extern zum gleichen double-Eingangskonnektor
+        // another link from outside to the same double input connector
         var externalLinkEditor1_1 = new ExternalIncomingLinkEditor<double>(inputConnector0Addend1);
         dataflowEditor.AddExternalIncomingLink(externalLinkEditor1_1.Link);
 
-        // Link von extern zu einem double-Eingangskonnektor mit Typ-Konvertierung
+        // link from outside to a double input connector with type conversion
         var externalLinkEditor1_2 = new ExternalIncomingLinkEditor<int, double>(inputConnector0Addend1);
         dataflowEditor.AddExternalIncomingLink(externalLinkEditor1_2.Link);
 
-        // Link von einem double-Ausgangskonnektor nach extern
+        // link from a double output connector to the outside
         var externalLinkEditor2 = new ExternalOutgoingLinkEditor<double>(outputConnectorAddSum);
         dataflowEditor.AddExternalOutgoingLink(externalLinkEditor2.Link);
 
-        // Weiterer Link von gleichem double-Ausgangskonnektor nach extern
+        // another link from the same double output connector to the outside
         var externalLinkEditor2_1 = new ExternalOutgoingLinkEditor<double>(outputConnectorAddSum);
         dataflowEditor.AddExternalOutgoingLink(externalLinkEditor2_1.Link);
 
-        // Link von extern zu einem double-Eingangskonnektor mit verkettendem Pooling
+        // link from outside to a double input connector with concatenating pooling
         var externalLinkEditor3 = new ExternalIncomingLinkEditor<double, double, double[]>(inputConnectorDummyForPooling1_2);
         dataflowEditor.AddExternalIncomingLink(externalLinkEditor3.Link);
 
-        // Weiterer Link von extern zu gleichen double-Eingangskonnektor mit verkettendem Pooling
+        // another link from outside to the same double input connector with concatenating pooling
         var externalLinkEditor4 = new ExternalIncomingLinkEditor<double, double, double[]>(inputConnectorDummyForPooling1_2);
         dataflowEditor.AddExternalIncomingLink(externalLinkEditor4.Link);
 
-        // Link von einem weiteren double-Ausgangskonnektor nach extern
+        // link from another double output connector to the outside
         var externalLinkEditor5 = new ExternalOutgoingLinkEditor<double>(outputConnectorIncrementValue);
         dataflowEditor.AddExternalOutgoingLink(externalLinkEditor5.Link);
 
-        // Link von einem weiteren bool-Ausgangskonnektor nach extern
+        // link from another bool output connector to the outside
         var externalLinkEditor7 = new ExternalOutgoingLinkEditor<bool>(outputConnectorToggle);
         dataflowEditor.AddExternalOutgoingLink(externalLinkEditor7.Link);
 
-        // Link von einem weiteren bool-Ausgangskonnektor nach extern
+        // link from another bool output connector to the outside
         var externalLinkEditor8 = new ExternalOutgoingLinkEditor<bool>(outputConnectorY3);
         dataflowEditor.AddExternalOutgoingLink(externalLinkEditor8.Link);
 
-        // Link von einem Einstellungs-bool-Ausgangskonnektor nach extern
+        // link from a settings bool output connector to the outside
         var externalLinkEditor9 = new ExternalOutgoingLinkEditor<bool>(outputConnectorDummySetting);
         dataflowEditor.AddExternalOutgoingLink(externalLinkEditor9.Link);
 
@@ -298,7 +298,7 @@ public class CreateDataflow1 : CreateDataflow
         var externalLinkEditor13 = new ExternalOutgoingLinkEditor<string>(outputConnectorComplexInStringValue);
         dataflowEditor.AddExternalOutgoingLink(externalLinkEditor13.Link);
 
-        // einen Eingangskonnektor ausgehend nach aussen führen (z.B. für Logging)
+        // expose an input connector to the outside as an outgoing link (e.g. for logging)
         var externalLinkEditor6 = new ExternalOutgoingLinkEditor<bool>(inputConnectorIncrement);
         dataflowEditor.AddExternalOutgoingLink(externalLinkEditor6.Link);
 

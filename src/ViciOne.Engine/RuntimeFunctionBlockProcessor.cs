@@ -108,7 +108,7 @@ internal sealed partial class RuntimeFunctionBlockProcessor : IDisposable
                 ProcessInputs(runtimeBlock, poolingValidator, cloneHandler, interceptor);
             }
 
-            // TODO: falls ein Block selbst eine Einstellung ändert, wird ProcessSettings nicht aufgerufen und damit auch das SettingsChanged-Event nicht geworfen
+            // TODO: if a block changes a setting itself, ProcessSettings is not called and therefore the SettingsChanged event is not raised either
             if (GetSettingsMustBeProcessed(runtimeBlock, cycleInfo))
             {
                 using Activity? processSettingsTelemetryActivity = Telemetry.StartForProcessSettings();
