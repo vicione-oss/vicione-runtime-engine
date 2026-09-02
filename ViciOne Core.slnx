@@ -1,16 +1,4 @@
 <Solution>
-  <Folder Name="/Projektmappenelemente/">
-    <File Path=".editorconfig" />
-    <File Path=".gitignore" />
-    <File Path=".gitlab-ci.yml" />
-    <File Path="CHANGELOG.md" />
-    <File Path="Directory.Build.props" />
-    <File Path="Directory.Packages.props" />
-    <File Path="NuGet.Config" />
-    <File Path="README.md" />
-    <File Path="THIRD-PARTY-NOTICES.md" />
-    <File Path="VERSION" />
-  </Folder>
   <Folder Name="/samples/" />
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/ViciOne.Core.Dataflow.Benchmarks/ViciOne.Core.Dataflow.Benchmarks.csproj" />
@@ -32,6 +20,18 @@
   </Folder>
   <Folder Name="/shared/">
     <File Path="shared/EnumerableExtensions.cs" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path=".gitlab-ci.yml" />
+    <File Path="CHANGELOG.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="NuGet.Config" />
+    <File Path="README.md" />
+    <File Path="THIRD-PARTY-NOTICES.md" />
+    <File Path="VERSION" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/FunctionBlockDesignGenerator/FunctionBlockDesignGenerator.csproj" />
