@@ -31,7 +31,7 @@ internal sealed class Program
         string communicationPath = args[4];
         bool showOutgoingExternalLinkValuesInConsole = args[5] == "1";
 
-        // Engine Aufgaben
+        // engine tasks
         Assembly[] assemblies = [.. Directory.GetFiles(dllDir, "*.dll", SearchOption.AllDirectories).Select(AssemblyLoadContext.Default.LoadFromAssemblyPath)];
         IDataflow dataflow = Load<Dataflow>(dataflowPath);
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options => options.SingleLine = true));
@@ -141,7 +141,7 @@ internal sealed class Program
 
     private static void FindGuidsForInterceptor(IEnumerable<IFunctionBlock> functionBlocks)
     {
-        // Objekte aus dataflow1
+        // objects from dataflow1
         s_guidForInterceptor1 = FindConnector("Source 0", "Sum", false, functionBlocks)?.Id;
         s_guidForInterceptor2 = FindConnector("Target", "A", true, functionBlocks)?.Id;
         s_guidForInterceptor3 = FindConnector("Incrementor", "Value", false, functionBlocks)?.Id;

@@ -19,7 +19,7 @@ public class RuntimeFunctionBlockProcessorTests
     public class Dispose
     {
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Gets called by Should().NotThrow().")]
         public void CanDispose()
         {
             var runtimeFunctionBlocks = Substitute.For<IEnumerable<IRuntimeFunctionBlock>>();
@@ -148,7 +148,7 @@ public class RuntimeFunctionBlockProcessorTests
         }
 
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
         public void CanHandlePoolingErrors()
         {
             var design = Substitute.For<IConnectorDesign<int>, IConnectorDesign>();
@@ -208,7 +208,7 @@ public class RuntimeFunctionBlockProcessorTests
         }
 
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
         public void CanHandleOutgoingInputLinkGroupProcessingErrors()
         {
             var design = Substitute.For<IConnectorDesign<int>>();
@@ -367,7 +367,7 @@ public class RuntimeFunctionBlockProcessorTests
         }
 
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
         public void CanHandleSettingsProcessingErrors()
         {
             var settingsInput = Substitute.For<IRuntimeConnector<int>, IRuntimeConnector>();
@@ -433,7 +433,7 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
-            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            // exclude the first cycle from the check, because all blocks are always processed there
             processor.ProcessBlocks(validator, null, interceptor);
             runtimeBlock1.ClearReceivedCalls();
             runtimeBlock2.ClearReceivedCalls();
@@ -460,7 +460,7 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
-            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            // exclude the first cycle from the check, because all blocks are always processed there
             processor.ProcessBlocks(validator, null, interceptor);
             runtimeBlock.ClearReceivedCalls();
 
@@ -534,7 +534,7 @@ public class RuntimeFunctionBlockProcessorTests
         }
 
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
         public void CanHandleBlockProcessingErrors()
         {
             var block = Substitute.For<IFunctionBlock>();
@@ -739,7 +739,7 @@ public class RuntimeFunctionBlockProcessorTests
             var logger = Substitute.For<ILogger>();
             using var processor = new RuntimeFunctionBlockProcessor(blocks, linkCache, nameCache, logger, Guid.Empty);
             using var interceptor = new DefaultConnectorValueTransferInterceptor();
-            // ersten Zyklus aus Prüfung ausklammern, da dort immer alle Blöcke verarbeitet werden
+            // exclude the first cycle from the check, because all blocks are always processed there
             processor.ProcessBlocks(validator, null, interceptor);
             runtimeBlock.ClearReceivedCalls();
             runtimeLink.ClearReceivedCalls();
@@ -776,7 +776,7 @@ public class RuntimeFunctionBlockProcessorTests
         }
 
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
         public void CanHandleOutputProcessingErrors()
         {
             var design = Substitute.For<IConnectorDesign<int>>();

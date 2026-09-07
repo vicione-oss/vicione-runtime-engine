@@ -9,7 +9,7 @@ public class DefaultConnectorValueTransferInterceptor : IConnectorValueTransferI
     private bool _disposed;
 
     protected ConcurrentDictionary<Guid, object> Interceptors { get; } = [];
-    // HACK: Da es kein ConcurrentHashSet gibt, nutzen wir ein Dictionary, bei dem der Wert egal ist.
+    // HACK: Since there is no ConcurrentHashSet, we use a dictionary whose value does not matter.
     protected ConcurrentDictionary<Guid, object?> PendingInterceptions { get; } = [];
 
     public void Dispose()

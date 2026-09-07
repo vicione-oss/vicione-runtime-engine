@@ -153,7 +153,7 @@ public class InternalLinkEditorTests
     }
 
     [TypeConverter(typeof(MockTypeConverter))]
-    [SuppressMessage("Performance", "CA1812:Nicht instanziierte interne Klassen vermeiden.", Justification = "Der Typ wird als Typargument verwendet.")]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes.", Justification = "The type is used as a type argument.")]
     private sealed class MockType { }
     private sealed class MockTypeConverter : TypeConverter
     {

@@ -94,7 +94,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void AddsConnectorDesign()
         {
-            var connectorEditor = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
 
             blockEditor.AddConnectorDesign(blockEditor.Design.ProcessDataInputs, connectorEditor);
@@ -105,7 +105,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void SetsEditor()
         {
-            var connectorEditor = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
 
             blockEditor.AddConnectorDesign(blockEditor.Design.ProcessDataInputs, connectorEditor);
@@ -116,7 +116,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void DoesNothingIfAlreadyAdded()
         {
-            var connectorEditor = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
             blockEditor.Design.ProcessDataInputs.Add(connectorEditor.Design);
             var countBefore = blockEditor.Design.ProcessDataInputs.Count;
@@ -129,7 +129,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ThrowsIfAlreadAddedToAnotherBlock()
         {
-            var connectorEditor = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor1 = new MockFunctionBlockDesignEditor(PoolingFactory);
             var blockEditor2 = new MockFunctionBlockDesignEditor(PoolingFactory);
             blockEditor1.AddConnectorDesign(blockEditor1.Design.ProcessDataInputs, connectorEditor);
@@ -143,8 +143,8 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ThrowsIfNameAlreadyExisting()
         {
-            var connectorEditor1 = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
-            var connectorEditor2 = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor1 = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
+            var connectorEditor2 = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddConnectorDesign(blockEditor.Design.ProcessDataInputs, connectorEditor1);
 
@@ -166,7 +166,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void AddsVariable()
         {
-            var variableEditor = new PersistentVariableDesignEditor<object>("zweiundvierzig");
+            var variableEditor = new PersistentVariableDesignEditor<object>("fortytwo");
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
             blockEditor.AddPersistentVariable(variableEditor);
@@ -177,7 +177,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void SetsEditor()
         {
-            var variableEditor = new PersistentVariableDesignEditor<object>("zweiundvierzig");
+            var variableEditor = new PersistentVariableDesignEditor<object>("fortytwo");
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
             blockEditor.AddPersistentVariable(variableEditor);
@@ -188,7 +188,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ThrowsIfAlreadAdded()
         {
-            var variableEditor = new PersistentVariableDesignEditor<object>("zweiundvierzig");
+            var variableEditor = new PersistentVariableDesignEditor<object>("fortytwo");
             var blockEditor1 = new FunctionBlockDesignEditor(PoolingFactory);
             var blockEditor2 = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor1.AddPersistentVariable(variableEditor);
@@ -202,8 +202,8 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ThrowsIfNameAlreadyExisting()
         {
-            var variableEditor1 = new PersistentVariableDesignEditor<object>("zweiundvierzig");
-            var variableEditor2 = new PersistentVariableDesignEditor<object>("zweiundvierzig");
+            var variableEditor1 = new PersistentVariableDesignEditor<object>("fortytwo");
+            var variableEditor2 = new PersistentVariableDesignEditor<object>("fortytwo");
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddPersistentVariable(variableEditor1);
 
@@ -256,7 +256,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void AddsSetting()
         {
-            var settingEditor = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
+            var settingEditor = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
             blockEditor.AddSetting(settingEditor);
@@ -267,7 +267,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void SetsEditor()
         {
-            var settingEditor = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
+            var settingEditor = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
             blockEditor.AddSetting(settingEditor);
@@ -278,7 +278,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ThrowsIfAlreadAdded()
         {
-            var settingEditor = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
+            var settingEditor = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
             var blockEditor1 = new FunctionBlockDesignEditor(PoolingFactory);
             var blockEditor2 = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor1.AddSetting(settingEditor);
@@ -292,8 +292,8 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ThrowsIfNameAlreadyExisting()
         {
-            var settingEditor1 = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
-            var settingEditor2 = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
+            var settingEditor1 = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
+            var settingEditor2 = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddSetting(settingEditor1);
 
@@ -338,7 +338,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void RemovesConnectorDesign()
         {
-            var connectorEditor = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddConnectorDesign(blockEditor.Design.ProcessDataInputs, connectorEditor);
 
@@ -350,7 +350,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ResetsEditor()
         {
-            var connectorEditor = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddConnectorDesign(blockEditor.Design.ProcessDataInputs, connectorEditor);
 
@@ -362,7 +362,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ReturnsTrueIfRemoved()
         {
-            var connectorEditor = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddConnectorDesign(blockEditor.Design.ProcessDataInputs, connectorEditor);
 
@@ -374,7 +374,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ReturnsFalseIfNotRemoved()
         {
-            var connectorEditor = new ConnectorDesignInputEditor<object>("zweiundvierzig", PoolingFactory);
+            var connectorEditor = new ConnectorDesignInputEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
 
             var result = blockEditor.RemoveConnectorDesign(blockEditor.Design.ProcessDataInputs, connectorEditor);
@@ -397,7 +397,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void RemovesVariable()
         {
-            var variableEditor = new PersistentVariableDesignEditor<object>("zweiundvierzig");
+            var variableEditor = new PersistentVariableDesignEditor<object>("fortytwo");
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddPersistentVariable(variableEditor);
 
@@ -409,7 +409,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ResetsEditor()
         {
-            var variableEditor = new PersistentVariableDesignEditor<object>("zweiundvierzig");
+            var variableEditor = new PersistentVariableDesignEditor<object>("fortytwo");
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddPersistentVariable(variableEditor);
 
@@ -421,7 +421,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ReturnsTrueIfRemoved()
         {
-            var variableEditor = new PersistentVariableDesignEditor<object>("zweiundvierzig");
+            var variableEditor = new PersistentVariableDesignEditor<object>("fortytwo");
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddPersistentVariable(variableEditor);
 
@@ -433,7 +433,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ReturnsFalseIfNotRemoved()
         {
-            var variableEditor = new PersistentVariableDesignEditor<object>("zweiundvierzig");
+            var variableEditor = new PersistentVariableDesignEditor<object>("fortytwo");
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
             var result = blockEditor.RemovePersistentVariable(variableEditor);
@@ -509,7 +509,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void RemovesSetting()
         {
-            var settingEditor = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
+            var settingEditor = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddSetting(settingEditor);
 
@@ -521,7 +521,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ResetsEditor()
         {
-            var settingEditor = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
+            var settingEditor = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddSetting(settingEditor);
 
@@ -533,7 +533,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ReturnsTrueIfRemoved()
         {
-            var settingEditor = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
+            var settingEditor = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
             blockEditor.AddSetting(settingEditor);
 
@@ -545,7 +545,7 @@ public class FunctionBlockDesignEditorTests
         [Fact]
         public void ReturnsFalseIfNotRemoved()
         {
-            var settingEditor = new SettingDesignEditor<object>("zweiundvierzig", PoolingFactory);
+            var settingEditor = new SettingDesignEditor<object>("fortytwo", PoolingFactory);
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
             var result = blockEditor.RemoveSetting(settingEditor);
@@ -668,7 +668,7 @@ public class FunctionBlockDesignEditorTests
         public void SetsName()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             blockEditor.SetRuntimeDriverTypeName(nameToSet);
 
@@ -689,8 +689,8 @@ public class FunctionBlockDesignEditorTests
         public void TrimsName()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameToSet = "   Zweiundvierzig      ";
-            var expectedName = "Zweiundvierzig";
+            var nameToSet = "   FortyTwo      ";
+            var expectedName = "FortyTwo";
 
             blockEditor.SetRuntimeDriverTypeName(nameToSet);
 
@@ -715,7 +715,7 @@ public class FunctionBlockDesignEditorTests
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
-            Action action = () => blockEditor.SetRuntimeDriverTypeName("Zwei/und/vierzig");
+            Action action = () => blockEditor.SetRuntimeDriverTypeName("Forty/two");
 
             action.Should().Throw<FormatException>();
         }
@@ -724,7 +724,7 @@ public class FunctionBlockDesignEditorTests
         public void DoesNotSetNameIfNullOrWhiteSpaceValidationFails()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             blockEditor.SetRuntimeDriverTypeName(nameBefore);
 
             try { blockEditor.SetRuntimeDriverTypeName("   "); }
@@ -737,10 +737,10 @@ public class FunctionBlockDesignEditorTests
         public void DoesNotSetNameIfIsValidNamespaceOrClassNameValidationFails()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             blockEditor.SetRuntimeDriverTypeName(nameBefore);
 
-            try { blockEditor.SetRuntimeDriverTypeName("Zwei/und/vierzig"); }
+            try { blockEditor.SetRuntimeDriverTypeName("Forty/two"); }
             catch { }
 
             blockEditor.Design.RuntimeDriverTypeName.Should().Be(nameBefore);
@@ -753,7 +753,7 @@ public class FunctionBlockDesignEditorTests
         public void SetsName()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             blockEditor.SetRuntimeTypeName(nameToSet);
 
@@ -774,8 +774,8 @@ public class FunctionBlockDesignEditorTests
         public void TrimsName()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameToSet = "   Zweiundvierzig      ";
-            var expectedName = "Zweiundvierzig";
+            var nameToSet = "   FortyTwo      ";
+            var expectedName = "FortyTwo";
 
             blockEditor.SetRuntimeTypeName(nameToSet);
 
@@ -800,7 +800,7 @@ public class FunctionBlockDesignEditorTests
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
-            Action action = () => blockEditor.SetRuntimeTypeName("Zwei/und/vierzig");
+            Action action = () => blockEditor.SetRuntimeTypeName("Forty/two");
 
             action.Should().Throw<FormatException>();
         }
@@ -809,7 +809,7 @@ public class FunctionBlockDesignEditorTests
         public void DoesNotSetNameIfNullOrWhiteSpaceValidationFails()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             blockEditor.SetRuntimeTypeName(nameBefore);
 
             try { blockEditor.SetRuntimeTypeName("   "); }
@@ -822,10 +822,10 @@ public class FunctionBlockDesignEditorTests
         public void DoesNotSetNameIfIsValidNamespaceOrClassNameValidationFails()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             blockEditor.SetRuntimeTypeName(nameBefore);
 
-            try { blockEditor.SetRuntimeTypeName("Zwei/und/vierzig"); }
+            try { blockEditor.SetRuntimeTypeName("Forty/two"); }
             catch { }
 
             blockEditor.Design.RuntimeTypeName.Should().Be(nameBefore);
@@ -838,7 +838,7 @@ public class FunctionBlockDesignEditorTests
         public void SetsName()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             blockEditor.SetName(nameToSet);
 
@@ -849,8 +849,8 @@ public class FunctionBlockDesignEditorTests
         public void TrimsName()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameToSet = "   Zweiundvierzig      ";
-            var expectedName = "Zweiundvierzig";
+            var nameToSet = "   FortyTwo      ";
+            var expectedName = "FortyTwo";
 
             blockEditor.SetName(nameToSet);
 
@@ -875,7 +875,7 @@ public class FunctionBlockDesignEditorTests
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
-            Action action = () => blockEditor.SetName("Zwei und vierzig");
+            Action action = () => blockEditor.SetName("Forty two");
 
             action.Should().Throw<FormatException>();
         }
@@ -884,7 +884,7 @@ public class FunctionBlockDesignEditorTests
         public void DoesNotSetNameIfNullOrWhiteSpaceValidationFails()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             blockEditor.SetName(nameBefore);
 
             try { blockEditor.SetName("   "); }
@@ -897,10 +897,10 @@ public class FunctionBlockDesignEditorTests
         public void DoesNotSetNameIfIsValidNamespaceOrClassNameValidationFails()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             blockEditor.SetName(nameBefore);
 
-            try { blockEditor.SetName("Zwei und vierzig"); }
+            try { blockEditor.SetName("Forty two"); }
             catch { }
 
             blockEditor.Design.Name.Should().Be(nameBefore);
@@ -913,7 +913,7 @@ public class FunctionBlockDesignEditorTests
         public void SetsNamespace()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var namespaceToSet = "Zweiundvierzig";
+            var namespaceToSet = "FortyTwo";
 
             blockEditor.SetNamespace(namespaceToSet);
 
@@ -924,8 +924,8 @@ public class FunctionBlockDesignEditorTests
         public void TrimsNamespace()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var namespaceToSet = "   Zweiundvierzig      ";
-            var expectedNamespace = "Zweiundvierzig";
+            var namespaceToSet = "   FortyTwo      ";
+            var expectedNamespace = "FortyTwo";
 
             blockEditor.SetNamespace(namespaceToSet);
 
@@ -950,7 +950,7 @@ public class FunctionBlockDesignEditorTests
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
 
-            Action action = () => blockEditor.SetNamespace("Zwei und vierzig");
+            Action action = () => blockEditor.SetNamespace("Forty two");
 
             action.Should().Throw<FormatException>();
         }
@@ -959,7 +959,7 @@ public class FunctionBlockDesignEditorTests
         public void DoesNotSetNamespaceIfNullOrWhiteSpaceValidationFails()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var namespaceBefore = "Zweiundvierzig";
+            var namespaceBefore = "FortyTwo";
             blockEditor.SetNamespace(namespaceBefore);
 
             try { blockEditor.SetNamespace("   "); }
@@ -972,10 +972,10 @@ public class FunctionBlockDesignEditorTests
         public void DoesNotSetNamespaceIfIsValidNamespaceOrClassNameValidationFails()
         {
             var blockEditor = new FunctionBlockDesignEditor(PoolingFactory);
-            var namespaceBefore = "Zweiundvierzig";
+            var namespaceBefore = "FortyTwo";
             blockEditor.SetNamespace(namespaceBefore);
 
-            try { blockEditor.SetNamespace("Zwei und vierzig"); }
+            try { blockEditor.SetNamespace("Forty two"); }
             catch { }
 
             blockEditor.Design.Namespace.Should().Be(namespaceBefore);

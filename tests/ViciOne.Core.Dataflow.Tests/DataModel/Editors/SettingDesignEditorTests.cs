@@ -76,7 +76,7 @@ public class SettingDesignEditorTests
         [Fact]
         public void SetsNameIfSettingIsCreated()
         {
-            var nameToSet = "zweiundvierzig";
+            var nameToSet = "fortytwo";
 
             var editor = new SettingDesignEditor<object>(nameToSet, PoolingFactory);
 
@@ -194,7 +194,7 @@ public class SettingDesignEditorTests
         [Fact]
         public void SetsName()
         {
-            var nameToSet = "zweiundvierzig";
+            var nameToSet = "fortytwo";
             var editor = new SettingDesignEditor<int>("setting", PoolingFactory);
 
             editor.SetName(nameToSet);
@@ -208,8 +208,8 @@ public class SettingDesignEditorTests
         public void TrimsName()
         {
             var editor = new SettingDesignEditor<object>("setting", PoolingFactory);
-            var nameToSet = "   Zweiundvierzig      ";
-            var expectedName = "Zweiundvierzig";
+            var nameToSet = "   FortyTwo      ";
+            var expectedName = "FortyTwo";
 
             editor.SetName(nameToSet);
 
@@ -223,7 +223,7 @@ public class SettingDesignEditorTests
         {
             var editor = new SettingDesignEditor<object>("setting", PoolingFactory);
             ((ISettingDesignEditor)editor).FunctionBlockDesignEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             Action action = () => editor.SetName(nameToSet);
 
@@ -249,7 +249,7 @@ public class SettingDesignEditorTests
         {
             var editor = new SettingDesignEditor<object>("setting", PoolingFactory);
 
-            Action action = () => editor.SetName("Zwei und vierzig");
+            Action action = () => editor.SetName("Forty two");
 
             action.Should().Throw<FormatException>();
         }
@@ -257,7 +257,7 @@ public class SettingDesignEditorTests
         [Fact]
         public void DoesNotSetNameIfNullOrWhiteSpaceValidationFails()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new SettingDesignEditor<object>(nameBefore, PoolingFactory);
 
             try { editor.SetName("   "); }
@@ -271,11 +271,11 @@ public class SettingDesignEditorTests
         [Fact]
         public void DoesNotSetNameIfNotExistingValidationFails()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new SettingDesignEditor<object>(nameBefore, PoolingFactory);
             ((ISettingDesignEditor)editor).FunctionBlockDesignEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
 
-            try { editor.SetName("Sechshundertsechsundsechzig"); }
+            try { editor.SetName("SixHundredSixtySix"); }
             catch { }
 
             editor.Setting.Name.Should().Be(nameBefore);
@@ -286,10 +286,10 @@ public class SettingDesignEditorTests
         [Fact]
         public void DoesNotSetNameIfIsValidNamespaceOrClassNameValidationFails()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new SettingDesignEditor<object>(nameBefore, PoolingFactory);
 
-            try { editor.SetName("Zwei und vierzig"); }
+            try { editor.SetName("Forty two"); }
             catch { }
 
             editor.Setting.Name.Should().Be(nameBefore);
@@ -300,7 +300,7 @@ public class SettingDesignEditorTests
         [Fact]
         public void DoesNotCallNameNotExistingValidationMethodIfSettingSameName()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new SettingDesignEditor<object>(nameBefore, PoolingFactory);
             ((ISettingDesignEditor)editor).FunctionBlockDesignEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
 
@@ -311,7 +311,7 @@ public class SettingDesignEditorTests
 
         private sealed class MockFunctionBlockDesignEditor(PoolingFactory poolingFactory) : FunctionBlockDesignEditor(poolingFactory)
         {
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
             internal override void ValidateSettingDesignNameNotExisting(string name)
                 => throw new Exception(name);
         }

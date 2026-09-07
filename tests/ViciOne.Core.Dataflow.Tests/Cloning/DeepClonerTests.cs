@@ -1938,7 +1938,7 @@ public class DeepClonerTests
             var holder = new ProxyHolder
             {
                 Pooling = substitute,
-                Poco = new SimplePoco { X = 42, Y = "zweiundvierzig" },
+                Poco = new SimplePoco { X = 42, Y = "fortytwo" },
             };
 
             var clone = DeepCloner.DeepClone(holder)!;
@@ -2089,7 +2089,7 @@ public class DeepClonerTests
             var holder = new HandleHolder
             {
                 Handle = handle,
-                Poco = new SimplePoco { X = 7, Y = "sieben" },
+                Poco = new SimplePoco { X = 7, Y = "seven" },
             };
 
             var clone = DeepCloner.DeepClone(holder)!;

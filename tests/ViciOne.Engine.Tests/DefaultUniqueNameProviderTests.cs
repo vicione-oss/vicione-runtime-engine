@@ -15,7 +15,7 @@ public class DefaultUniqueNameProviderTests
         public void GetsCorrectUniqueNames()
         {
             var id = Guid.NewGuid();
-            var expectedUniqueName = "zweiundvierzig";
+            var expectedUniqueName = "fortytwo";
             var uniqueNames = new Dictionary<Guid, string>()
             {
                 { id, expectedUniqueName }

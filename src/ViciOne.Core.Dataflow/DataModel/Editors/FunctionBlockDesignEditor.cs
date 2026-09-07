@@ -21,7 +21,7 @@ public class FunctionBlockDesignEditor
         _connectorDesignListMap = CreateConnectorDesignListMap(Design);
     }
 
-    // TODO: Es wird nur noch in der Liste, in die das Design gelegt wird, auf Eindeutigkeit geprüft. Das sollte doch reichen, oder?
+    // TODO: Uniqueness is now only checked within the list the design is put into. That should be enough, shouldn't it?
     protected virtual void AddConnectorDesign(List<ConnectorDesign> designs, IConnectorDesignEditor editor)
     {
         if (designs.Contains(editor.Design))

@@ -35,7 +35,7 @@ internal abstract class RuntimeLink<TSource, TValue> : IRuntimeLink<TValue>
                 : (TValue?)Link.TypeConversion.TypeConverter.ConvertTo(value, typeof(TValue));
 
     public virtual bool GetAndResetChanged()
-        // TODO: prüfen, ob die Changed-Markierung eines Links überhaupt threadsicher sein muss
+        // TODO: check whether a link's changed flag really has to be thread-safe
         => Interlocked.Exchange(ref _changed, 0) == 1;
 
     protected virtual void MarkAsChanged()

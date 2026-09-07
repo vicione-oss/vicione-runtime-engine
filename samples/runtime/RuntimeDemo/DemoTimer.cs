@@ -54,7 +54,7 @@ internal sealed class DemoTimer : IDisposable
     private void TimerElapsed(object? sender, ElapsedEventArgs e)
     {
         Tick?.Invoke(this, EventArgs.Empty);
-        // HACK: einfacher Weg, um sicherzustellen, dass nicht mehrere Engine-Zyklen parallel laufen (Engine ist nicht Eintrittsinvariant)
+        // HACK: simple way to make sure that multiple engine cycles do not run in parallel (the engine is not reentrant)
         _timer?.Start();
     }
 }

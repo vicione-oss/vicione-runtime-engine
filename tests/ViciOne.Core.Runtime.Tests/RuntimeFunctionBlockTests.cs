@@ -183,7 +183,7 @@ public class RuntimeFunctionBlockTests
     public class Dispose
     {
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Gets called by Should().NotThrow().")]
         public void CanDispose()
         {
             var dummyBlock = TestObjects.CreateAndSetupDummyBlock();
@@ -1142,7 +1142,7 @@ public class RuntimeFunctionBlockTests
         {
             var design = Substitute.For<IFunctionBlockDesign>();
             if (withDriver)
-                design.RuntimeDriverTypeName.Returns("Zweiungvierzig");
+                design.RuntimeDriverTypeName.Returns("FortyTwo");
             else
                 design.RuntimeDriverTypeName.Returns((string?)null);
 
@@ -1447,7 +1447,7 @@ public class RuntimeFunctionBlockTests
         public sealed class DummyBlockWithMissingPropertyForDecoratedComponent : RuntimeFunctionBlock<DummyBlockWithMissingPropertyForDecoratedComponent>
         {
             [InputConnectorDesigns]
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Nicht instanziierte interne Klassen vermeiden.", Justification = "Wird für das Testen der Initialisierungs-Logik benötigt.")]
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes.", Justification = "Needed for testing the initialization logic.")]
             public sealed class Inputs_ { }
         }
     }

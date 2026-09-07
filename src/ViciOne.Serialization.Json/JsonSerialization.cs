@@ -6,10 +6,10 @@ namespace ViciOne.Serialization.Json;
 
 public class JsonSerialization
 {
-    [SuppressMessage("Security", "CA2326:Verwenden Sie keinen anderen TypeNameHandling-Wert als \"None\".",
-            Justification = "Für die korrekte Funktionalität müssen auch benutzerdefinierte Typen vom Serialisierer behandelt werden.")]
-    [SuppressMessage("Security", "CA2328:Sicherstellen, dass JsonSerializerSettings sicher ist",
-            Justification = "Für die korrekte Funktionalität müssen auch benutzerdefinierte Typen vom Serialisierer behandelt werden.")]
+    [SuppressMessage("Security", "CA2326:Do not use TypeNameHandling values other than None",
+            Justification = "For correct functionality the serializer also has to handle user-defined types.")]
+    [SuppressMessage("Security", "CA2328:Ensure that JsonSerializerSettings are secure",
+            Justification = "For correct functionality the serializer also has to handle user-defined types.")]
     private static readonly JsonSerializerSettings s_defaultSettings = new()
     {
         ContractResolver = new WritablePropertiesOnlyContractResolver(),

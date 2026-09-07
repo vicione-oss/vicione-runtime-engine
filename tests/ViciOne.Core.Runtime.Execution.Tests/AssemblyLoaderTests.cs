@@ -72,7 +72,7 @@ public class AssemblyLoaderTests
             return path;
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1063:IDisposable richtig implementieren", Justification = "Für die Tests nicht relevant")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1063:Implement IDisposable correctly", Justification = "Not relevant for the tests")]
         public void Dispose()
         {
             if (LoadContextReference is not null)

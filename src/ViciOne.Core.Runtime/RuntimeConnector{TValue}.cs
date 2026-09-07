@@ -64,7 +64,7 @@ public class RuntimeConnector<TValue> : IRuntimeConnector<TValue>
 
     protected TValue? ValidateValueBase(TValue? value)
     {
-        // zweistufige Validierung
+        // two-stage validation
         foreach (IValidator<TValue> validator in Connector.Design.Validators)
             value = validator.Validate(value, false);
         foreach (IValidator<TValue> validator in Connector.Validators)

@@ -35,7 +35,7 @@ public static class NameValidator
     public static bool IsValidNamespaceOrClassName(string input)
         => !string.IsNullOrWhiteSpace(input) && IsValidTypeNameOrIdentifier(input, true);
 
-    // von: https://referencesource.microsoft.com/#System/compmod/system/codedom/compiler/CodeGenerator.cs,e64d80f4c4c17208
+    // from: https://referencesource.microsoft.com/#System/compmod/system/codedom/compiler/CodeGenerator.cs,e64d80f4c4c17208
     private static bool IsValidTypeNameOrIdentifier(string value, bool isTypeName)
     {
         if (value.Length == 0)

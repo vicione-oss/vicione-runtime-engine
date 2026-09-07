@@ -753,7 +753,7 @@ namespace DummyBlocksForAnalyzer
         public const string Id = "1f03a4e0-e36f-4078-8c44-88a7c2fb6ba0";
         public const string EnabledInputId = "d514f5f4-fa37-4657-9f4d-8077b04b9689";
         public const string EnabledOutputId = "0e451307-d0fe-4909-a223-14aebf203a12";
-        public const string ExplicitNamespace = "Zweiundvierzig";
+        public const string ExplicitNamespace = "FortyTwo";
     }
 
     [FunctionBlockDesign(Id, EnabledInputId, EnabledOutputId, Name = ExplicitName)]
@@ -762,7 +762,7 @@ namespace DummyBlocksForAnalyzer
         public const string Id = "29a593b9-3d2b-4d88-a693-f4e920f82238";
         public const string EnabledInputId = "74a3d5bf-5e9c-4cd5-96e1-fe82d9b5c365";
         public const string EnabledOutputId = "4acafebf-1426-4a15-926a-c6867a7174a7";
-        public const string ExplicitName = "Sechshundertsechsundsechzig";
+        public const string ExplicitName = "SixHundredSixtySix";
     }
 
     public class DummyValidator<TValue> : IValidator<TValue>

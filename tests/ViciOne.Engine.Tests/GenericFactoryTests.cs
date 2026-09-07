@@ -67,9 +67,9 @@ public class GenericFactoryTests
     private static A<T> CreateA<T>(T value) where T : notnull
         => new(value);
 
-#pragma warning disable CA1822 // Member als statisch markieren
+#pragma warning disable CA1822 // Mark members as static
     private A<T> CreateA_NotStatic<T>(T value) where T : notnull
-#pragma warning restore CA1822 // Member als statisch markieren
+#pragma warning restore CA1822 // Mark members as static
         => new(value);
 
     private interface IA

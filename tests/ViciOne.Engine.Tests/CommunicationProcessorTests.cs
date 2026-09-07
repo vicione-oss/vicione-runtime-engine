@@ -16,7 +16,7 @@ public class CommunicationProcessorTests
     public class Dispose
     {
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Objekte verwerfen, bevor Bereich verloren geht", Justification = "Wird durch den Aufruf von Should().NotThrow() aufgerufen.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Gets called by Should().NotThrow().")]
         public void CanDispose()
         {
             using var linkCache = new LinkCache([], [], () => Substitute.For<IPoolingValidator>(),
@@ -168,7 +168,7 @@ public class CommunicationProcessorTests
         }
 
         [Fact]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
         public void CanHandleDataTransferErrors()
         {
             var input = Substitute.For<IConnector, IConnector<int>, IPoolable>();

@@ -64,7 +64,7 @@ public class ConnectorDesignInputEditorTests
         [Fact]
         public void SetsNameIfDesignIsCreated()
         {
-            var nameToSet = "zweiundvierzig";
+            var nameToSet = "fortytwo";
 
             var editor = new ConnectorDesignInputEditor<object>(nameToSet, PoolingFactory);
 
@@ -369,7 +369,7 @@ public class ConnectorDesignInputEditorTests
         public void SetsName()
         {
             var editor = new ConnectorDesignInputEditor<object>("design", PoolingFactory);
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             editor.SetName(nameToSet);
 
@@ -380,8 +380,8 @@ public class ConnectorDesignInputEditorTests
         public void TrimsName()
         {
             var editor = new ConnectorDesignInputEditor<object>("design", PoolingFactory);
-            var nameToSet = "   Zweiundvierzig      ";
-            var expectedName = "Zweiundvierzig";
+            var nameToSet = "   FortyTwo      ";
+            var expectedName = "FortyTwo";
 
             editor.SetName(nameToSet);
 
@@ -393,7 +393,7 @@ public class ConnectorDesignInputEditorTests
         {
             var editor = new ConnectorDesignInputEditor<object>("design", PoolingFactory);
             ((IConnectorDesignEditor)editor).FunctionBlockDesignEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             Action action = () => editor.SetName(nameToSet);
 
@@ -419,7 +419,7 @@ public class ConnectorDesignInputEditorTests
         {
             var editor = new ConnectorDesignInputEditor<object>("design", PoolingFactory);
 
-            Action action = () => editor.SetName("Zwei und vierzig");
+            Action action = () => editor.SetName("Forty two");
 
             action.Should().Throw<FormatException>();
         }
@@ -438,7 +438,7 @@ public class ConnectorDesignInputEditorTests
         [Fact]
         public void DoesNotSetNameIfNullOrWhiteSpaceValidationFails()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new ConnectorDesignInputEditor<object>(nameBefore, PoolingFactory);
 
             try { editor.SetName("   "); }
@@ -450,11 +450,11 @@ public class ConnectorDesignInputEditorTests
         [Fact]
         public void DoesNotSetNameIfNotExistingValidationFails()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new ConnectorDesignInputEditor<object>(nameBefore, PoolingFactory);
             ((IConnectorDesignEditor)editor).FunctionBlockDesignEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
 
-            try { editor.SetName("Sechshundertsechsundsechzig"); }
+            try { editor.SetName("SixHundredSixtySix"); }
             catch { }
 
             editor.Design.Name.Should().Be(nameBefore);
@@ -463,10 +463,10 @@ public class ConnectorDesignInputEditorTests
         [Fact]
         public void DoesNotSetNameIfIsValidNamespaceOrClassNameValidationFails()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new ConnectorDesignInputEditor<object>(nameBefore, PoolingFactory);
 
-            try { editor.SetName("Zwei und vierzig"); }
+            try { editor.SetName("Forty two"); }
             catch { }
 
             editor.Design.Name.Should().Be(nameBefore);
@@ -475,7 +475,7 @@ public class ConnectorDesignInputEditorTests
         [Fact]
         public void DoesNotSetNameIfIsNotSystemReservedValidationFails()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new ConnectorDesignInputEditor<object>(nameBefore, PoolingFactory);
 
             try { editor.SetName(SystemConnectorNames.FunctionBlockEnabledName); }
@@ -487,7 +487,7 @@ public class ConnectorDesignInputEditorTests
         [Fact]
         public void DoesNotCallNameNotExistingValidationMethodIfSettingSameName()
         {
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             var editor = new ConnectorDesignInputEditor<object>(nameBefore, PoolingFactory);
             ((IConnectorDesignEditor)editor).FunctionBlockDesignEditor = new MockFunctionBlockDesignEditor(PoolingFactory);
 
@@ -498,7 +498,7 @@ public class ConnectorDesignInputEditorTests
 
         private sealed class MockFunctionBlockDesignEditor(PoolingFactory poolingFactory) : FunctionBlockDesignEditor(poolingFactory)
         {
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
             internal override void ValidateConnectorDesignNameNotExisting(ConnectorDesign design, string name)
                 => throw new Exception(name);
         }

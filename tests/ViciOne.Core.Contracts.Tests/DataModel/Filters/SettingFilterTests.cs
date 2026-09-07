@@ -13,9 +13,9 @@ public class SettingFilterTests
         [Fact]
         public void ReturnsCorrectSettingIfExisting()
         {
-            var setting1 = CreateSetting("Eins");
-            var setting2 = CreateSetting("Zwei");
-            var setting3 = CreateSetting("Drei");
+            var setting1 = CreateSetting("One");
+            var setting2 = CreateSetting("Two");
+            var setting3 = CreateSetting("Three");
             var settings = new List<ISetting>()
             {
                 setting1,
@@ -23,7 +23,7 @@ public class SettingFilterTests
                 setting3,
             };
 
-            var returned = SettingFilter.GetSettingByName(settings, "Zwei");
+            var returned = SettingFilter.GetSettingByName(settings, "Two");
 
             returned.Should().NotBeNull();
             returned.Should().BeSameAs(setting2);
@@ -32,9 +32,9 @@ public class SettingFilterTests
         [Fact]
         public void ReturnsNullIfNotExisting()
         {
-            var setting1 = CreateSetting("Eins");
-            var setting2 = CreateSetting("Zwei");
-            var setting3 = CreateSetting("Drei");
+            var setting1 = CreateSetting("One");
+            var setting2 = CreateSetting("Two");
+            var setting3 = CreateSetting("Three");
             var settings = new List<ISetting>()
             {
                 setting1,
@@ -42,7 +42,7 @@ public class SettingFilterTests
                 setting3,
             };
 
-            var returned = SettingFilter.GetSettingByName(settings, "Vier");
+            var returned = SettingFilter.GetSettingByName(settings, "Four");
 
             returned.Should().BeNull();
         }

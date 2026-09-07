@@ -32,7 +32,7 @@
     public const string OutputDesignIncrementorValueName = "Value";
     public const string PersistentValueIncrementorValueName = "Value";
     public const string SettingComplexTypeDemoNumericValueOffsetName = "NumericValueOffset";
-    public const string SettingDummy1Name = "DummyEinstellung1";
-    public const string SettingDummy2Name = "DummyEinstellung2";
+    public const string SettingDummy1Name = "DummySetting1";
+    public const string SettingDummy2Name = "DummySetting2";
     public const string SettingIncrementorIncrementValueName = "IncrementValue";
 }

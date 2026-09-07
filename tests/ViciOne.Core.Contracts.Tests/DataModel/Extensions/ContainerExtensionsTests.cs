@@ -1,4 +1,4 @@
-﻿using AwesomeAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 using System.Collections.Generic;
 using ViciOne.Core.Contracts.DataModel;
@@ -16,7 +16,7 @@ public class ContainerExtensionsTests
 
             var connectors = ContainerExtensions.GetConnectors(info.Container);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             connectors.Should().ContainAllButNotMore(info.AllConnectors);
         }
     }
@@ -30,7 +30,7 @@ public class ContainerExtensionsTests
 
             var containers = ContainerExtensions.GetContainers(info.Container, true);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             containers.Should().ContainAllButNotMore(info.AllChildContainers);
         }
 
@@ -41,7 +41,7 @@ public class ContainerExtensionsTests
 
             var containers = ContainerExtensions.GetContainers(info.Container, false);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             containers.Should().ContainAllButNotMore(info.DirectChildContainers);
         }
     }
@@ -55,7 +55,7 @@ public class ContainerExtensionsTests
 
             var functionBlocks = ContainerExtensions.GetFunctionBlocks(info.Container, true);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             functionBlocks.Should().ContainAllButNotMore(info.AllChildFunctionBlocks);
         }
 
@@ -66,7 +66,7 @@ public class ContainerExtensionsTests
 
             var functionBlocks = ContainerExtensions.GetFunctionBlocks(info.Container, false);
 
-            // die Auflistung hat keine bestimmte Reihenfolge
+            // the enumeration has no particular order
             functionBlocks.Should().ContainAllButNotMore(info.DirectChildFunctionBlocks);
         }
     }

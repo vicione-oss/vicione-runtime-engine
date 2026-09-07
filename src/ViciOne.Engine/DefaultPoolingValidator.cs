@@ -9,7 +9,7 @@ namespace ViciOne.Engine;
 public class DefaultPoolingValidator : IPoolingValidator
 {
     public virtual bool IsLinkValid<TValue>(IRuntimeLink<TValue> link)
-        // TODO: hier müsste später ein Konzept implementiert werden, welches entscheidet bis wann ein Link Valid ist
+        // TODO: later on a concept should be implemented here that decides for how long a link stays valid
         => link.Validity == Validity.Valid;
 
     public virtual Validity GetResultValidity<TValue>(IRuntimeLink<TValue>[] links)

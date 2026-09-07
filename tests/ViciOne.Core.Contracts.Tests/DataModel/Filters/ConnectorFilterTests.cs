@@ -13,9 +13,9 @@ public class ConnectorFilterTests
         [Fact]
         public void ReturnsCorrectConnectorIfExisting()
         {
-            var connector1 = CreateConnector("Eins");
-            var connector2 = CreateConnector("Zwei");
-            var connector3 = CreateConnector("Drei");
+            var connector1 = CreateConnector("One");
+            var connector2 = CreateConnector("Two");
+            var connector3 = CreateConnector("Three");
             var connectors = new List<IConnector>()
             {
                 connector1,
@@ -23,7 +23,7 @@ public class ConnectorFilterTests
                 connector3,
             };
 
-            var returned = ConnectorFilter.GetConnectorByName(connectors, "Zwei");
+            var returned = ConnectorFilter.GetConnectorByName(connectors, "Two");
 
             returned.Should().NotBeNull();
             returned.Should().BeSameAs(connector2);
@@ -32,9 +32,9 @@ public class ConnectorFilterTests
         [Fact]
         public void ReturnsNullIfNotExisting()
         {
-            var connector1 = CreateConnector("Eins");
-            var connector2 = CreateConnector("Zwei");
-            var connector3 = CreateConnector("Drei");
+            var connector1 = CreateConnector("One");
+            var connector2 = CreateConnector("Two");
+            var connector3 = CreateConnector("Three");
             var connectors = new List<IConnector>()
             {
                 connector1,
@@ -42,7 +42,7 @@ public class ConnectorFilterTests
                 connector3,
             };
 
-            var returned = ConnectorFilter.GetConnectorByName(connectors, "Vier");
+            var returned = ConnectorFilter.GetConnectorByName(connectors, "Four");
 
             returned.Should().BeNull();
         }

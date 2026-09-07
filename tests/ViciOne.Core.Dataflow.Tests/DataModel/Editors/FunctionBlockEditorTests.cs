@@ -182,7 +182,7 @@ public class FunctionBlockEditorTests
         {
             var design = CreateDesign();
             var editor = new FunctionBlockEditor(design);
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             editor.SetName(nameToSet);
 
@@ -194,8 +194,8 @@ public class FunctionBlockEditorTests
         {
             var design = CreateDesign();
             var editor = new FunctionBlockEditor(design);
-            var nameToSet = "   Zweiundvierzig      ";
-            var expectedName = "Zweiundvierzig";
+            var nameToSet = "   FortyTwo      ";
+            var expectedName = "FortyTwo";
 
             editor.SetName(nameToSet);
 
@@ -210,7 +210,7 @@ public class FunctionBlockEditorTests
             {
                 ContainerEditor = new MockContainerEditor()
             };
-            var nameToSet = "Zweiundvierzig";
+            var nameToSet = "FortyTwo";
 
             Action action = () => editor.SetName(nameToSet);
 
@@ -237,7 +237,7 @@ public class FunctionBlockEditorTests
         {
             var design = CreateDesign();
             var editor = new FunctionBlockEditor(design);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             editor.SetName(nameBefore);
 
             try { editor.SetName("   "); }
@@ -251,11 +251,11 @@ public class FunctionBlockEditorTests
         {
             var design = CreateDesign();
             var editor = new FunctionBlockEditor(design);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             editor.SetName(nameBefore);
             editor.ContainerEditor = new MockContainerEditor();
 
-            try { editor.SetName("Sechshundertsechsundsechzig"); }
+            try { editor.SetName("SixHundredSixtySix"); }
             catch { }
 
             editor.FunctionBlock.Name.Should().Be(nameBefore);
@@ -266,7 +266,7 @@ public class FunctionBlockEditorTests
         {
             var design = CreateDesign();
             var editor = new FunctionBlockEditor(design);
-            var nameBefore = "Zweiundvierzig";
+            var nameBefore = "FortyTwo";
             editor.SetName(nameBefore);
             editor.ContainerEditor = new MockContainerEditor();
 
@@ -277,7 +277,7 @@ public class FunctionBlockEditorTests
 
         private sealed class MockContainerEditor : ContainerEditor
         {
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen", Justification = "Ausreichend für die hier zu testende Funktionalität")]
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Sufficient for the functionality to be tested here")]
             protected internal override void ValidateFunctionBlockOrContainerNameNotExisting(string name)
                 => throw new Exception(name);
         }

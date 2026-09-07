@@ -29,7 +29,7 @@ internal abstract class RuntimeElementFactory<TInput, TDefinition, TOutput>(IEnu
         foreach (TInput inputObject in inputObjects)
         {
             definition = GetDefinition(inputObject);
-            // falls das Erstellen einer Instanz derselben Typ-Definition schon einmal nicht funktioniert hat, dann wird das Erstellen nicht erneut versucht
+            // if creating an instance of the same type definition has failed before, we don't try again
             if (failedDefinitions.ContainsKey(definition))
                 continue;
 
@@ -50,14 +50,14 @@ internal abstract class RuntimeElementFactory<TInput, TDefinition, TOutput>(IEnu
     private IEnumerable<Type> GetAvailableTypes(IEnumerable<Assembly> assemblies)
         => assemblies
             .Where(a => !a.IsDynamic)
-            // nur Assemblies durchsuchen, die auf irgend einer Ebene eine Verweis auf ein ViciOne-Assembly haben
+            // only search assemblies that reference a ViciOne assembly at some level
             .Where(a => a.GetReferencedAssemblies().Any(e => e.FullName.Contains("ViciOne", StringComparison.Ordinal)))
-            // alle Typen zusammensuchen
+            // collect all types
             .SelectMany(a => a.GetExportedTypes())
             .Select(t => t.GetTypeInfo())
-            // auf brauchbares einschränken
+            // narrow down to the usable ones
             .Where(t => t.IsPublic && t.IsClass && t.IsAbstract == false)
-            // nur Typen raussuchen, die das Ziel-Interface implementieren
+            // pick only the types that implement the target interface
             .Where(t =>
                 t.ImplementedInterfaces.Contains(typeof(TOutput)) &&
                 HasExpectedUnboundGenericBaseType(t));
@@ -79,7 +79,7 @@ internal abstract class RuntimeElementFactory<TInput, TDefinition, TOutput>(IEnu
     {
         _availableRuntimeElementTypes ??= GetAvailableTypes(assemblies);
 
-        // Typ suchen, der dem Prädikat entspricht
+        // find the type that matches the predicate
         return _availableRuntimeElementTypes.FirstOrDefault(x => IsRuntimeElementType(x, definition));
     }
 

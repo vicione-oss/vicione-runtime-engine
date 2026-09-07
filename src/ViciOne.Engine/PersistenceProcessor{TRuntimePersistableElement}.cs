@@ -6,7 +6,7 @@ using ViciOne.Core.Contracts.Runtime;
 
 namespace ViciOne.Engine;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2254:Vorlage muss ein statischer Ausdruck sein", Justification = "Der abgeleitete Typ stellt über die Eigenschaften passende statische Vorlagen bereit.")]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2254:Template should be a static expression", Justification = "The derived type provides suitable static templates through its properties.")]
 internal abstract class PersistenceProcessor<TPersistableElementProvider, TRuntimePersistableElement> : IDisposable
     where TPersistableElementProvider : IChangingElementsProvider<TRuntimePersistableElement>, IEnumerable<TRuntimePersistableElement>
     where TRuntimePersistableElement : IRuntimePersistable

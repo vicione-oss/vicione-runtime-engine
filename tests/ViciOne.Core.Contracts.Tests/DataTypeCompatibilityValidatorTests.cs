@@ -439,6 +439,6 @@ public class DataTypeCompatibilityValidatorTests
     }
 
     private class BaseType { }
-    [SuppressMessage("Performance", "CA1812:Nicht instanziierte interne Klassen vermeiden.", Justification = "Der Typ wird als Theory-Argument verwendet.")]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes.", Justification = "The type is used as a Theory argument.")]
     private sealed class DerivedType : BaseType { }
 }

@@ -32,7 +32,7 @@ public class ListExtensionsTests
 
         [Theory]
         [MemberData(nameof(ArgumentsFor_AddsItemsThatFit))]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1851:Possible multiple enumerations of „IEnumerable“-collection", Justification = "Not relevant for these tests.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1851:Possible multiple enumerations of 'IEnumerable' collection", Justification = "Not relevant for these tests.")]
         public void AddsItemsThatFit(IEnumerable<object> itemsToAdd, int capacity)
         {
             List<object> list = [1, 2, 3];

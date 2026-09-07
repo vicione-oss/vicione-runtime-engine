@@ -13,11 +13,11 @@ public static class RuntimeFunctionBlockAssemblyAnalyzer
 {
     private static IEnumerable<Type> GetAvailableTypes(IEnumerable<Assembly> assemblies)
         => assemblies
-            // alle Typen zusammensuchen
+            // collect all types
             .SelectMany(s => s.DefinedTypes)
-            // auf brauchbares einschränken
+            // narrow down to the usable ones
             .Where(x => x.IsPublic && x.IsClass && x.IsAbstract == false)
-            // nur Typen raussuchen, die mit dem gesuchten Attribut dekoriert sind
+            // pick only the types that are decorated with the attribute we are looking for
             .Where(p => Attribute.IsDefined(p, typeof(FunctionBlockDesignAttribute)));
 
     private static IAggregatingPooling? GetDefaultAggregatingPooling(MemberInfo info, PoolingAttributeTarget target)

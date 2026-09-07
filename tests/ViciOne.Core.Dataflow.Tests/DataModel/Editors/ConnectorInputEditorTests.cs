@@ -96,8 +96,8 @@ public class ConnectorInputEditorTests
         [Fact]
         public void ClonesCrossSourceAggregatingPoolingIfConnectorIsCreated()
         {
-            var stringToClone = "zweiundvierzig";
-            var arrayToClone = new[] { "sechshundertsechsundsechzig" };
+            var stringToClone = "fortytwo";
+            var arrayToClone = new[] { "sixhundredsixtysix" };
             var child = new ChildPropertyType()
             {
                 Id = Guid.NewGuid(),
@@ -129,8 +129,8 @@ public class ConnectorInputEditorTests
         [Fact]
         public void ClonesPerSourceAggregatingPoolingIfConnectorIsCreated()
         {
-            var stringToClone = "sechshundertsechsundsechzig";
-            var arrayToClone = new[] { "zweizundvierzig" };
+            var stringToClone = "sixhundredsixtysix";
+            var arrayToClone = new[] { "fortytwo" };
             var child = new ChildPropertyType()
             {
                 Id = Guid.NewGuid(),

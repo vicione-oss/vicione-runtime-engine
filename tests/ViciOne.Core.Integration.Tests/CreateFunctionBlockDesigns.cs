@@ -91,7 +91,7 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
         designEditor.AddValidRunMode(RunMode.Cyclic);
         designEditor.SetDefaultRunMode(RunMode.Cyclic);
 
-        // würde Fehler erzeugen, da Always als Standard-RunMode gesetzt ist
+        // would cause an error, because Always is set as the default RunMode
         //designEditor.RemoveValidRunMode(RunMode.Always);
 
         var connectorEditor1 = new ConnectorDesignInputEditor<double>(DesignTimeConstants.InputDesignAddAddend1Name, poolingFactory);
@@ -102,9 +102,9 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
         connectorEditor2.Design.Id = Guid.Parse("2ec52c92-1ed2-4dc0-98f6-a420aecbbec0");
         designEditor.AddProcessDataInput(connectorEditor2);
 
-        // würde Fehler erzeugen, da das ein reservierter Name ist
+        // would cause an error, because that is a reserved name
         //connectorEditor2.SetName("Enabled");
-        // würde Fehler erzeugen, da schon ein Connector mit diesem Namen vorhanden ist
+        // would cause an error, because a connector with this name already exists
         //connectorEditor2.SetName(InputDesignAddAddend1Name);
 
         var connectorEditor3 = new ConnectorDesignOutputEditor<double>(DesignTimeConstants.OutputDesignAddSumName);
@@ -116,7 +116,7 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
 
     private static FunctionBlockDesign CreateAndDesign(PoolingFactory poolingFactory)
     {
-        // FunctionBlockDesign erzeugen
+        // create the FunctionBlockDesign
         var designEditor = new FunctionBlockDesignEditor(poolingFactory);
         designEditor.Design.Id = Guid.Parse("2694b716-af3c-4025-80af-dee0107c7942");
         designEditor.SetNamespace("Logic");
@@ -124,7 +124,7 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
         ((ConnectorDesignInput<bool>)designEditor.Design.SystemInputs[0]).Id = Guid.Parse("b984fe66-4318-4646-b627-997a7130a939");
         ((ConnectorDesignOutput<bool>)designEditor.Design.SystemOutputs[0]).Id = Guid.Parse("ce693f9b-b35f-444e-bad1-a52e049b1c36");
 
-        // ConnectorDesigns erzeugen
+        // create the ConnectorDesigns
         var connectorEditor1 = new ConnectorDesignInputEditor<bool>(DesignTimeConstants.InputDesignAndAName, poolingFactory);
         connectorEditor1.Design.Id = Guid.Parse("4c6edc6b-74a6-4ef7-aedf-d1102a9aa814");
         designEditor.AddProcessDataInput(connectorEditor1);
@@ -166,7 +166,7 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
 
     private static FunctionBlockDesign CreateIncrementorDesign(PoolingFactory poolingFactory)
     {
-        // FunctionBlockDesign erzeugen
+        // create the FunctionBlockDesign
         var designEditor = new FunctionBlockDesignEditor(poolingFactory);
         designEditor.Design.Id = Guid.Parse("85dbbbd7-1a4e-4b82-94b8-1c34fbaaab60");
         designEditor.SetNamespace("Numeric");
@@ -174,7 +174,7 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
         ((ConnectorDesignInput<bool>)designEditor.Design.SystemInputs[0]).Id = Guid.Parse("fff22efe-c07f-4153-98d0-60d83f42271b");
         ((ConnectorDesignOutput<bool>)designEditor.Design.SystemOutputs[0]).Id = Guid.Parse("5e1db2db-caf0-4a3b-b862-d1c6fb8da391");
 
-        // ConnectorDesigns erzeugen
+        // create the ConnectorDesigns
         var connectorEditor1 = new ConnectorDesignInputEditor<bool>(DesignTimeConstants.InputDesignIncrementorIncrementName, poolingFactory);
         connectorEditor1.Design.Id = Guid.Parse("e14a86af-8d7d-4973-a5f4-e59d80ec2277");
         designEditor.AddProcessDataInput(connectorEditor1);
@@ -183,7 +183,7 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
         connectorEditor2.Design.Id = Guid.Parse("b534ddee-d7c0-4ea4-9f2e-24dbfde8851b");
         designEditor.AddProcessDataOutput(connectorEditor2);
 
-        // SettingDesign erzeugen
+        // create the SettingDesign
         var settingEditor = new SettingDesignEditor<double>(DesignTimeConstants.SettingIncrementorIncrementValueName, poolingFactory);
         settingEditor.Setting.Input.Id = Guid.Parse("c7923629-2854-4498-9f21-b3fd67bc4549");
         settingEditor.Setting.Output.Id = Guid.Parse("02f6ebfa-5382-4fa2-b225-ba7aae310fc1");
@@ -191,7 +191,7 @@ public class CreateFunctionBlockDesigns : LoadingAndSaving
         settingEditor.AddValidator(new InequalityValidator<double>() { InvalidValue = 0, ReplacementValue = 0.5 });
         designEditor.AddSetting(settingEditor);
 
-        // PersistentVariableDesign erzeugen
+        // create the PersistentVariableDesign
         var persistentVariableEditor = new PersistentVariableDesignEditor<double>(DesignTimeConstants.PersistentValueIncrementorValueName);
         persistentVariableEditor.PersistentVariable.Id = Guid.Parse("1cc5f3c2-a5be-4ed7-a934-0ae2ac9e9d50");
         designEditor.AddPersistentVariable(persistentVariableEditor);

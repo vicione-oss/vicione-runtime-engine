@@ -39,7 +39,7 @@ public class DriverAttributeTests
         }
 
         private sealed class TestDriverAttribute(Type type) : DriverAttribute(type) { }
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Nicht instanziierte interne Klassen vermeiden.", Justification = "Der Typ wird als Typargument verwendet.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes.", Justification = "The type is used as a type argument.")]
         private sealed class GenericType<T> { }
     }
 }

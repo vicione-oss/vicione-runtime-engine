@@ -1,35 +1,35 @@
 # ViciOne Core
 
-## Projektstruktur
+## Project structure
 
-|Projekt|Inhalt|
+|Project|Content|
 |-|-|
-|`FunctionBlockDesignGenerator`|Kommandozeilen-Tool mit dem die Funktionalität aus `ViciOne.Core.Dataflow.DataModel.Generation` verfügbar gemacht wird|
-|`FunctionBlockExecutor`|Kommandozeilen-Tool mit dem die Funktionalität aus `ViciOne.Core.Runtime.Execution` verfügbar gemacht wird|
-|`ViciOne.Core.Contracts`|die Vertrags-Definitionen der Kernobjekte sowie grundlegende Objekte, die an verschiedensten Stellen verwendet werden|
-|`ViciOne.Core.Dataflow`|alle Objekte die den Dataflow und seine Komponenten darstellen sowie zugehörige Editoren|
-|`ViciOne.Core.Dataflow.DataModel.Generation`|Analyzer und Generator um aus einem RuntimeFunctionBlock-Assembly das zugehörige FunctionBlockDesign zu generieren|
-|`ViciOne.Core.Runtime`|die Basisklasse, von der alle Funktionsblöcke erben sollen sowie zugehörige Objekte|
-|`ViciOne.Core.Runtime.Execution`|Funktionalität um einen FB aus einem RuntimeFunctionBlock-Assembly auszuführen|
-|`ViciOne.Engine`|die Runtime um Dataflows auszuführen|
-|`ViciOne.Engine.DefaultPoolings`|die Standardimplementierungen der Verrechnungsalgorithmen|
-|`ViciOne.Engine.DefaultValidators`|die Standardimplementierungen der Prüfalgorithmen|
-|`ViciOne.Serialization.Json`|Methoden zum (De-)Serialisieren von Objekten im JSON-Format|
+|`FunctionBlockDesignGenerator`|Command-line tool that exposes the functionality of `ViciOne.Core.Dataflow.DataModel.Generation`|
+|`FunctionBlockExecutor`|Command-line tool that exposes the functionality of `ViciOne.Core.Runtime.Execution`|
+|`ViciOne.Core.Contracts`|The contract definitions of the core objects as well as fundamental objects used in a wide variety of places|
+|`ViciOne.Core.Dataflow`|All objects that represent the dataflow and its components, along with the corresponding editors|
+|`ViciOne.Core.Dataflow.DataModel.Generation`|Analyzer and generator that creates the corresponding FunctionBlockDesign from a RuntimeFunctionBlock assembly|
+|`ViciOne.Core.Runtime`|The base class that all function blocks should inherit from, along with the corresponding objects|
+|`ViciOne.Core.Runtime.Execution`|Functionality for executing an FB from a RuntimeFunctionBlock assembly|
+|`ViciOne.Engine`|The runtime for executing dataflows|
+|`ViciOne.Engine.DefaultPoolings`|The default implementations of the aggregation algorithms|
+|`ViciOne.Engine.DefaultValidators`|The default implementations of the validation algorithms|
+|`ViciOne.Serialization.Json`|Methods for (de-)serializing objects in JSON format|
 
-## Beispiele
+## Samples
 
 ### samples/design-time/GenerateFBDesigns
 
-Eine Beispiel-Anwendung mit der kompilierte Funktionsblöcke analysiert und daraus Funktionsblock-Designs erzeugt werden können.
+A sample application that can analyze compiled function blocks and generate function block designs from them.
 
 ### samples/runtime/RuntimeDemo
 
-Eine Beispiel-Anwendung, welche die Verwendung der Engine und ihrer Abhängigkeiten zeigt.
+A sample application that demonstrates the use of the engine and its dependencies.
 
 ### samples/runtime/ScaleUpSample
 
-Eine Beispiel-Anwendung mit der eine beliebige Anzahl an Engines ausgeführt werden kann und die damit die Skalierbarkeit der Engine zeigt.
+A sample application that can run any number of engines and thereby demonstrates the scalability of the engine.
 
 ### samples/runtime/fbs
 
-Enthält einige Beispiel-Funktionsblöcke.
+Contains a few sample function blocks.

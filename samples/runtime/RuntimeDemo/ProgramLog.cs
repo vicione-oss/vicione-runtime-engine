@@ -6,21 +6,21 @@ namespace RuntimeDemo;
 
 internal static partial class DemoCommunicationManagerLog
 {
-    [LoggerMessage(Level = LogLevel.Information, Message = "Zustand geändert: {State}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "State changed: {State}")]
     public static partial void EngineStateChanged(this ILogger logger, EngineState state);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Engine wird gestartet. Strg+C drücken zum Beenden.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting the engine. Press Ctrl+C to exit.")]
     public static partial void StartingEngine(this ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Für die gespeicherte Einstellung mit der ID '{SettingId}' wurde keine entsprechende Einstellung im Dataflow gefunden. Das Laden dieser Einstellung wird übersprungen.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No matching setting was found in the dataflow for the stored setting with the ID '{SettingId}'. Loading this setting is skipped.")]
     public static partial void SettingNotFound(this ILogger logger, Guid settingId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Beim Laden der gespeicherten Einstellung mit der ID '{SettingId}' ist ein Fehler aufgetreten.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "An error occurred while loading the stored setting with the ID '{SettingId}'.")]
     public static partial void LoadSettingValueErrorOccured(this ILogger logger, Exception ex, Guid settingId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Für die gespeicherte Variable mit der ID '{PersistentVariableId}' wurde keine entsprechende Variable im Dataflow gefunden. Das Laden dieser Variable wird übersprungen.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No matching variable was found in the dataflow for the stored variable with the ID '{PersistentVariableId}'. Loading this variable is skipped.")]
     public static partial void PersistentVariableNotFound(this ILogger logger, Guid persistentVariableId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Beim Laden der gespeicherten Variable mit der ID '{PersistentVariableId}' ist ein Fehler aufgetreten.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "An error occurred while loading the stored variable with the ID '{PersistentVariableId}'.")]
     public static partial void LoadPersistentVariableValueErrorOccured(this ILogger logger, Exception ex, Guid persistentVariableId);
 }

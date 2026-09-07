@@ -1,7 +1,7 @@
 [*.{cs,vb}]
-# CA2227: Sammlungseigenschaften sollten schreibgeschützt sein
-# -> Wird deaktiviert, weil dieser Ordner nur DTOs enthält
+# CA2227: Collection properties should be read only
+# -> Disabled because this folder only contains DTOs
 dotnet_diagnostic.CA2227.severity = none
-# CA1819: Eigenschaften sollten keine Arrays zurückgeben
-# -> Wird deaktiviert, weil dieser Ordner nur DTOs enthält
+# CA1819: Properties should not return arrays
+# -> Disabled because this folder only contains DTOs
 dotnet_diagnostic.CA1819.severity = none
