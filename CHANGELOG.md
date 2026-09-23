@@ -6,6 +6,7 @@
 
 - Communication receive buffer size limitation to protect against memory exhaustion due to indefinitely growing buffer
 - Per link queue size limitation
+- Support of `AveragePooling` for `float`, `decimal`, `sbyte`, `byte`, `short`, `ushort`, `int`, `uint` and `ulong`
 
 ### Changed
 
