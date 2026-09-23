@@ -1,5 +1,6 @@
 ﻿using AwesomeAssertions;
 using System;
+using System.Collections.Generic;
 using ViciOne.Engine.DefaultPoolings;
 using Xunit;
 
@@ -29,6 +30,40 @@ public class MaxPoolingTests
             var result = pooling.Aggregate(inputValues);
 
             result.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ThrowsForEmptyInputValues()
+        {
+            var pooling = new MaxPooling<double>();
+
+            Action action = () => pooling.Aggregate([]);
+
+            action.Should().Throw<InvalidOperationException>();
+        }
+    }
+
+    public class Aggregate_Decimal
+    {
+        // equal values must not be exchanged for each other, which stays observable through the scale
+        [Fact]
+        public void KeepsTheFirstOfEqualValues()
+        {
+            var pooling = new MaxPooling<decimal>();
+
+            var result = pooling.Aggregate(new[] { 1.0m, 1.00m });
+
+            result.Scale.Should().Be(1);
+        }
+
+        [Fact]
+        public void KeepsTheFirstOfEqualValuesIfValuesAreProvidedAsList()
+        {
+            var pooling = new MaxPooling<decimal>();
+
+            var result = pooling.Aggregate(new List<decimal> { 1.0m, 1.00m });
+
+            result.Scale.Should().Be(1);
         }
     }
 
@@ -84,13 +119,13 @@ public class MaxPoolingTests
         }
 
         [Fact]
-        public void CanHandleEmptyInputValues()
+        public void ReturnsNullForEmptyInputValues()
         {
             var pooling = new MaxPooling<string>();
 
-            Action action = () => pooling.Aggregate([]);
+            var result = pooling.Aggregate([]);
 
-            action.Should().NotThrow();
+            result.Should().BeNull();
         }
     }
 }

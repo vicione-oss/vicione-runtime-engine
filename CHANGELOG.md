@@ -9,10 +9,15 @@
 
 ### Changed
 
+- Speed up `MaxPooling`, `MinPooling` and `ConcatPooling` and reduce their allocations per aggregation
 - Update `FastCloner` to `3.5.5`
 - Update `Microsoft.Extensions.Logging.Console` to `10.0.8`
 - Update `Microsoft.Extensions.Logging.Abstractions` to `10.0.8`
 - Replace `FastCloner` with custom implementation
+
+### Fixed
+
+- Calculate the average of `long` values without overflowing and without losing precision beyond 2^53
 
 ## 1.0.0 - 2026-03-04
 

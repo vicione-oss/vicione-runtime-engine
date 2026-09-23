@@ -26,5 +26,15 @@ public class ConcatPoolingTests
 
             result.Should().Be(expected);
         }
+
+        [Fact]
+        public void ReturnsEmptyStringForEmptyInputValues()
+        {
+            var pooling = new ConcatPooling();
+
+            var result = pooling.Aggregate([]);
+
+            result.Should().BeEmpty();
+        }
     }
 }
