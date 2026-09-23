@@ -11,5 +11,7 @@ public class MaxPooling<TValue> : IAggregatingPooling<TValue> where TValue : ICo
     public string Name => "Max";
 
     public TValue? Aggregate(IEnumerable<TValue?> values)
-        => values.Max();
+        => PoolingValues.TryGetSpan(values, out ReadOnlySpan<TValue?> span)
+            ? PoolingValues.GetGreatest(span)
+            : values.Max();
 }

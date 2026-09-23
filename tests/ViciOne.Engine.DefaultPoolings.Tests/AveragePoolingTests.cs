@@ -1,4 +1,6 @@
 ﻿using AwesomeAssertions;
+using System;
+using System.Collections.Generic;
 using ViciOne.Engine.DefaultPoolings;
 using Xunit;
 
@@ -29,10 +31,65 @@ public class AveragePoolingTests
 
             result.Should().Be(expected);
         }
+
+        [Fact]
+        public void ThrowsForEmptyInputValues()
+        {
+            var pooling = new AveragePooling();
+
+            Action action = () => pooling.Aggregate(Array.Empty<double>());
+
+            action.Should().Throw<InvalidOperationException>();
+        }
     }
 
     public class Aggregate_Long
     {
+        [Fact]
+        public void ThrowsForEmptyInputValues()
+        {
+            var pooling = new AveragePooling();
+
+            Action action = () => pooling.Aggregate(Array.Empty<long>());
+
+            action.Should().Throw<InvalidOperationException>();
+        }
+
+        // the input values are typed explicitly, because a collection expression targeting IEnumerable
+        // creates a read-only wrapper instead of an array, which would not take the span path of the pooling
+        [Fact]
+        public void AggregatesWithoutOverflowingTheValueRange()
+        {
+            var pooling = new AveragePooling();
+
+            var result = pooling.Aggregate(new long[] { long.MaxValue, long.MaxValue - 2 });
+
+            result.Should().Be(long.MaxValue - 1);
+        }
+
+        [Fact]
+        public void AggregatesWithoutOverflowingTheValueRangeIfValuesAreProvidedAsList()
+        {
+            var pooling = new AveragePooling();
+
+            var result = pooling.Aggregate(new List<long> { long.MaxValue, long.MaxValue - 2 });
+
+            result.Should().Be(long.MaxValue - 1);
+        }
+
+        // the sum of these two values is 2^54 + 6, which a double cannot store, so averaging through
+        // a double returns 9007199254740996. Values whose sum a double happens to store exactly, for
+        // example 2^54 + 4, would let such an implementation pass.
+        [Fact]
+        public void AggregatesValuesBeyondThePrecisionOfDouble()
+        {
+            var pooling = new AveragePooling();
+
+            var result = pooling.Aggregate(new long[] { 9007199254740993L, 9007199254740997L });
+
+            result.Should().Be(9007199254740995L);
+        }
+
         [Theory(DisplayName = "")]
         [InlineData(new long[] { 1 }, 1)]
         [InlineData(new long[] { 10 }, 10)]

@@ -11,5 +11,7 @@ public class MinPooling<TValue> : IAggregatingPooling<TValue> where TValue : ICo
     public string Name => "Min";
 
     public TValue? Aggregate(IEnumerable<TValue?> values)
-        => values.Min();
+        => PoolingValues.TryGetSpan(values, out ReadOnlySpan<TValue?> span)
+            ? PoolingValues.GetSmallest(span)
+            : values.Min();
 }
