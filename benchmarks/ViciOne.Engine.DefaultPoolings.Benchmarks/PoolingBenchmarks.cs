@@ -19,8 +19,8 @@ namespace ViciOne.Engine.DefaultPoolings.Benchmarks;
 /// expect, while others deliberately still do. Every category holds the current implementation and its
 /// alternative, so BenchmarkDotNet emits a Ratio column.
 ///
-/// SumPooling, NandPooling, NorPooling and XnorPooling are not covered. They aggregate like the
-/// poolings below that are their counterpart, so a category of their own would measure the same thing.
+/// NandPooling, NorPooling and XnorPooling are not covered. They aggregate like the poolings below
+/// that are their counterpart, so a category of their own would measure the same thing.
 ///
 /// The engine calls a pooling once per connector and cycle and hands the values over as a list or an
 /// array, which is what the value counts and the input types below reproduce.
@@ -33,13 +33,19 @@ namespace ViciOne.Engine.DefaultPoolings.Benchmarks;
 public class PoolingBenchmarks
 {
     private List<double> _doubles = null!;
+    private List<int> _ints = null!;
+    private List<ushort> _ushorts = null!;
     private List<long> _longs = null!;
     private List<bool> _allTrue = null!;
     private List<bool> _allFalse = null!;
     private List<string?> _strings = null!;
 
     private IAggregatingPooling<double> _averageDouble = null!;
+    private IAggregatingPooling<int> _averageInt = null!;
+    private IAggregatingPooling<ushort> _averageUShort = null!;
     private IAggregatingPooling<long> _averageLong = null!;
+    private IAggregatingPooling<int> _sumInt = null!;
+    private IAggregatingPooling<ushort> _sumUShort = null!;
     private IAggregatingPooling<double> _maxDouble = null!;
     private IAggregatingPooling<double> _minDouble = null!;
     private IAggregatingPooling<string> _maxString = null!;
@@ -56,6 +62,8 @@ public class PoolingBenchmarks
     public void Setup()
     {
         _doubles = [.. Enumerable.Range(1, Count).Select(x => x * 1.5)];
+        _ints = [.. Enumerable.Range(1, Count)];
+        _ushorts = [.. Enumerable.Range(1, Count).Select(x => (ushort)x)];
         _longs = [.. Enumerable.Range(1, Count).Select(x => (long)x * 1_000_000_007)];
         // all equal, so that the early exit of All and Any does not hide the per value costs
         _allTrue = [.. Enumerable.Repeat(true, Count)];
@@ -64,7 +72,13 @@ public class PoolingBenchmarks
 
         var average = new AveragePooling();
         _averageDouble = average;
+        _averageInt = average;
+        _averageUShort = average;
         _averageLong = average;
+
+        var sum = new SumPooling();
+        _sumInt = sum;
+        _sumUShort = sum;
         _maxDouble = new MaxPooling<double>();
         _minDouble = new MinPooling<double>();
         _maxString = new MaxPooling<string>();
@@ -85,6 +99,50 @@ public class PoolingBenchmarks
     [Benchmark(Description = "Summing loop — double")]
     [BenchmarkCategory("Average double")]
     public double AverageDoubleByLoop() => SumSpan(_doubles) / _doubles.Count;
+
+    // Average of int stays on Enumerable.Average as well, although its sibling integer types do not.
+    // Summing int values in a double is exact for any sequence that fits into memory, and the span
+    // based summation of LINQ beats the loop that the other integer types have to use. Its vector
+    // path needs Vector<int>.Count values, so at the counts below it is reached at most once.
+
+    [Benchmark(Baseline = true, Description = "AveragePooling — int")]
+    [BenchmarkCategory("Average int")]
+    public int AverageInt() => _averageInt.Aggregate(_ints);
+
+    [Benchmark(Description = "Summing loop — int")]
+    [BenchmarkCategory("Average int")]
+    public int AverageIntByLoop() => (int)AverageByLoop(_ints);
+
+    // Average of ushort has no Enumerable.Average overload. Projecting to decimal is the obvious
+    // alternative and keeps the result exact, but decimal is software arithmetic.
+
+    [Benchmark(Baseline = true, Description = "AveragePooling — ushort")]
+    [BenchmarkCategory("Average ushort")]
+    public ushort AverageUShort() => _averageUShort.Aggregate(_ushorts);
+
+    [Benchmark(Description = "Enumerable.Average over decimal — ushort")]
+    [BenchmarkCategory("Average ushort")]
+    public ushort AverageUShortByDecimal() => (ushort)Math.Round(_ushorts.Average(value => (decimal)value));
+
+    // Sum follows the same split: int and long keep Enumerable.Sum, the other integer types are
+    // summed up in a wider integer type. Enumerable.Sum vectorizes only from four vectors worth of
+    // values on, so none of the counts below reaches it and the comparison is span against span.
+
+    [Benchmark(Baseline = true, Description = "SumPooling — int")]
+    [BenchmarkCategory("Sum int")]
+    public int SumInt() => _sumInt.Aggregate(_ints);
+
+    [Benchmark(Description = "Summing loop — int")]
+    [BenchmarkCategory("Sum int")]
+    public int SumIntByLoop() => checked((int)SumByLoop(_ints));
+
+    [Benchmark(Baseline = true, Description = "SumPooling — ushort")]
+    [BenchmarkCategory("Sum ushort")]
+    public ushort SumUShort() => _sumUShort.Aggregate(_ushorts);
+
+    [Benchmark(Description = "Enumerable.Sum over long — ushort")]
+    [BenchmarkCategory("Sum ushort")]
+    public ushort SumUShortByLinq() => checked((ushort)_ushorts.Sum(value => (long)value));
 
     // Average of long uses an Int128 accumulator instead of Enumerable.Average, which overflows
     // and loses precision. The alternative below is the faster but incorrect implementation.
@@ -174,6 +232,35 @@ public class PoolingBenchmarks
         foreach (string? value in values)
             builder.Append(value);
         return builder.ToString();
+    }
+
+    // sums up in a wider integer type and rounds to even, which is what the pooling does for the
+    // integer types that have no Enumerable.Average overload
+    private static long AverageByLoop(List<int> values)
+    {
+        long sum = SumByLoop(values);
+        long quotient = sum / values.Count;
+        long remainder = sum - (quotient * values.Count);
+        if (remainder < 0)
+        {
+            quotient--;
+            remainder += values.Count;
+        }
+
+        long twiceTheRemainder = remainder + remainder;
+        if (twiceTheRemainder > values.Count ||
+            (twiceTheRemainder == values.Count && (quotient & 1) == 1))
+            quotient++;
+
+        return quotient;
+    }
+
+    private static long SumByLoop(List<int> values)
+    {
+        long sum = 0;
+        foreach (int value in CollectionsMarshal.AsSpan(values))
+            sum += value;
+        return sum;
     }
 
     private static double SumSpan(List<double> values)
