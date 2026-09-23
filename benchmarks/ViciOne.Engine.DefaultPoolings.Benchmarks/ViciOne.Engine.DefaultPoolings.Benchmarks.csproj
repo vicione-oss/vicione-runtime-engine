@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- Benchmarks run on demand in Release config; excluded from normal CI test runs. -->
+    <IsPublishable>false</IsPublishable>
+    <!-- RuntimeIdentifiers are inherited from Directory.Build.props only for src/ projects;
+         suppress here to avoid platform-specific restore noise for a dev-only tool. -->
+    <RuntimeIdentifiers></RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ViciOne.Engine.DefaultPoolings\ViciOne.Engine.DefaultPoolings.csproj" />
+  </ItemGroup>
+
+</Project>
