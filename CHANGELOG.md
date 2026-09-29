@@ -14,6 +14,7 @@
 - Update `Microsoft.Extensions.Logging.Console` to `10.0.8`
 - Update `Microsoft.Extensions.Logging.Abstractions` to `10.0.8`
 - Replace `FastCloner` with custom implementation
+- Rename the company to `ViciOne open automation gmbh` in the license and the package metadata
 
 ### Fixed
 
