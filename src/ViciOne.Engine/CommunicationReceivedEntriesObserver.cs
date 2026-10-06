@@ -72,6 +72,10 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
             EngineTelemetry.CommunicationReceiveBufferOverflowCount.Add(droppedEntriesSinceReset);
         }
 
-        return receivedEntriesSinceReset ?? [];
+        // a separate return, because with ?? the collection expression would become a new list instead of the empty array singleton
+        if (receivedEntriesSinceReset is null)
+            return [];
+
+        return receivedEntriesSinceReset;
     }
 }
