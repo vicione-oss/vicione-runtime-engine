@@ -2,6 +2,7 @@
   <Folder Name="/samples/" />
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/ViciOne.Core.Dataflow.Benchmarks/ViciOne.Core.Dataflow.Benchmarks.csproj" />
+    <Project Path="benchmarks/ViciOne.Engine.Benchmarks/ViciOne.Engine.Benchmarks.csproj" />
     <Project Path="benchmarks/ViciOne.Engine.DefaultPoolings.Benchmarks/ViciOne.Engine.DefaultPoolings.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/samples/design-time/">
