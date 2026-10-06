@@ -49,7 +49,7 @@ internal sealed class CommunicationReceivedEntriesObserver : IDisposable
         _disposed = true;
     }
 
-    public IEnumerable<ILinkChangedEntry> GetAndResetReceivedEntries()
+    public IReadOnlyCollection<ILinkChangedEntry> GetAndResetReceivedEntries()
     {
         List<ILinkChangedEntry>? receivedEntriesSinceReset = null;
         long droppedEntriesSinceReset;
