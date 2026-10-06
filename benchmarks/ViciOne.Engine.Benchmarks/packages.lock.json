@@ -180,6 +180,12 @@
           "ViciOne.Core.Runtime": "[1.1.0, )"
         }
       },
+      "vicione.engine.defaultpoolings": {
+        "type": "Project",
+        "dependencies": {
+          "ViciOne.Core.Runtime": "[1.1.0, )"
+        }
+      },
       "CommandLineParser": {
         "type": "CentralTransitive",
         "requested": "[2.9.1, )",

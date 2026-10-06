@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ViciOne.Core.Dataflow\ViciOne.Core.Dataflow.csproj" />
     <ProjectReference Include="..\..\src\ViciOne.Engine\ViciOne.Engine.csproj" />
+    <ProjectReference Include="..\..\src\ViciOne.Engine.DefaultPoolings\ViciOne.Engine.DefaultPoolings.csproj" />
   </ItemGroup>
 
 </Project>
