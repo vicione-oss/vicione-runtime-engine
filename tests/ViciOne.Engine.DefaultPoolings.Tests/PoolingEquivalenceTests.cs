@@ -61,6 +61,56 @@ public class PoolingEquivalenceTests
         }
     }
 
+    public class Sum_Short
+    {
+        // long is wide enough to hold the sum of any short sequence, which makes Enumerable.Sum
+        // over long the reference for the generic accumulation of the pooling
+        private static short SumViaLong(IEnumerable<short> values)
+            => (short)values.Sum(value => (long)value);
+
+        [Fact]
+        public void MatchesTheLongReferenceForRandomValues()
+        {
+            var pooling = new SumPooling();
+            var random = new Random(31415);
+
+            for (int round = 0; round < Rounds; round++)
+            {
+                // the sum of at most eight values of this range still fits into a short, so the
+                // pooling returns a result instead of throwing
+                short[] values = CreateValues(random, () => (short)random.Next(-4096, 4096));
+
+                foreach (IEnumerable<short> shape in InputShapes(values))
+                    pooling.Aggregate(shape).Should().Be(SumViaLong(values), BecauseOf(values));
+            }
+        }
+    }
+
+    public class Sum_ULong
+    {
+        // decimal represents every ulong value exactly and is wide enough to hold the sum,
+        // which makes it the reference for the UInt128 arithmetic of the pooling
+        private static ulong SumViaDecimal(IEnumerable<ulong> values)
+            => (ulong)values.Aggregate(0m, (sum, value) => sum + value);
+
+        [Fact]
+        public void MatchesTheDecimalReferenceForRandomValues()
+        {
+            var pooling = new SumPooling();
+            var random = new Random(27182);
+
+            for (int round = 0; round < Rounds; round++)
+            {
+                // the sum of at most eight values of this range still fits into a ulong, so the
+                // pooling returns a result instead of throwing
+                ulong[] values = CreateValues(random, () => (ulong)random.NextInt64(0, (long)(ulong.MaxValue / 8)));
+
+                foreach (IEnumerable<ulong> shape in InputShapes(values))
+                    pooling.Aggregate(shape).Should().Be(SumViaDecimal(values), BecauseOf(values));
+            }
+        }
+    }
+
     public class Max_Double
     {
         [Fact]
