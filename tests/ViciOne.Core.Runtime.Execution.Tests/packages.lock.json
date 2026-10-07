@@ -77,8 +77,8 @@
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "21nbDV60SRPWGIivsyl6lqBeEJNG1sginhhfWgRrr3Ais7aQ12To25OAHQxgoiJkjqy1aQ6RxpZBGYuTi7Ge6A=="
+        "resolved": "10.0.13",
+        "contentHash": "G2GrGWNAPZBsii2F6AU8n+JT2tC1/I0Ml/e9ZyNCgPjf3hZqronP7o0X91aAynCmVeae8KkSIUNXXeXCNRmdVQ=="
       },
       "Microsoft.TestPlatform.ObjectModel": {
         "type": "Transitive",
@@ -142,61 +142,61 @@
       "vicione.core.contracts": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.8, )"
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.13, )"
         }
       },
       "vicione.core.dataflow": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[1.0.1, )"
+          "ViciOne.Core.Contracts": "[1.1.0, )"
         }
       },
       "vicione.core.dataflow.datamodel.generation": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Dataflow": "[1.0.1, )",
-          "ViciOne.Engine.DefaultValidators": "[1.0.1, )"
+          "ViciOne.Core.Dataflow": "[1.1.0, )",
+          "ViciOne.Engine.DefaultValidators": "[1.1.0, )"
         }
       },
       "vicione.core.runtime": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Contracts": "[1.0.1, )"
+          "ViciOne.Core.Contracts": "[1.1.0, )"
         }
       },
       "vicione.core.runtime.execution": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Dataflow.DataModel.Generation": "[1.0.1, )",
-          "ViciOne.Engine": "[1.0.1, )",
-          "ViciOne.Engine.DefaultPoolings": "[1.0.1, )"
+          "ViciOne.Core.Dataflow.DataModel.Generation": "[1.1.0, )",
+          "ViciOne.Engine": "[1.1.0, )",
+          "ViciOne.Engine.DefaultPoolings": "[1.1.0, )"
         }
       },
       "vicione.engine": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[1.0.1, )"
+          "ViciOne.Core.Runtime": "[1.1.0, )"
         }
       },
       "vicione.engine.defaultpoolings": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[1.0.1, )"
+          "ViciOne.Core.Runtime": "[1.1.0, )"
         }
       },
       "vicione.engine.defaultvalidators": {
         "type": "Project",
         "dependencies": {
-          "ViciOne.Core.Runtime": "[1.0.1, )"
+          "ViciOne.Core.Runtime": "[1.1.0, )"
         }
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "CentralTransitive",
-        "requested": "[10.0.8, )",
-        "resolved": "10.0.8",
-        "contentHash": "fdVadZmsC8jRP0KvKy8mO8f6GV/HyBvElfcSxEhd+5FM5boAw/01iSaCto5G3G37ApJira4A3pNaVvBv8cUiLQ==",
+        "requested": "[10.0.13, )",
+        "resolved": "10.0.13",
+        "contentHash": "aSZEhEig4fvNiw2zs8Z6NyDlniKtq6YjcF3DyHuqTEHcZ2VKA/6itMPZ+dW+yWABWExlDcQwwdbqX1Rcb7W8WQ==",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.13"
         }
       },
       "Newtonsoft.Json": {
