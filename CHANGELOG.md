@@ -21,6 +21,7 @@
 - Replace `FastCloner` with custom implementation
 - Rename the company to `ViciOne open automation gmbh` in the license and the package metadata
 - Avoid allocations in engine cycles that receive no communication entries
+- Reduce the allocations per cycle of connectors with an aggregating cross source pooling
 
 ### Deprecated
 
