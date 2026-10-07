@@ -18,6 +18,9 @@ using Xunit;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1063:Implement IDisposable correctly", Justification = "The class that tests the Dispose method is meant to be named Dispose")]
 public class RuntimeEngineTests : IDisposable
 {
+    // only reached if a test fails, so it can be generous for slow and busy machines
+    private static readonly TimeSpan s_waitTimeout = TimeSpan.FromSeconds(10);
+
     private TestLoggerFactory LoggerFactory { get; } = new();
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "Not relevant for the tests")]
@@ -263,7 +266,7 @@ public class RuntimeEngineTests : IDisposable
             RealBlock.ProcessCalled += RealBlock_ProcessCalled;
             engine.Start();
             Task.Run(engine.ProcessCycle);
-            waitForForCycleStartedWaitHandle.WaitOne(1000);
+            waitForForCycleStartedWaitHandle.WaitOne(s_waitTimeout).Should().BeTrue();
 
             Action action = () => engine.ProcessCycle();
 
@@ -277,7 +280,10 @@ public class RuntimeEngineTests : IDisposable
             void Engine_CycleStarted(object? sender, ICycleInfo e)
                 => waitForForCycleStartedWaitHandle.Set();
             void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
-                => cycleWaitHandle.WaitOne(1000);
+            {
+                if (((RealBlock)sender!).FunctionBlock == block)
+                    cycleWaitHandle.WaitOne(s_waitTimeout);
+            }
         }
 
         [Fact]
@@ -715,7 +721,7 @@ public class RuntimeEngineTests : IDisposable
         {
             using var engine = CreateEmptyEngine([], [Assembly.GetExecutingAssembly()]);
             var runtimeBlockType = typeof(RealBlock);
-            AddBlock(runtimeBlockType, null, engine);
+            var block = AddBlock(runtimeBlockType, null, engine);
             using var waitForForStoppingWaitHandle = new ManualResetEvent(false);
             using var disposeWaitHandle = new ManualResetEvent(false);
             RealBlock.DisposeCalled += RealBlock_DisposeCalled;
@@ -723,7 +729,7 @@ public class RuntimeEngineTests : IDisposable
             engine.StateChanged += Engine_StateChanged;
             engine.Start();
             Task.Run(engine.Stop);
-            waitForForStoppingWaitHandle.WaitOne(1000);
+            waitForForStoppingWaitHandle.WaitOne(s_waitTimeout).Should().BeTrue();
             stateChangedCalled = false;
 
             engine.Stop();
@@ -731,11 +737,15 @@ public class RuntimeEngineTests : IDisposable
             engine.State.Should().Be(EngineState.Stopping);
             stateChangedCalled.Should().BeFalse();
 
+            disposeWaitHandle.Set();
             engine.StateChanged -= Engine_StateChanged;
             RealBlock.DisposeCalled -= RealBlock_DisposeCalled;
 
             void RealBlock_DisposeCalled(object? sender, EventArgs e)
-                => disposeWaitHandle.WaitOne(1000);
+            {
+                if (((RealBlock)sender!).FunctionBlock == block)
+                    disposeWaitHandle.WaitOne(s_waitTimeout);
+            }
             void Engine_StateChanged(object? sender, EventArgs e)
             {
                 stateChangedCalled = true;
@@ -922,7 +932,7 @@ public class RuntimeEngineTests : IDisposable
         {
             using var engine = CreateEmptyEngine([], [Assembly.GetExecutingAssembly()]);
             var runtimeBlockType = typeof(RealBlock);
-            AddBlock(runtimeBlockType, null, engine);
+            var block = AddBlock(runtimeBlockType, null, engine);
             using var waitForForInitializedStartedWaitHandle = new ManualResetEvent(false);
             using var initializeWaitHandle = new ManualResetEvent(false);
             var stateChangedToInitializedTime = DateTime.MinValue;
@@ -930,7 +940,7 @@ public class RuntimeEngineTests : IDisposable
             engine.StateChanged += Engine_StateChanged;
             RealBlock.InitializeIICalled += RealBlock_InitializeIICalled;
             Task.Run(engine.Start);
-            waitForForInitializedStartedWaitHandle.WaitOne(1000);
+            waitForForInitializedStartedWaitHandle.WaitOne(s_waitTimeout).Should().BeTrue();
 
             engine.Stop();
 
@@ -940,7 +950,10 @@ public class RuntimeEngineTests : IDisposable
             RealBlock.InitializeIICalled -= RealBlock_InitializeIICalled;
 
             void RealBlock_InitializeIICalled(object? sender, EventArgs e)
-                => initializeWaitHandle.WaitOne(100);
+            {
+                if (((RealBlock)sender!).FunctionBlock == block)
+                    initializeWaitHandle.WaitOne(100);
+            }
             void Engine_StateChanged(object? sender, EventArgs e)
             {
                 if (engine.State == EngineState.Initializing)
@@ -957,7 +970,7 @@ public class RuntimeEngineTests : IDisposable
         {
             using var engine = CreateEmptyEngine([], [Assembly.GetExecutingAssembly()]);
             var runtimeBlockType = typeof(RealBlock);
-            AddBlock(runtimeBlockType, null, engine);
+            var block = AddBlock(runtimeBlockType, null, engine);
             using var waitForForCycleStartedWaitHandle = new ManualResetEvent(false);
             using var cycleWaitHandle = new ManualResetEvent(false);
             var blockDisposedTime = DateTime.MinValue;
@@ -970,7 +983,7 @@ public class RuntimeEngineTests : IDisposable
             RealBlock.DisposeCalled += RealBlock_DisposeCalled;
             engine.Start();
             Task.Run(engine.ProcessCycle);
-            waitForForCycleStartedWaitHandle.WaitOne(1000);
+            waitForForCycleStartedWaitHandle.WaitOne(s_waitTimeout).Should().BeTrue();
 
             engine.Stop();
 
@@ -987,15 +1000,25 @@ public class RuntimeEngineTests : IDisposable
             void Engine_CycleStarted(object? sender, ICycleInfo e)
                 => waitForForCycleStartedWaitHandle.Set();
             void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
-                => cycleWaitHandle.WaitOne(100);
+            {
+                if (((RealBlock)sender!).FunctionBlock == block)
+                    cycleWaitHandle.WaitOne(s_waitTimeout);
+            }
             void RealBlock_DisposeCalled(object? sender, EventArgs e)
-                => blockDisposedTime = DateTime.UtcNow;
+            {
+                if (((RealBlock)sender!).FunctionBlock == block)
+                    blockDisposedTime = DateTime.UtcNow;
+            }
             void Engine_CycleFinished(object? sender, ICycleInfo e)
                 => cycleFinishedTime = DateTime.UtcNow;
             void Engine_StateChanged(object? sender, EventArgs e)
             {
                 if (engine.State == EngineState.Stopping)
+                {
                     stateChangedToStoppingTime = DateTime.UtcNow;
+                    // the cycle may only finish after the stop has begun
+                    cycleWaitHandle.Set();
+                }
             }
         }
 
