@@ -91,10 +91,12 @@ public class PersistentVariableEditorTests
             var design = new PersistentVariableDesign<int>();
             var editor = new PersistentVariableEditor<int>(design);
             var valueToSet = 42;
+            var timeBefore = DateTime.UtcNow;
 
             editor.SetValue(valueToSet);
 
-            editor.PersistentVariable.ChangedTime.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMilliseconds(20));
+            editor.PersistentVariable.ChangedTime.Should().BeOnOrAfter(timeBefore)
+                .And.BeOnOrBefore(DateTime.UtcNow);
         }
 
         [Fact]

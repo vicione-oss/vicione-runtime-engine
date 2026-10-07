@@ -255,12 +255,13 @@ public class RuntimeSettingTests
         {
             var runtimeSetting = CreateSetting(1);
             var changedTimeBefore = runtimeSetting.ChangedTime;
-            var now = DateTime.UtcNow;
+            var timeBefore = DateTime.UtcNow;
 
             runtimeSetting.SetValueIfNotEqual(2);
 
             runtimeSetting.ChangedTime.Should().BeAfter(changedTimeBefore);
-            runtimeSetting.ChangedTime.Should().BeOnOrAfter(now);
+            runtimeSetting.ChangedTime.Should().BeOnOrAfter(timeBefore)
+                .And.BeOnOrBefore(DateTime.UtcNow);
         }
 
         [Fact]

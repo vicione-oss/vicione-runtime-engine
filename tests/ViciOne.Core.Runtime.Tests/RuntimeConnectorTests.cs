@@ -80,12 +80,13 @@ public class RuntimeConnectorTests
             var connector = Substitute.For<IConnector<object>>();
             var runtimeConnector = new RuntimeConnector<object>(connector, default);
             var changedTimeBefore = runtimeConnector.ChangedTime;
-            var now = DateTime.UtcNow;
+            var timeBefore = DateTime.UtcNow;
 
             runtimeConnector.MarkAsChanged();
 
             runtimeConnector.ChangedTime.Should().BeAfter(changedTimeBefore);
-            runtimeConnector.ChangedTime.Should().BeOnOrAfter(now);
+            runtimeConnector.ChangedTime.Should().BeOnOrAfter(timeBefore)
+                .And.BeOnOrBefore(DateTime.UtcNow);
         }
     }
 

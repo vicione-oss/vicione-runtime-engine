@@ -130,12 +130,13 @@ public class RuntimePersistentVariableTests
         {
             var runtimeVariable = CreateVariable(1);
             var changedTimeBefore = runtimeVariable.ChangedTime;
-            var now = DateTime.UtcNow;
+            var timeBefore = DateTime.UtcNow;
 
             runtimeVariable.SetValueIfNotEqual(2);
 
             runtimeVariable.ChangedTime.Should().BeAfter(changedTimeBefore);
-            runtimeVariable.ChangedTime.Should().BeOnOrAfter(now);
+            runtimeVariable.ChangedTime.Should().BeOnOrAfter(timeBefore)
+                .And.BeOnOrBefore(DateTime.UtcNow);
         }
 
         [Fact]
