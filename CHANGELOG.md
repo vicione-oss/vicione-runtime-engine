@@ -8,6 +8,7 @@
 - Per link queue size limitation
 - `EngineQueueOptions` to configure the size of the communication receive buffer, the per link queues and the cross source queues
 - Warning log and metric for entries dropped because the communication receive buffer, a per link queue or a cross source queue is full
+- Constructors of `RuntimeLinkFactory` and `IncomingInputLinkGroupFactory` that take the queue capacity and a logger
 - Support of `AveragePooling` for `float`, `decimal`, `sbyte`, `byte`, `short`, `ushort`, `int`, `uint` and `ulong`
 - Support of `SumPooling` for `float`, `decimal`, `sbyte`, `byte`, `short`, `ushort`, `int`, `uint` and `ulong`
 
@@ -19,7 +20,10 @@
 - Update `Microsoft.Extensions.Logging.Abstractions` to `10.0.8`
 - Replace `FastCloner` with custom implementation
 - Rename the company to `ViciOne open automation gmbh` in the license and the package metadata
-- Breaking: `RuntimeLinkFactory` and `IncomingInputLinkGroupFactory` require the queue capacity and a logger in their constructors
+
+### Deprecated
+
+- Parameterless constructors of `RuntimeLinkFactory` and `IncomingInputLinkGroupFactory`, which use the default queue capacity and do not log dropped entries
 
 ### Fixed
 
