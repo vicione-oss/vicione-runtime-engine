@@ -84,6 +84,21 @@ public class RuntimeLinkFactoryTests
         }
 
         [Fact]
+        public void CreatesQueueingRuntimeLinkWithDefaultCapacityIfFactoryWasCreatedWithoutArguments()
+        {
+            var link = CreateInternalLink<int, int, int>(crossSourcePoolingStrategy: PoolingStrategy.Concat);
+#pragma warning disable CS0618
+            using var factory = new RuntimeLinkFactory();
+#pragma warning restore CS0618
+            var runtimeLink = (IQueueingRuntimeLink<int>)factory.Create(link, MockConnectedConnectors<int>());
+
+            for (var i = 0; i <= EngineQueueOptions.DefaultPerLinkQueueCapacity; i++)
+                runtimeLink.SetData(i, DateTime.UtcNow, Validity.Valid);
+
+            runtimeLink.GetAndClearQueuedValues().Should().HaveCount(EngineQueueOptions.DefaultPerLinkQueueCapacity);
+        }
+
+        [Fact]
         public void DoesNotCreateQueueingRuntimeLinkIfDestinationIsOnOtherEngine()
         {
             var link = CreateInternalLink<int, int, int>(PoolingStrategy.Concat);

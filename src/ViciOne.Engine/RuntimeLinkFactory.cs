@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.Runtime;
 
@@ -12,6 +13,9 @@ public sealed class RuntimeLinkFactory(int queueCapacity, ILogger logger) : IDis
     private readonly ExternalIncomingRuntimeLinkFactory _externalIncomingRuntimeLinkFactory = new(queueCapacity, logger);
     private readonly ExternalOutgoingRuntimeLinkFactory _externalOutgoingRuntimeLinkFactory = new();
     private readonly InternalRuntimeLinkFactory _internalRuntimeLinkFactory = new(queueCapacity, logger);
+
+    [Obsolete("Use the constructor that takes the queue capacity and a logger. This one uses the default capacity and does not log dropped entries.")]
+    public RuntimeLinkFactory() : this(EngineQueueOptions.DefaultPerLinkQueueCapacity, NullLogger.Instance) { }
 
     public IRuntimeLink Create(ILink link, IDictionary<Guid, IRuntimeConnector> connectedConnectors)
         => link switch

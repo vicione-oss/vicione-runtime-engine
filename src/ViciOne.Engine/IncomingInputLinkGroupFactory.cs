@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ViciOne.Core.Contracts;
 using ViciOne.Core.Contracts.DataModel;
 using ViciOne.Core.Contracts.Runtime;
@@ -11,6 +12,9 @@ namespace ViciOne.Engine;
 
 public sealed class IncomingInputLinkGroupFactory(int queueCapacityPerLink, ILogger logger) : GenericFactory(GetGenericCreateMethod())
 {
+    [Obsolete("Use the constructor that takes the queue capacity per link and a logger. This one uses the default capacity and does not log dropped entries.")]
+    public IncomingInputLinkGroupFactory() : this(EngineQueueOptions.DefaultCrossSourceQueueCapacityPerLink, NullLogger.Instance) { }
+
     public IIncomingInputLinkGroup Create(IRuntimeConnector connector, IEnumerable<IRuntimeLink> links, Func<IPoolingValidator> getPoolingValidator)
         => Create<IIncomingInputLinkGroup>([connector, links, getPoolingValidator, queueCapacityPerLink, logger],
             DataTypeCompatibilityValidator.DetermineLinkValueType(connector),
