@@ -1,21 +1,4 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- Versioning -->
-  <PropertyGroup>
-    <VersionWithSuffix>$([System.IO.File]::ReadAllText('$(MsBuildThisFileDirectory)VERSION').Trim())</VersionWithSuffix>
-    <!-- Use 0.1.0 as default version if no other version is available -->
-    <VersionPrefix Condition="$(VersionWithSuffix) == ''">0.1.0</VersionPrefix>
-    <VersionPrefix Condition="$(VersionWithSuffix.Contains('-')) == true">$(VersionWithSuffix.Substring(0, $(VersionWithSuffix.IndexOf('-'))))</VersionPrefix>
-    <VersionPrefix Condition="$(VersionWithSuffix.Contains('-')) == false">$(VersionWithSuffix)</VersionPrefix>
-    <!-- By default, there is no suffix; if there is one, it is specified -->
-    <VersionSuffix></VersionSuffix>
-    <VersionSuffix Condition="$(VersionWithSuffix.Contains('-')) == true">$(VersionWithSuffix.Substring($(VersionWithSuffix.IndexOf('-'))))</VersionSuffix>
-    <VersionSuffix Condition="$(VersionSuffix.Contains('-')) == true">$(VersionSuffix.Substring(1))</VersionSuffix>
-    <!-- By default, the PackageVersion is the same as the normal "Version" -->
-    <PackageVersion>$(VersionPrefix)</PackageVersion>
-    <PackageVersion Condition="$(PackageVersionSuffix) != ''">$(PackageVersion).$(PackageVersionSuffix)</PackageVersion>
-    <PackageVersion Condition="$(VersionSuffix) != ''">$(PackageVersion)-$(VersionSuffix)</PackageVersion>
-  </PropertyGroup>
-
   <!-- Properties for all projects in the repo -->
   <PropertyGroup>
     <!-- General information -->
@@ -66,6 +49,7 @@
     <NoWarn>CS1591</NoWarn>
     <IsPackable>false</IsPackable>
     <IsPublishable>true</IsPublishable>
+    <RunSettingsFilePath>$(MsBuildThisFileDirectory)tests.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <!-- Properties for sample projects -->
