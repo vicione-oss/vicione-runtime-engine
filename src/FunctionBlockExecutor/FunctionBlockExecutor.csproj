@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
+    <RuntimeIdentifiers />
   </PropertyGroup>
 
   <ItemGroup>
