@@ -3,6 +3,16 @@
     <RunConfiguration>
         <ResultsDirectory>artifacts/tests</ResultsDirectory>
     </RunConfiguration>
+    <LoggerRunSettings>
+        <Loggers>
+            <Logger friendlyName="junit">
+                <Configuration>
+                    <LogFilePath>../../artifacts/tests/{assembly}-test-report.xml</LogFilePath>
+                    <FailureBodyFormat>Verbose</FailureBodyFormat>
+                </Configuration>
+            </Logger>
+        </Loggers>
+    </LoggerRunSettings>
     <DataCollectionRunSettings>
         <DataCollectors>
             <DataCollector friendlyName="XPlat Code Coverage">

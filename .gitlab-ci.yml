@@ -126,6 +126,7 @@ include:
         - *update_nuget_source_ro
         - dotnet restore
       coverage_report_pattern: "artifacts/tests/*/coverage.cobertura.xml"
+      test_report_pattern: "artifacts/tests/*-test-report.xml"
   # NuGet packages
   - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-pack@v2.7.1
     inputs:
