@@ -49,6 +49,19 @@ public class IncomingInputLinkGroupFactoryTests
         }
 
         [Fact]
+        public void CreatesLinkGroupIfFactoryWasCreatedWithoutArguments()
+        {
+            var connector = CreateConnector<int>();
+#pragma warning disable CS0618
+            using var factory = new IncomingInputLinkGroupFactory();
+#pragma warning restore CS0618
+
+            var entry = factory.Create(connector, [], () => Substitute.For<IPoolingValidator>());
+
+            entry.Should().BeOfType<QueueingIncomingInputLinkGroup<int>>();
+        }
+
+        [Fact]
         public void ThrowsOnUnknownPoolingStrategy()
         {
             var connector = CreateConnector<int>((PoolingStrategy)int.MaxValue);
