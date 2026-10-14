@@ -1,184 +1,201 @@
+.rule_tag: &rule_tag
+  if: "$CI_COMMIT_TAG"
+
+.rule_tag_manual: &rule_tag_manual
+  <<: *rule_tag
+  when: manual
+  allow_failure: true
+
+.rule_default_branch: &rule_default_branch
+  if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+
+.rule_default_branch_manual: &rule_default_branch_manual
+  <<: *rule_default_branch
+  when: manual
+  allow_failure: true
+
+.rule_mr: &rule_mr
+  if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+.rule_mr_manual: &rule_mr_manual
+  <<: *rule_mr
+  when: manual
+  allow_failure: true
+
+.rule_web: &rule_web
+  if: '$CI_PIPELINE_SOURCE == "web"'
+
+.rule_web_manual: &rule_web_manual
+  <<: *rule_web
+  when: manual
+  allow_failure: true
+
+.rules_always: &rules_always
+  - *rule_tag
+  - *rule_default_branch
+  - *rule_mr
+  - *rule_web
+
+.rules_manual: &rules_manual
+  - *rule_tag_manual
+  - *rule_default_branch_manual
+  - *rule_mr_manual
+  - *rule_web_manual
+
+.rules_only_tags: &rules_only_tags
+  - *rule_tag
+
+.rules_not_tags: &rules_not_tags
+  - *rule_default_branch
+  - *rule_mr
+  - *rule_web
+
+.rules_only_tags_manual: &rules_only_tags_manual
+  - *rule_tag_manual
+
+.rules_not_tags_manual: &rules_not_tags_manual
+  - *rule_default_branch_manual
+  - *rule_mr_manual
+  - *rule_web_manual
+
+.rules_tags_else_manual: &rules_tags_else_manual
+  - *rule_tag
+  - *rule_default_branch_manual
+  - *rule_mr_manual
+  - *rule_web_manual
+
+.exec_matrix: &exec_matrix
+  - OS: linux
+    ARCH: [x64, arm64]
+  - OS: win
+    ARCH: [x64]
+
+.update_nuget_source_ro: &update_nuget_source_ro
+  - dotnet nuget update source JFrogNuGetProxy --configfile NuGet.Config -u $NuGet_User_JFrog -p $NuGet_PW_JFrog --store-password-in-clear-text
+  - dotnet nuget update source JFrogViciOne --configfile NuGet.Config -u $NuGet_User_JFrog -p $NuGet_PW_JFrog --store-password-in-clear-text
+
+.update_nuget_source_rw: &update_nuget_source_rw
+  - dotnet nuget update source JFrogViciOne --configfile NuGet.Config -u $NuGet_User_RW_JFrog -p $NuGet_PW_RW_JFrog --store-password-in-clear-text
+  - dotnet nuget add source "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/nuget/index.json" --name GitLabRegistry --username gitlab-ci-token --password $CI_JOB_TOKEN --store-password-in-clear-text
+
+variables:
+  POOLINGS_PROJECT: "src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj"
+  POOLINGS_UPLOAD_PATH: "fbs/ViciOne.Engine.DefaultPoolings"
+
+stages:
+  - build
+  - test
+  - pack
+  - publish
+  - release
+
 include:
-  - project: 'vicione-oss/tooling/templates'
-    file: '/CI-Templates/v2/dotnet.yml'
-  - project: 'vicione-oss/tooling/ci-templates'
-    file: '/project/v1/dotnet.yml'
-
-default:
-  image: mcr.microsoft.com/dotnet/sdk:10.0
-
-Build:
-  extends: .dotnet-build
-
-xUnit:
-  extends: .dotnet-test-xunit
-
-### Deploy ###
-
-Prerelease DefaultPoolings Raw:
-  extends: .dotnet-deploy-raw-rids
-  variables:
-    SERVER: 'https://ifm.jfrog.io/artifactory/vicione-suite-dev'
-    USER: ${Raw_User_RW_JFrog}
-    PASSWORD: ${Raw_PW_RW_JFrog}
-    PROJECT: 'src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj'
-    DST_DIRECTORY: 'fbs/ViciOne.Engine.DefaultPoolings'
-    METADATA_FILE: 'src/ViciOne.Engine.DefaultPoolings/metadata.json'
-    METADATA_VERSION_FILE: 'VERSION'
-    METADATA_MIN_VERSION_FILE: 'VERSION'
-    METADATA_MIN_VERSION_KEY: 'MinCoreVersion'
-  after_script:
-    - !reference [.push-metadata]
-
-Deploy NuGet FunctionBlockDesignGenerator:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/FunctionBlockDesignGenerator/FunctionBlockDesignGenerator.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet FunctionBlockExecutor:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/FunctionBlockExecutor/FunctionBlockExecutor.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet Core.Contracts:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Contracts/ViciOne.Core.Contracts.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet Core.Dataflow:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Dataflow/ViciOne.Core.Dataflow.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet Core.Dataflow.DataModel.Generation:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Dataflow.DataModel.Generation/ViciOne.Core.Dataflow.DataModel.Generation.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet Core.Runtime:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Runtime/ViciOne.Core.Runtime.csproj'
-    REPO: 'JFrogViciOne'
-    
-Deploy NuGet Core.Runtime.Execution:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Runtime.Execution/ViciOne.Core.Runtime.Execution.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet Engine:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Engine/ViciOne.Engine.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet Engine.DefaultPoolings:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet Engine.DefaultValidators:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Engine.DefaultValidators/ViciOne.Engine.DefaultValidators.csproj'
-    REPO: 'JFrogViciOne'
-
-Deploy NuGet Serialization.Json:
-  extends: .dotnet-deploy-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Serialization.Json/ViciOne.Serialization.Json.csproj'
-    REPO: 'JFrogViciOne'
-
-### Release ###
-
-Release DefaultPoolings Raw:
-  extends: .dotnet-release-raw-rids
-  variables:
-    SERVER: 'https://ifm.jfrog.io/artifactory/vicione-suite-staging'
-    USER: ${Raw_User_RW_JFrog}
-    PASSWORD: ${Raw_PW_RW_JFrog}
-    PROJECT: 'src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj'
-    DST_DIRECTORY: 'fbs/ViciOne.Engine.DefaultPoolings'
-    METADATA_FILE: 'src/ViciOne.Engine.DefaultPoolings/metadata.json'
-    METADATA_VERSION_FILE: 'VERSION'
-    METADATA_MIN_VERSION_FILE: 'VERSION'
-    METADATA_MIN_VERSION_KEY: 'MinCoreVersion'
-  after_script:
-    - !reference [.push-metadata]
-
-Release NuGet FunctionBlockDesignGenerator:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/FunctionBlockDesignGenerator/FunctionBlockDesignGenerator.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet FunctionBlockExecutor:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/FunctionBlockExecutor/FunctionBlockExecutor.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet Core.Contracts:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Contracts/ViciOne.Core.Contracts.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet Core.Dataflow:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Dataflow/ViciOne.Core.Dataflow.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet Core.Dataflow.DataModel.Generation:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Dataflow.DataModel.Generation/ViciOne.Core.Dataflow.DataModel.Generation.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet Core.Runtime:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Runtime/ViciOne.Core.Runtime.csproj'
-    REPO: 'JFrogViciOne'
-    
-Release NuGet Core.Runtime.Execution:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Core.Runtime.Execution/ViciOne.Core.Runtime.Execution.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet Engine:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Engine/ViciOne.Engine.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet Engine.DefaultPoolings:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Engine.DefaultPoolings/ViciOne.Engine.DefaultPoolings.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet Engine.DefaultValidators:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Engine.DefaultValidators/ViciOne.Engine.DefaultValidators.csproj'
-    REPO: 'JFrogViciOne'
-
-Release NuGet Serialization.Json:
-  extends: .dotnet-release-nuget
-  variables:
-    PROJECT: 'src/ViciOne.Serialization.Json/ViciOne.Serialization.Json.csproj'
-    REPO: 'JFrogViciOne'
-
-### Public Release ###
-Public Release DefaultPoolings Raw:
-  extends: .dotnet-release-public
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/version/version-calc@v1.2.0
+    inputs:
+      rules: *rules_always
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/runtime-identifier@v0.2.0
+    inputs:
+      rules: *rules_always
+      project: "${POOLINGS_PROJECT}"
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-restore@v2.7.1
+    inputs:
+      rules: *rules_always
+      before_script:
+        - *update_nuget_source_ro
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/metadata@v0.2.0
+    inputs:
+      name: "Project Metadata"
+      stage: build
+      rules: *rules_always
+      project: "${POOLINGS_PROJECT}"
+      module_version: "${Version}"
+      metadata_json: "src/ViciOne.Engine.DefaultPoolings/metadata.json"
+      min_core_version_file: "VERSION"
+      min_core_version_property: "MinCoreVersion"
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-build@v2.7.1
+    inputs:
+      rules: *rules_always
+  # 1.1.0 runs VSTest; the 2.x test step requires Microsoft Testing Platform.
+  # It restores again because the build job does not pass on the restored NuGet packages.
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-test@1.1.0
+    inputs:
+      image: mcr.microsoft.com/dotnet/sdk:10.0
+      rules: *rules_not_tags
+      build_job_name: "dotnet Build"
+      before_script:
+        - *update_nuget_source_ro
+        - dotnet restore
+      coverage_report_pattern: "artifacts/tests/*/coverage.cobertura.xml"
+      test_report_pattern: "artifacts/tests/*-test-report.xml"
+  # NuGet packages
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-pack@v2.7.1
+    inputs:
+      name: "Pack NuGets"
+      rules: *rules_tags_else_manual
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-nuget-push@v2.7.1
+    inputs:
+      name: "Push NuGets"
+      stage: publish
+      rules: *rules_manual
+      pack_job_name: "Pack NuGets"
+      before_script:
+        - *update_nuget_source_rw
+      sources:
+        - "JFrogViciOne"
+        - "GitLabRegistry"
+  # DefaultPoolings module binaries
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/dotnet-component/dotnet-publish@v2.7.1
+    inputs:
+      stage: pack
+      rules: *rules_tags_else_manual
+      project: "${POOLINGS_PROJECT}"
+      output_directory: "artifacts/${OS}-${ARCH}"
+      before_script:
+        - *update_nuget_source_ro
+        - dotnet restore
+      execution_matrix: *exec_matrix
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/module-packaging/package-module@v0.2.0
+    inputs:
+      name: "Pack binaries"
+      stage: pack
+      rules: *rules_always
+      publish_job: "dotnet Publish"
+      metadata_job: "Project Metadata"
+      build_dir: "artifacts"
+      before_script:
+        - apt update
+        - apt install jq zip -y
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v2.1.1
+    inputs:
+      name: "Push binaries (dev)"
+      stage: publish
+      rules: *rules_not_tags_manual
+      repository: "vicione-suite-dev"
+      upload_path: "${POOLINGS_UPLOAD_PATH}"
+      needs:
+        - "Project Metadata"
+        - "Pack binaries"
+      artifacts:
+        - "artifacts/**/*json"
+        - "artifacts/**/*zip"
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/release@v2.1.1
+    inputs:
+      name: "Push binaries (staging)"
+      stage: publish
+      rules: *rules_only_tags_manual
+      repository: "vicione-suite-staging"
+      upload_path: "${POOLINGS_UPLOAD_PATH}"
+      needs:
+        - "Project Metadata"
+        - "Pack binaries"
+      artifacts:
+        - "artifacts/**/*json"
+        - "artifacts/**/*zip"
+  - component: $CI_SERVER_FQDN/vicione-oss/tooling/components/jfrog/promote@v2.1.1
+    inputs:
+      name: "Release binaries"
+      stage: release
+      rules: *rules_only_tags_manual
+      source_repository: "vicione-suite-staging"
+      destination_repository: "vicione-suite"
+      remote_path: "${POOLINGS_UPLOAD_PATH}"

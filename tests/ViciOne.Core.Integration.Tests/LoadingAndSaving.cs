@@ -11,6 +11,7 @@ public abstract class LoadingAndSaving
     protected LoadingAndSaving()
     {
         WorkingDir = Path.Combine(Environment.CurrentDirectory, "../../../../../artifacts/");
+        Directory.CreateDirectory(WorkingDir);
 
         PoolingFactory = new PoolingFactory([
             typeof(ViciOne.Engine.DefaultPoolings.AndPooling).Assembly,
