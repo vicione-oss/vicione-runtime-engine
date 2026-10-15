@@ -39,6 +39,7 @@
   <!-- Properties for source projects -->
   <ItemGroup Condition="$(MSBuildProjectDirectory.Contains('src'))">
     <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
+    <InternalsVisibleTo Include="$(MSBuildProjectName).Benchmarks" />
   </ItemGroup>
   <PropertyGroup Condition="$(MSBuildProjectDirectory.Contains('src'))">
     <!-- Suppress documentation of public API -->
