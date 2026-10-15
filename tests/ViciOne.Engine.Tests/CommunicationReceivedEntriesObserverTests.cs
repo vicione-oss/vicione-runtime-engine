@@ -128,5 +128,16 @@ public class CommunicationReceivedEntriesObserverTests
             warnings.Should().HaveCount(1);
             warnings.First().Should().MatchEquivalentOf($"*overflow*drop*{expectedDropped}*capacity*{capacity}*{nameof(EngineQueueOptions.CommunicationReceiveBufferCapacity)}*");
         }
+
+        [Fact]
+        public void ReturnsArrayEmptySingletonIfNoEntriesReceived()
+        {
+            var communicationManager = Substitute.For<ICommunicationManager>();
+            using var observer = new CommunicationReceivedEntriesObserver(communicationManager, EngineQueueOptions.DefaultCommunicationReceiveBufferCapacity, NullLogger.Instance);
+
+            var receivedEntries = observer.GetAndResetReceivedEntries();
+
+            receivedEntries.Should().BeSameAs(Array.Empty<ILinkChangedEntry>());
+        }
     }
 }

@@ -66,7 +66,11 @@ internal sealed class CommunicationProcessor(LinkCache linkCache, IUniqueNamePro
         // - if the destination (pooling) can buffer, multiple values per link can come in per cycle
         // TODO: the behavior described here and implemented below will change as soon as the links each get their own queues
 
-        IEnumerable<ILinkChangedEntry> receivedChangedEntries = _receivedEntriesObserver.GetAndResetReceivedEntries();
+        IReadOnlyCollection<ILinkChangedEntry> receivedChangedEntries = _receivedEntriesObserver.GetAndResetReceivedEntries();
+        // most cycles receive nothing, so they do not need the collections below
+        if (receivedChangedEntries.Count == 0)
+            return;
+
         IDictionary<Guid, IRuntimeLink> externalIncomingLinks = linkCache.GetExternalIncomingLinks();
 
         var entryLinkPairs = new List<(ILinkChangedEntry Entry, IRuntimeLink Link)>();
