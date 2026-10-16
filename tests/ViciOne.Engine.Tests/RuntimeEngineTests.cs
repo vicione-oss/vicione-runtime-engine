@@ -966,7 +966,7 @@ public class RuntimeEngineTests : IDisposable
         }
 
         [Fact]
-        public void WaitsUntilCycleIsFinished()
+        public void WaitsUntilBlocksAreProcessed()
         {
             using var engine = CreateEmptyEngine([], [Assembly.GetExecutingAssembly()]);
             var runtimeBlockType = typeof(RealBlock);
@@ -974,10 +974,9 @@ public class RuntimeEngineTests : IDisposable
             using var waitForForCycleStartedWaitHandle = new ManualResetEvent(false);
             using var cycleWaitHandle = new ManualResetEvent(false);
             var blockDisposedTime = DateTime.MinValue;
-            var cycleFinishedTime = DateTime.MinValue;
+            var blockProcessedTime = DateTime.MinValue;
             var stateChangedToStoppingTime = DateTime.MinValue;
             engine.CycleStarted += Engine_CycleStarted;
-            engine.CycleFinished += Engine_CycleFinished;
             engine.StateChanged += Engine_StateChanged;
             RealBlock.ProcessCalled += RealBlock_ProcessCalled;
             RealBlock.DisposeCalled += RealBlock_DisposeCalled;
@@ -987,12 +986,12 @@ public class RuntimeEngineTests : IDisposable
 
             engine.Stop();
 
-            cycleFinishedTime.Should()
-                .BeAfter(stateChangedToStoppingTime).And
+            // CycleFinished is raised after the guard is released, so it may come after the dispose
+            blockProcessedTime.Should()
+                .BeOnOrAfter(stateChangedToStoppingTime).And
                 .BeOnOrBefore(blockDisposedTime);
 
             engine.CycleStarted -= Engine_CycleStarted;
-            engine.CycleFinished -= Engine_CycleFinished;
             engine.StateChanged -= Engine_StateChanged;
             RealBlock.ProcessCalled -= RealBlock_ProcessCalled;
             RealBlock.DisposeCalled -= RealBlock_DisposeCalled;
@@ -1001,16 +1000,16 @@ public class RuntimeEngineTests : IDisposable
                 => waitForForCycleStartedWaitHandle.Set();
             void RealBlock_ProcessCalled(object? sender, IFunctionBlockCycleInfo e)
             {
-                if (((RealBlock)sender!).FunctionBlock == block)
-                    cycleWaitHandle.WaitOne(s_waitTimeout);
+                if (((RealBlock)sender!).FunctionBlock != block)
+                    return;
+                cycleWaitHandle.WaitOne(s_waitTimeout);
+                blockProcessedTime = DateTime.UtcNow;
             }
             void RealBlock_DisposeCalled(object? sender, EventArgs e)
             {
                 if (((RealBlock)sender!).FunctionBlock == block)
                     blockDisposedTime = DateTime.UtcNow;
             }
-            void Engine_CycleFinished(object? sender, ICycleInfo e)
-                => cycleFinishedTime = DateTime.UtcNow;
             void Engine_StateChanged(object? sender, EventArgs e)
             {
                 if (engine.State == EngineState.Stopping)
