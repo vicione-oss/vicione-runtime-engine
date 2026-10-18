@@ -16,8 +16,8 @@
 
 - Speed up `MaxPooling`, `MinPooling` and `ConcatPooling` and reduce their allocations per aggregation
 - Update `FastCloner` to `3.5.5`
-- Update `Microsoft.Extensions.Logging.Console` to `10.0.8`
-- Update `Microsoft.Extensions.Logging.Abstractions` to `10.0.8`
+- Update `Microsoft.Extensions.Logging.Console` to `10.0.13`
+- Update `Microsoft.Extensions.Logging.Abstractions` to `10.0.13`
 - Replace `FastCloner` with custom implementation
 - Rename the company to `ViciOne open automation gmbh` in the license and the package metadata
 - Avoid allocations in engine cycles that receive no communication entries
