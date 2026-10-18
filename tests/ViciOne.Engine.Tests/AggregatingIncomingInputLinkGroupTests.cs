@@ -176,6 +176,26 @@ public class AggregatingIncomingInputLinkGroupTests
         }
 
         [Fact]
+        public void CallsCrossSourceAggregatingPoolingOnlyWithValuesOfCurrentCall()
+        {
+            (var connector, var crossSourceAggregatingPooling, _) = CreateConnector<object>();
+            var aggregatedValues = new List<object?[]>();
+            crossSourceAggregatingPooling.Aggregate(Arg.Do<IEnumerable<object?>>(x => aggregatedValues.Add([.. x])));
+            var link1 = Substitute.For<IRuntimeLink<object>>();
+            var link2 = Substitute.For<IRuntimeLink<object>>();
+            link1.Value.Returns(42);
+            link2.Value.Returns(666);
+            var links = new[] { link1, link2 };
+            var group = new AggregatingIncomingInputLinkGroup<object>(connector, links);
+
+            CallPoolValidLinks(group, links, out _);
+            CallPoolValidLinks(group, [link2], out _);
+
+            aggregatedValues.Should().HaveCount(2);
+            aggregatedValues[1].Should().Equal(666);
+        }
+
+        [Fact]
         public void CallsCrossSourceAggregatingPoolingWithValuesFromValidLinks()
         {
             (var connector, var crossSourceAggregatingPooling, _) = CreateConnector<object>();

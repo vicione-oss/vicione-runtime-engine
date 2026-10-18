@@ -9,6 +9,8 @@ internal sealed class AggregatingIncomingInputLinkGroup<TValue>(IRuntimeConnecto
     IncomingInputLinkGroup<TValue, TValue>(connector, links)
 {
     private readonly IAggregatingPooling<TValue> _crossSourceAggregatingPooling = GetCrossSourceAggregatingPooling(connector.Connector as IPoolable);
+    // reused in every cycle, which is safe because the engine pools a link group only from its cycle
+    private readonly List<TValue?> _linkValues = [];
 
     private static IAggregatingPooling<TValue> GetCrossSourceAggregatingPooling(IPoolable? poolable)
         => poolable?.CrossSourceAggregatingPooling as IAggregatingPooling<TValue> ??
@@ -16,7 +18,7 @@ internal sealed class AggregatingIncomingInputLinkGroup<TValue>(IRuntimeConnecto
 
     protected override TValue? PoolValidLinks(IEnumerable<IRuntimeLink<TValue>> validLinks, out bool createdValue)
     {
-        List<TValue?> linkValues = [];
+        _linkValues.Clear();
         foreach (IRuntimeLink<TValue> link in validLinks)
         {
             if (link is IQueueingRuntimeLink<TValue> queueingLink)
@@ -31,12 +33,12 @@ internal sealed class AggregatingIncomingInputLinkGroup<TValue>(IRuntimeConnecto
                     queueingLink.StoreValue(dequeued);
             }
 
-            linkValues.Add(link.Value);
+            _linkValues.Add(link.Value);
         }
 
-        createdValue = linkValues.Count > 0;
+        createdValue = _linkValues.Count > 0;
         return createdValue
-            ? _crossSourceAggregatingPooling.Aggregate(linkValues)
+            ? _crossSourceAggregatingPooling.Aggregate(_linkValues)
             : default;
     }
 }
