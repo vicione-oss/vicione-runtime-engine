@@ -48,7 +48,7 @@ public class RuntimePersistentVariablesProviderTests : RuntimePersistentVariable
             foreach (var blockPersistentVariables in allPersistentVariablesReturned)
             {
                 allPersistentVariablesExpected.Should().ContainKey(blockPersistentVariables.Key);
-                blockPersistentVariables.Value.Should().ContainAllButNotMore(allPersistentVariablesExpected[blockPersistentVariables.Key]);
+                blockPersistentVariables.Value.Should().BeEquivalentTo(allPersistentVariablesExpected[blockPersistentVariables.Key]);
             }
         }
     }

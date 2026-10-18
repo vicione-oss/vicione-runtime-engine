@@ -67,14 +67,7 @@ public class RuntimePersistentVariablesChangedObserverTests : RuntimePersistentV
 
             var changedPersistentVariables = observer.GetAndResetChanged();
 
-            changedPersistentVariables.Should().HaveCount(persistentVariablesToChange.Count);
-            foreach (var pair in persistentVariablesToChange)
-            {
-                var changed = changedPersistentVariables[pair.Key];
-                changed.Should().HaveCount(pair.Value.Count());
-                foreach (var persistentVariable in pair.Value)
-                    changed.Should().Contain(persistentVariable);
-            }
+            changedPersistentVariables.Should().BeEquivalentTo(persistentVariablesToChange);
         }
     }
 

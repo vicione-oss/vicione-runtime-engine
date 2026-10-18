@@ -19,8 +19,7 @@ public class PoolingFactoryTests
 
             var availableReturned = factory.GetAvailablePoolingTypes<bool>();
 
-            // the enumeration has no particular order
-            availableReturned.Should().ContainAllButNotMore(availableExpected);
+            availableReturned.Should().BeEquivalentTo(availableExpected);
 
         }
     }
@@ -36,8 +35,7 @@ public class PoolingFactoryTests
 
             var availableReturned = factory.GetAvailablePoolingTypes(typeof(bool));
 
-            // the enumeration has no particular order
-            availableReturned.Should().ContainAllButNotMore(availableExpected);
+            availableReturned.Should().BeEquivalentTo(availableExpected);
         }
     }
 

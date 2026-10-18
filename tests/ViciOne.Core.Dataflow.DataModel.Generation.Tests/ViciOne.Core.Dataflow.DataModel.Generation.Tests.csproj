@@ -1,22 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <Compile Include="..\..\shared\EnumerableExtensions.cs" Link="EnumerableExtensions.cs" />
-    <Compile Include="..\shared\AssertionExtensions.cs" Link="AssertionExtensions.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AwesomeAssertions" />
-    <PackageReference Include="coverlet.collector">
+    <PackageReference Include="AwesomeAssertions.Analyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="xunit" />
-    <PackageReference Include="xunit.runner.visualstudio">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 
   <ItemGroup>

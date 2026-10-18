@@ -157,7 +157,7 @@ public class RuntimeLinkTests
             runtimeLink.SetData(666, default, default);
 
             monitoredLink.Should()
-                .Raise(nameof(MockRuntimeLink<object, object>.LinkChanged))
+                .Raise(nameof(MockRuntimeLink<,>.LinkChanged))
                 .WithSender(runtimeLink);
         }
     }

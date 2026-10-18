@@ -71,8 +71,9 @@ public abstract class SettingsPersistenceProcessorTests : IDisposable
             Persistence.EntriesLoaded += Raise.Event<Action<IEnumerable<IPersistenceEntry>>>(entries);
 
             var loggedMessages = Logger.GetLoggedMessages();
-            loggedMessages.Where(x => x.Contains(notExistingGuid.ToString(), StringComparison.OrdinalIgnoreCase)).Should().HaveCount(1);
-            loggedMessages.Where(x => x.Contains(existingGuid.ToString(), StringComparison.OrdinalIgnoreCase)).Should().HaveCount(0);
+            loggedMessages.Should()
+                .ContainSingle(x => x.Contains(notExistingGuid.ToString(), StringComparison.OrdinalIgnoreCase)).And
+                .NotContain(x => x.Contains(existingGuid.ToString(), StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -80,12 +81,12 @@ public abstract class SettingsPersistenceProcessorTests : IDisposable
         {
             var settingsValues = Persistence.RequestAllValues();
 
-            settingsValues.Should().HaveCount(AllSettings.Count());
+            settingsValues.Should().HaveSameCount(AllSettings);
             foreach (var setting in AllSettings)
             {
-                var settingsValue = settingsValues.FirstOrDefault(x => x.Id == setting.Setting.Id);
-                settingsValue.Should().NotBeNull();
-                settingsValue!.Time.Should().Be(setting.ChangedTime);
+                settingsValues.Should()
+                    .ContainSingle(x => x.Id == setting.Setting.Id)
+                        .Which.Time.Should().Be(setting.ChangedTime);
             }
         }
     }

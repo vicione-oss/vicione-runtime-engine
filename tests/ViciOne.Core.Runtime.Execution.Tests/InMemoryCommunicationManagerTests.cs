@@ -47,7 +47,7 @@ public class InMemoryCommunicationManagerTests
 
             var returned = manager.GetAndResetHandledExternalOutgoingLinkChangedEntries();
 
-            returned.Should().ContainAllButNotMore(changedEntries);
+            returned.Should().BeEquivalentTo(changedEntries);
         }
 
         [Fact]
@@ -74,7 +74,7 @@ public class InMemoryCommunicationManagerTests
 
             manager.HandleChangedOutgoingLinks(changedEntries);
 
-            manager.GetAndResetHandledExternalOutgoingLinkChangedEntries().Should().ContainAllButNotMore(changedEntries);
+            manager.GetAndResetHandledExternalOutgoingLinkChangedEntries().Should().BeEquivalentTo(changedEntries);
         }
 
         [Fact]

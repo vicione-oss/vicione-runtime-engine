@@ -47,7 +47,7 @@ public class InMemoryPersistenceTests
 
             var returned = persistence.GetAndResetPersisted();
 
-            returned.Should().ContainAllButNotMore(persistedEntries);
+            returned.Should().BeEquivalentTo(persistedEntries);
         }
 
         [Fact]
@@ -75,7 +75,7 @@ public class InMemoryPersistenceTests
 
             var returned = persistence.GetPersisted();
 
-            returned.Should().ContainAllButNotMore(persistedEntries);
+            returned.Should().BeEquivalentTo(persistedEntries);
         }
     }
 
@@ -89,7 +89,7 @@ public class InMemoryPersistenceTests
 
             persistence.Persist(entriesToPersist);
 
-            persistence.GetPersisted().Should().ContainAllButNotMore(entriesToPersist);
+            persistence.GetPersisted().Should().BeEquivalentTo(entriesToPersist);
         }
 
         [Fact]

@@ -48,7 +48,7 @@ public class RuntimeSettingsProviderTests : RuntimeSettingsTests
             foreach (var blockSettings in allSettingsReturned)
             {
                 allSettingsExpected.Should().ContainKey(blockSettings.Key);
-                blockSettings.Value.Should().ContainAllButNotMore(allSettingsExpected[blockSettings.Key]);
+                blockSettings.Value.Should().BeEquivalentTo(allSettingsExpected[blockSettings.Key]);
             }
         }
     }

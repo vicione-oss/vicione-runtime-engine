@@ -68,8 +68,9 @@ public abstract partial class PersistentVariablesPersistenceProcessorTests : IDi
             Persistence.EntriesLoaded += Raise.Event<Action<IEnumerable<IPersistenceEntry>>>(entries);
 
             var loggedMessages = Logger.GetLoggedMessages();
-            loggedMessages.Where(x => x.Contains(notExistingGuid.ToString(), StringComparison.OrdinalIgnoreCase)).Should().HaveCount(1);
-            loggedMessages.Where(x => x.Contains(existingGuid.ToString(), StringComparison.OrdinalIgnoreCase)).Should().HaveCount(0);
+            loggedMessages.Should()
+                .ContainSingle(x => x.Contains(notExistingGuid.ToString(), StringComparison.OrdinalIgnoreCase)).And
+                .NotContain(x => x.Contains(existingGuid.ToString(), StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -77,12 +78,12 @@ public abstract partial class PersistentVariablesPersistenceProcessorTests : IDi
         {
             var persistentVariablesValues = Persistence.RequestAllValues();
 
-            persistentVariablesValues.Should().HaveCount(AllPersistentVariables.Count());
+            persistentVariablesValues.Should().HaveSameCount(AllPersistentVariables);
             foreach (var persistentVariable in AllPersistentVariables)
             {
-                var persistentVariablesValue = persistentVariablesValues.FirstOrDefault(x => x.Id == persistentVariable.Variable.Id);
-                persistentVariablesValue.Should().NotBeNull();
-                persistentVariablesValue!.Time.Should().Be(persistentVariable.ChangedTime);
+                persistentVariablesValues.Should()
+                    .ContainSingle(x => x.Id == persistentVariable.Variable.Id)
+                        .Which.Time.Should().Be(persistentVariable.ChangedTime);
             }
         }
     }

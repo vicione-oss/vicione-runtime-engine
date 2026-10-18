@@ -53,7 +53,7 @@ public class FunctionBlockDesignEditorTests
         {
             var editor = new FunctionBlockDesignEditor(PoolingFactory);
 
-            editor.Design.ValidRunModes.Should().ContainAllButNotMore(FunctionBlockDesignDefaults.ValidRunModes);
+            editor.Design.ValidRunModes.Should().BeEquivalentTo(FunctionBlockDesignDefaults.ValidRunModes);
         }
 
         [Fact]

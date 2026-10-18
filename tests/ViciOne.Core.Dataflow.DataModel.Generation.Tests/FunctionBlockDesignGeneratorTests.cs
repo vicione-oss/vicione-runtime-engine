@@ -41,9 +41,10 @@ public class FunctionBlockDesignGeneratorTests
                 info3,
             ], CreatePoolingFactory());
 
-            designs.Where(x => x.Name == info1.Name).Should().HaveCount(1);
-            designs.Where(x => x.Name == info2.Name).Should().HaveCount(1);
-            designs.Where(x => x.Name == info3.Name).Should().HaveCount(1);
+            designs.Should()
+                .ContainSingle(x => x.Name == info1.Name).And
+                .ContainSingle(x => x.Name == info2.Name).And
+                .ContainSingle(x => x.Name == info3.Name);
         }
     }
 
@@ -146,7 +147,7 @@ public class FunctionBlockDesignGeneratorTests
             var design = FunctionBlockDesignGenerator.GenerateFunctionBlockDesign(
                 info, CreatePoolingFactory());
 
-            design.ValidRunModes.Should().ContainAllButNotMore(info.ValidRunModes!);
+            design.ValidRunModes.Should().BeEquivalentTo(info.ValidRunModes!);
         }
 
         [Fact]

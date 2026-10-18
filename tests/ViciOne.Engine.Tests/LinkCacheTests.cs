@@ -177,13 +177,7 @@ public class LinkCacheTests
 
             var result = linkCache.GetIncomingInputLinkGroups(RuntimeFunctionBlocks.First());
 
-            result.Should().HaveCount(expected.Length);
-            foreach (var expectedGroup in expected)
-            {
-                var returnedGroup = result.Where(x => x.Connector == expectedGroup.Connector);
-                returnedGroup.Should().HaveCount(1);
-                returnedGroup.First().Should().BeEquivalentTo(expectedGroup);
-            }
+            result.Should().BeEquivalentTo(expected);
         }
     }
 
@@ -262,8 +256,10 @@ public class LinkCacheTests
 
             var result = linkCache.GetExternalIncomingLinks();
 
-            result.Should().HaveCount(1);
-            result.First().Should().BeEquivalentTo(expected);
+            result.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .BeEquivalentTo(expected);
         }
     }
 

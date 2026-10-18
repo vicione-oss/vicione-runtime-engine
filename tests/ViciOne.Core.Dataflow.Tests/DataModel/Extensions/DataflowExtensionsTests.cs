@@ -40,8 +40,7 @@ public class DataflowExtensionsTests
 
             var containers = DataflowExtensions.GetContainers(info.Dataflow);
 
-            // the enumeration has no particular order
-            containers.Should().ContainAllButNotMore(info.AllContainers);
+            containers.Should().BeEquivalentTo(info.AllContainers);
         }
     }
 

@@ -572,6 +572,12 @@ public class DeepClonerTests
         [Fact]
         public void DeepClone_AfterAlcUnload_CollectibleTypeIsReleasedFromCache()
         {
+            // On Linux the coverage extension attaches a native CLR profiler (libInstrumentationEngine.so), and that profiler keeps the
+            // collectible type alive after its ALC is unloaded. The test itself is correct. It just can't prove anything while a profiler is attached.
+            Assert.SkipWhen(
+                Environment.GetEnvironmentVariable("CORECLR_ENABLE_PROFILING") == "1",
+                "An attached CLR profiler, such as the code coverage collector on Linux, keeps collectible types alive");
+
             WeakReference? collectibleTypeRef = null;
             WarmCacheWithCollectibleType(ref collectibleTypeRef);
 

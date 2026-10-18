@@ -531,8 +531,10 @@ public class RuntimeEngineTests : IDisposable
 
             engine.State.Should().Be(EngineState.InitializationError);
             var errorMessages = LoggerFactory.GetLoggers().First().GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should().ContainEquivalentOf("design").And.Contain(nameof(RealBlock));
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .ContainEquivalentOf("design").And.Contain(nameof(RealBlock));
         }
 
         [Theory]
@@ -550,9 +552,10 @@ public class RuntimeEngineTests : IDisposable
 
             engine.State.Should().Be(EngineState.InitializationError);
             var errorMessages = LoggerFactory.GetLoggers().First().GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should().Contain(runtimeBlockType.Name)
-                .And.MatchEquivalentOf(expectedMessage);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain(runtimeBlockType.Name).And.MatchEquivalentOf(expectedMessage);
         }
 
         [Fact]
@@ -565,8 +568,10 @@ public class RuntimeEngineTests : IDisposable
 
             engine.State.Should().Be(EngineState.InitializationError);
             var errorMessages = LoggerFactory.GetLoggers().First().GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should().ContainEquivalentOf("driver").And.Contain(nameof(RealDriver_EngineTests));
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .ContainEquivalentOf("driver").And.Contain(nameof(RealDriver_EngineTests));
         }
 
         [Theory]
@@ -584,8 +589,10 @@ public class RuntimeEngineTests : IDisposable
 
             engine.State.Should().Be(EngineState.InitializationError);
             var errorMessages = LoggerFactory.GetLoggers().First().GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should().Contain(runtimeDriverType.Name);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain(runtimeDriverType.Name);
         }
 
         [Fact]
@@ -728,7 +735,7 @@ public class RuntimeEngineTests : IDisposable
             var stateChangedCalled = false;
             engine.StateChanged += Engine_StateChanged;
             engine.Start();
-            Task.Run(engine.Stop);
+            Task.Run(engine.Stop, TestContext.Current.CancellationToken);
             waitForForStoppingWaitHandle.WaitOne(s_waitTimeout).Should().BeTrue();
             stateChangedCalled = false;
 
@@ -904,8 +911,10 @@ public class RuntimeEngineTests : IDisposable
 
             engine.State.Should().Be(EngineState.Stopped);
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should().Contain(guid.ToString());
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain(guid.ToString());
         }
 
         [Fact]
@@ -923,8 +932,10 @@ public class RuntimeEngineTests : IDisposable
 
             engine.State.Should().Be(EngineState.Stopped);
             var errorMessages = logger.GetLoggedMessages(LogLevel.Error);
-            errorMessages.Should().HaveCount(1);
-            errorMessages.First().Should().Contain(runtimeDriverType.Name);
+            errorMessages.Should()
+                .ContainSingle()
+                    .Which.Should()
+                        .Contain(runtimeDriverType.Name);
         }
 
         [Fact]
@@ -939,7 +950,7 @@ public class RuntimeEngineTests : IDisposable
             var stateChangedToStoppingTime = DateTime.MinValue;
             engine.StateChanged += Engine_StateChanged;
             RealBlock.InitializeIICalled += RealBlock_InitializeIICalled;
-            Task.Run(engine.Start);
+            Task.Run(engine.Start, TestContext.Current.CancellationToken);
             waitForForInitializedStartedWaitHandle.WaitOne(s_waitTimeout).Should().BeTrue();
 
             engine.Stop();

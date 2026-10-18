@@ -50,13 +50,11 @@
   <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests')) And $(MSBuildProjectDirectory.Contains('tests'))">
     <!-- Suppress documentation of public API -->
     <NoWarn>CS1591</NoWarn>
+    <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <IsPublishable>true</IsPublishable>
-    <RunSettingsFilePath>$(MsBuildThisFileDirectory)tests.runsettings</RunSettingsFilePath>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner> <!-- Microsoft Testing Platform command line experience -->
   </PropertyGroup>
-  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests')) And $(MSBuildProjectDirectory.Contains('tests'))">
-    <PackageReference Include="JunitXml.TestLogger" />
-  </ItemGroup>
 
   <!-- Properties for sample projects -->
   <PropertyGroup Condition="$(MSBuildProjectDirectory.Contains('samples'))">
