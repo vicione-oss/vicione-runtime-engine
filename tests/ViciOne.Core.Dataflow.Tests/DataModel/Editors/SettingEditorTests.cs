@@ -164,10 +164,12 @@ public class SettingEditorTests
             var design = CreateDesign<int>();
             var editor = new SettingEditor<int>(design);
             var valueToSet = 42;
+            var timeBefore = DateTime.UtcNow;
 
             editor.SetValue(valueToSet);
 
-            editor.Setting.ChangedTime.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMilliseconds(20));
+            editor.Setting.ChangedTime.Should().BeOnOrAfter(timeBefore)
+                .And.BeOnOrBefore(DateTime.UtcNow);
         }
 
         [Fact]

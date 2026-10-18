@@ -50,13 +50,14 @@ public abstract class FunctionBlockExecutorTests : IDisposable
         public void SetsChangedTime()
         {
             var input = Executor.GetInputs().First();
-            var now = DateTime.UtcNow;
+            var timeBefore = DateTime.UtcNow;
 
             Executor.ChangeInputValue(input, 42);
             Executor.ProcessCycle();
 
             var inputValues = Executor.GetInputValues();
-            inputValues[input].Time.Should().BeOnOrAfter(now);
+            inputValues[input].Time.Should().BeOnOrAfter(timeBefore)
+                .And.BeOnOrBefore(DateTime.UtcNow);
         }
 
         [Fact]
@@ -91,13 +92,14 @@ public abstract class FunctionBlockExecutorTests : IDisposable
         public void SetsChangedTime()
         {
             var variable = Executor.GetPersistentVariables().First();
-            var now = DateTime.UtcNow;
+            var timeBefore = DateTime.UtcNow;
 
             Executor.ChangePersistentVariableValue(variable, 123);
             Executor.ProcessCycle();
 
             var variableValues = Executor.GetPersistentVariableValues();
-            variableValues[variable].Time.Should().BeOnOrAfter(now);
+            variableValues[variable].Time.Should().BeOnOrAfter(timeBefore)
+                .And.BeOnOrBefore(DateTime.UtcNow);
         }
 
         [Fact]
@@ -132,13 +134,14 @@ public abstract class FunctionBlockExecutorTests : IDisposable
         public void SetsChangedTime()
         {
             var setting = Executor.GetSettings().First();
-            var now = DateTime.UtcNow;
+            var timeBefore = DateTime.UtcNow;
 
             Executor.ChangeSettingValue(setting, 456);
             Executor.ProcessCycle();
 
             var settingValues = Executor.GetSettingValues();
-            settingValues[setting].Time.Should().BeOnOrAfter(now);
+            settingValues[setting].Time.Should().BeOnOrAfter(timeBefore)
+                .And.BeOnOrBefore(DateTime.UtcNow);
         }
 
         [Fact]
